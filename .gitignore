@@ -1,0 +1,19 @@
+# Куки и секреты
+config/.env
+config/cookies.json
+config/flow_cookies.json
+config/grok_cookies.json
+config/runway_cookies.json
+config/kling_cookies.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Данные
+data/input/
+data/media/
+data/transcripts/
+data/prompts/
