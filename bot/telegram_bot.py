@@ -1469,7 +1469,8 @@ async def cb_cut(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         json_path = BASE_DIR / "data" / "transcripts" / session / "result.json"
         if json_path.exists():
             with open(json_path, encoding="utf-8") as f:
-                segs = json.load(f)
+                _raw = json.load(f)
+            segs = _raw["segments"] if isinstance(_raw, dict) else _raw
             durs     = [s["end"] - s["start"] for s in segs]
             min_dur  = min(durs)
             max_dur  = max(durs)

@@ -96,7 +96,8 @@ def load_segments(session: str) -> list[dict] | None:
     if not path.exists():
         return None
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    return data["segments"] if isinstance(data, dict) else data
 
 
 def load_json_file(path: Path) -> list[dict] | None:
