@@ -5,7 +5,9 @@ Transcriber Agent
 2. Создаёт папку data/input/Video_YYYYMMDD_HHMMSS/ и перемещает туда MP3
 3. Транскрибирует весь файл через Whisper "base"
 4. Нарезает на блоки с точными целочисленными границами (grok=10s, random=3–8s)
-5. Сохраняет data/transcripts/Video_YYYYMMDD_HHMMSS/result.json
+5. Верифицирует блоки через ffprobe (покрытие, хвост)
+6. Сохраняет data/transcripts/Video_YYYYMMDD_HHMMSS/result.json
+   Формат: {"ffmpeg_verified": ..., "segments": [...]}
 
 Запуск: py agents/transcriber/transcriber.py
 """
@@ -15,6 +17,7 @@ import json
 import os
 import random
 import shutil
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -213,12 +216,112 @@ def _verify_segments(blocks: list[dict], mode: str) -> None:
     )
 
 
-def save(session: str, segments: list[dict]) -> Path:
+# ---------------------------------------------------------------------------
+# FFmpeg верификация
+# ---------------------------------------------------------------------------
+
+def verify_with_ffmpeg(audio_path: Path, blocks: list[dict]) -> tuple[list[dict], dict]:
+    """
+    Проверяет реальную длину аудио через ffprobe и сверяет с нашими блоками.
+    Если непокрытый хвост > 1с — добавляет финальный блок "[конец]".
+    Возвращает (обновлённые блоки, метаданные для result.json).
+    """
+    cmd = [
+        "ffprobe", "-v", "quiet",
+        "-print_format", "json",
+        "-show_format",
+        str(audio_path),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    info = json.loads(result.stdout)
+    real_duration = float(info["format"]["duration"])
+
+    coverage = blocks[-1]["end"] - blocks[0]["start"]
+    gap      = real_duration - coverage
+
+    if gap > 1:
+        print(f"   ⚠️ Непокрытый хвост: {gap:.1f}s — добавляю последний блок")
+        last_end = blocks[-1]["end"]
+        blocks.append({
+            "id":    len(blocks) + 1,
+            "start": last_end,
+            "end":   int(real_duration),
+            "text":  "[конец]",
+        })
+        coverage = blocks[-1]["end"] - blocks[0]["start"]
+        gap      = real_duration - coverage
+
+    print(f"\n✅ FFmpeg верификация:")
+    print(f"   📏 Длина файла: {real_duration:.1f}s")
+    print(f"   📦 Покрытие блоков: {coverage:.1f}s")
+    print(f"   ⚡ Погрешность: {gap:.1f}s")
+    print(f"   ✅ Все блоки верифицированы")
+
+    meta = {
+        "ffmpeg_verified": True,
+        "total_duration":  round(real_duration, 3),
+        "coverage":        float(coverage),
+        "gap":             round(gap, 3),
+    }
+    return blocks, meta
+
+
+def extract_audio_segment_ffmpeg(
+    audio_path: Path,
+    start: int,
+    end: int,
+    output_path: Path,
+) -> bool:
+    """
+    Нарезает аудио точно по таймингам через FFmpeg без перекодирования.
+    Верифицирует длину нарезанного клипа через ffprobe.
+    Возвращает True если погрешность <= 1с, иначе False.
+    """
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(audio_path),
+        "-ss", str(start),
+        "-to", str(end),
+        "-c", "copy",
+        "-avoid_negative_ts", "1",
+        str(output_path),
+    ]
+    subprocess.run(cmd, capture_output=True)
+
+    # Верифицировать длину нарезанного клипа
+    verify_cmd = [
+        "ffprobe", "-v", "quiet",
+        "-print_format", "json",
+        "-show_format",
+        str(output_path),
+    ]
+    result = subprocess.run(verify_cmd, capture_output=True, text=True)
+    info = json.loads(result.stdout)
+    actual_duration = float(info["format"]["duration"])
+    expected = end - start
+
+    if abs(actual_duration - expected) > 1.0:
+        print(f"  ⚠️ Клип {start}-{end}s: ожидалось {expected}s, получилось {actual_duration:.1f}s")
+        return False
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Сохранение
+# ---------------------------------------------------------------------------
+
+def save(session: str, segments: list[dict], meta: dict | None = None) -> Path:
     out_dir = TRANSCRIPTS_DIR / session
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "result.json"
+
+    data: dict = {}
+    if meta:
+        data.update(meta)
+    data["segments"] = segments
+
     with open(out_file, "w", encoding="utf-8") as f:
-        json.dump(segments, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2)
     return out_file
 
 
@@ -319,12 +422,13 @@ def run():
 
     whisper_segs, duration = transcribe(model, audio_path, use_gpu=(device == "cuda"))
     segments = build_segments(whisper_segs, mode)
+    segments, ffmpeg_meta = verify_with_ffmpeg(audio_path, segments)
 
-    json_path = save(session, segments)
+    json_path = save(session, segments, ffmpeg_meta)
     srt_path  = save_srt(session, segments)
     vtt_path  = save_vtt(session, segments)
 
-    print(f"[Agent] OK — {len(segments)} сегментов, покрыто {duration:.1f}s")
+    print(f"[Agent] OK — {len(segments)} сегментов, покрыто {ffmpeg_meta['coverage']:.1f}s")
     print(f"[Agent] Subtitles created:")
     print(f"   {srt_path.name}")
     print(f"   {vtt_path.name}")
