@@ -181,17 +181,23 @@ def _slice_grok(whisper_segs: list[dict]) -> list[dict]:
     return blocks
 
 
+_RANDOM_MIN = 3   # минимум секунд для блока в random mode
+_RANDOM_MAX = 8   # максимум секунд
+
+
 def _slice_random(whisper_segs: list[dict]) -> list[dict]:
     """
     Random mode: рандомно 3–8 сек, блок закрывается на границе Whisper-сегмента.
 
     НЕ разрезает сегменты пополам — устраняет overflow (слишком много слов
     в коротком блоке). Последний блок заканчивается на реальном конце речи.
+    После построения блоков: очень короткие блоки (<3с) мёрджатся со следующим,
+    чтобы гарантировать минимальный размер = _RANDOM_MIN.
     """
     blocks: list[dict] = []
     current_words: list[str] = []
     current_start: int | None = None
-    target = random.randint(3, 8)
+    target = random.randint(_RANDOM_MIN, _RANDOM_MAX)
 
     for ws in whisper_segs:
         words = ws["text"].strip().split()
@@ -214,7 +220,7 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
             })
             current_start = block_end
             current_words = []
-            target = random.randint(3, 8)
+            target = random.randint(_RANDOM_MIN, _RANDOM_MAX)
 
         # Добавляем сегмент целиком (без разрезания)
         current_words.extend(words)
@@ -229,7 +235,29 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
             "text":  " ".join(current_words).strip(),
         })
 
-    return blocks
+    # ── Постобработка: мёрдж слишком коротких блоков (<_RANDOM_MIN) ──────────
+    # Whisper иногда производит сегменты 1–2 сек. Мёрджим их со следующим блоком.
+    merged: list[dict] = []
+    i = 0
+    while i < len(blocks):
+        b = blocks[i]
+        dur = b["end"] - b["start"]
+        # Если короткий И есть следующий → мёрджим с ним
+        if dur < _RANDOM_MIN and i + 1 < len(blocks):
+            nxt = blocks[i + 1]
+            merged.append({
+                "id":    len(merged) + 1,
+                "start": b["start"],
+                "end":   nxt["end"],
+                "text":  (b["text"] + " " + nxt["text"]).strip(),
+            })
+            i += 2
+        else:
+            merged.append({"id": len(merged) + 1,
+                           "start": b["start"], "end": b["end"], "text": b["text"]})
+            i += 1
+
+    return merged
 
 
 def _verify_segments(blocks: list[dict], mode: str) -> None:
