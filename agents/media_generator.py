@@ -79,7 +79,7 @@ PLATFORMS = {
     },
 }
 
-PIXEL_API_URL        = os.environ.get("PIXEL_API_URL", "https://voiceapi.csv666.ru")
+PIXEL_API_URL        = os.environ.get("PIXEL_API_URL", "").strip()
 PIXEL_API_KEY        = os.environ.get("PIXEL_API_KEY", "").strip()
 PIXEL_MAX_CONCURRENT = int(os.environ.get("PIXEL_MAX_CONCURRENT", "5"))
 
@@ -420,16 +420,11 @@ async def _pixel_generate_one(
 
                     img_data = base64.b64decode(img_b64)
 
-                    # Проверка ориентации: должно быть горизонтальным (w >= h)
-                    try:
-                        img = Image.open(io.BytesIO(img_data))
-                        w, h = img.size
-                        if w < h:
-                            print(f"  [{idx}] вертикальное ({w}x{h}), повтор (попытка {attempt})", flush=True)
-                            await asyncio.sleep(5)
-                            continue
-                    except Exception:
-                        pass  # если PIL не работает — пропускаем проверку
+                    # Проверка ориентации: ОБЯЗАТЕЛЬНО горизонтальное (w >= h)
+                    img = Image.open(io.BytesIO(img_data))
+                    w, h = img.size
+                    if w < h:
+                        raise ValueError(f"Вертикальное фото {w}x{h} — повтор")
 
                     out_path.write_bytes(img_data)
                     size_kb = len(img_data) // 1024
@@ -1266,13 +1261,10 @@ def run() -> None:
     # ── API ключ для PixelAgent ────────────────────────────────────────────
     api_key = None
     if platform["type"] == "api":
-        if args.platform:
-            api_key = PIXEL_API_KEY
-        else:
-            api_key = ask_pixel_api_key()
-        if not api_key:
-            print("ОШИБКА: PIXEL_API_KEY не задан.")
+        if not PIXEL_API_URL or not PIXEL_API_KEY:
+            print("❌ Заполни PIXEL_API_URL и PIXEL_API_KEY в config/.env")
             return
+        api_key = PIXEL_API_KEY
 
     # ── Тип генерации ─────────────────────────────────────────────────────
     if args.gen_type:
