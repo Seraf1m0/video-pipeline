@@ -4,7 +4,7 @@ Transcriber Agent
 1. Берёт MP3 из data/input/ (корень, не подпапки)
 2. Создаёт папку data/input/Video_YYYYMMDD_HHMMSS/ и перемещает туда MP3
 3. Транскрибирует весь файл через Whisper "base"
-4. Нарезает на сегменты 3–8 сек подряд без пропусков
+4. Нарезает на блоки с точными целочисленными границами (grok=10s, random=3–8s)
 5. Сохраняет data/transcripts/Video_YYYYMMDD_HHMMSS/result.json
 
 Запуск: py agents/transcriber/transcriber.py
@@ -110,116 +110,106 @@ def ask_cut_mode() -> str:
         print("  Неверный ввод.")
 
 
-def build_segments(whisper_segs: list[dict], duration: float, mode: str = "random") -> list[dict]:
+def build_segments(whisper_segs: list[dict], mode: str = "random") -> list[dict]:
     """
-    Нарезает транскрипцию на блоки по словам.
+    Нарезает whisper_segments на блоки с точными целочисленными границами.
     mode='grok'   — ровно 10 сек на блок
-    mode='random' — рандомно 3–8 сек на блок
+    mode='random' — рандомно 3–8 сек, новый target на каждый блок
     """
     if mode == "grok":
         dur_fn = lambda: 10
     else:
         dur_fn = lambda: random.randint(3, 8)
 
-    segments = _slice_by_blocks(whisper_segs, duration, dur_fn)
-    _verify_segments(segments, mode)
-    return segments
+    blocks = _slice_by_blocks(whisper_segs, dur_fn)
+    _verify_segments(blocks, mode)
+    return blocks
 
 
-def _slice_by_blocks(whisper_segs: list[dict], duration: float, block_duration_fn) -> list[dict]:
+def _slice_by_blocks(whisper_segs: list[dict], dur_fn) -> list[dict]:
     """
-    Универсальная нарезка по словам.
+    Нарезка по словам с целочисленными границами.
 
-    Для каждого Whisper-сегмента:
-    - Если ПОЛНОСТЬЮ в блоке (end <= blk_end) → все слова в текущий блок
-    - Если ЧАСТИЧНО (start < blk_end < end) → пропорциональная доля слов,
-      закрываем блок, остаток переносим в следующий
-    - Если ПОСЛЕ блока (start >= blk_end) → закрываем блок, переходим дальше
+    - current_start = int(первый старт) — всегда int
+    - block_end = current_start + target — всегда int
+    - Слова берутся пропорционально overlap при частичном попадании
+    - random mode: новый target генерируется для каждого нового блока
     """
-    result: list[dict] = []
-    block_id  = 1
-    blk_start = 0
-    blk_end   = blk_start + block_duration_fn()
-    words: list[str] = []
+    blocks: list[dict] = []
+    current_words: list[str] = []
+    current_start: int | None = None
+    target = dur_fn()
 
-    def close_block() -> None:
-        nonlocal block_id, blk_start, blk_end, words
-        result.append({
-            "id":    block_id,
-            "start": int(blk_start),
-            "end":   int(min(blk_end, duration)),
-            "text":  " ".join(words).strip(),
-        })
-        block_id  += 1
-        blk_start  = blk_end
-        blk_end    = blk_start + block_duration_fn()
-        words      = []
+    for ws in whisper_segs:
+        if current_start is None:
+            current_start = int(ws["start"])  # целое число
 
-    for seg in whisper_segs:
-        seg_start  = seg["start"]
-        seg_end    = seg["end"]
-        seg_words  = seg["text"].strip().split()
-
-        if not seg_words:
+        words = ws["text"].strip().split()
+        if not words:
             continue
 
-        # Пропускаем пустые блоки до начала этого сегмента
-        while seg_start >= blk_end and blk_end < duration:
-            close_block()
+        if ws["end"] <= current_start + target:
+            # Сегмент полностью входит в блок
+            current_words.extend(words)
+        else:
+            # Сегмент частично входит в блок
+            overlap   = (current_start + target) - ws["start"]
+            total_dur = ws["end"] - ws["start"]
+            ratio     = max(0.0, min(1.0, overlap / total_dur)) if total_dur > 0 else 1.0
+            take      = max(1, int(len(words) * ratio))
 
-        # Распределяем слова сегмента по блокам (сегмент может быть длинным)
-        rem_words = seg_words
-        rem_start = seg_start
+            current_words.extend(words[:take])
 
-        while rem_words:
-            if seg_end <= blk_end:
-                # Остаток сегмента полностью входит в текущий блок
-                words.extend(rem_words)
-                rem_words = []
-            elif rem_start < blk_end:
-                # Частичное попадание — берём пропорциональную долю слов
-                overlap    = blk_end - rem_start
-                total_left = seg_end - rem_start
-                ratio      = overlap / total_left if total_left > 0 else 1.0
-                n = max(1, round(len(rem_words) * ratio)) if len(rem_words) > 1 else len(rem_words)
-                words.extend(rem_words[:n])
-                rem_words  = rem_words[n:]
-                rem_start  = blk_end
-                close_block()
-            else:
-                # rem_start >= blk_end — закрываем и переходим к следующему блоку
-                close_block()
+            # Закрываем блок РОВНО на целое число секунд
+            block_end = current_start + target
 
-    # Финальный блок с остатком слов
-    if blk_start < duration:
-        result.append({
-            "id":    block_id,
-            "start": int(blk_start),
-            "end":   int(round(duration)),
-            "text":  " ".join(words).strip(),
+            blocks.append({
+                "id":    len(blocks) + 1,
+                "start": current_start,   # int
+                "end":   block_end,       # int
+                "text":  " ".join(current_words).strip(),
+            })
+
+            # Начинаем новый блок
+            current_start = block_end
+            current_words = words[take:]
+            target = dur_fn()  # новый target для каждого нового блока
+
+    # Последний блок
+    if current_words and current_start is not None:
+        blocks.append({
+            "id":    len(blocks) + 1,
+            "start": current_start,
+            "end":   current_start + target,
+            "text":  " ".join(current_words).strip(),
         })
 
-    return result
+    return blocks
 
 
-def _verify_segments(segments: list[dict], mode: str) -> None:
-    """Печатает первые 5 сегментов и проверяет качество нарезки."""
-    print(f"\n[Check] Режим: {mode} | Итого сегментов: {len(segments)}")
-    for s in segments[:5]:
-        dur   = s["end"] - s["start"]
-        empty = " [EMPTY]" if not s["text"].strip() else ""
-        print(f"  #{s['id']:3d} {s['start']:6.1f}s-{s['end']:6.1f}s "
-              f"({dur:.1f}s){empty}  {repr(s['text'][:60])}")
+def _verify_segments(blocks: list[dict], mode: str) -> None:
+    """Проверяет корректность нарезки через assert, печатает первые 5 блоков."""
+    print(f"\n[Check] Режим: {mode} | Итого блоков: {len(blocks)}")
 
-    durs        = [s["end"] - s["start"] for s in segments]
-    gaps        = sum(
-        1 for i in range(len(segments) - 1)
-        if abs(segments[i + 1]["start"] - segments[i]["end"]) > 0.05
-    )
-    empty_count = sum(1 for s in segments if not s["text"].strip())
+    for i, block in enumerate(blocks):
+        assert isinstance(block["start"], int), \
+            f"Блок {i+1}: start должен быть int, получен {type(block['start'])}"
+        assert isinstance(block["end"], int), \
+            f"Блок {i+1}: end должен быть int, получен {type(block['end'])}"
+        assert block["text"].strip() != "", f"Блок {i+1} пустой!"
+        if i > 0:
+            assert block["start"] == blocks[i - 1]["end"], \
+                f"Пропуск между блоком {i} и {i+1}: " \
+                f"{blocks[i-1]['end']}s → {block['start']}s"
+
+    print("✅ Все проверки пройдены")
+    print(f"Первые 5 блоков:")
+    for b in blocks[:5]:
+        print(f"  #{b['id']}: {b['start']}s-{b['end']}s | {b['text'][:50]}")
+
+    durs = [b["end"] - b["start"] for b in blocks]
     print(
-        f"  Пропусков: {gaps} | Пустых: {empty_count} | "
-        f"Мин: {min(durs):.1f}s | Макс: {max(durs):.1f}s | Ср: {sum(durs)/len(durs):.1f}s"
+        f"  Мин: {min(durs)}s | Макс: {max(durs)}s | Ср: {sum(durs)/len(durs):.1f}s"
     )
 
 
@@ -328,7 +318,7 @@ def run():
     print(f"[Whisper] Модель загружена.")
 
     whisper_segs, duration = transcribe(model, audio_path, use_gpu=(device == "cuda"))
-    segments = build_segments(whisper_segs, duration, mode)
+    segments = build_segments(whisper_segs, mode)
 
     json_path = save(session, segments)
     srt_path  = save_srt(session, segments)
