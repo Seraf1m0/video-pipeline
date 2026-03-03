@@ -950,7 +950,7 @@ async def run_pipeline(user_id: int, msg, cfg: dict) -> None:
         if rc2 != 0:
             await safe_edit(
                 build_status() + f"\n❌ <b>Этап 2/4 — Промпты провалились!</b>\n"
-                f"<pre>{h(chr(10).join(buf2[-6:]))}</pre>",
+                f"<pre>{h(chr(10).join(out2.splitlines()[-6:]))}</pre>",
                 kb_done(),
             )
             return
