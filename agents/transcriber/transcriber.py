@@ -235,14 +235,13 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
             "text":  " ".join(current_words).strip(),
         })
 
-    # ── Постобработка: мёрдж слишком коротких блоков (<_RANDOM_MIN) ──────────
-    # Whisper иногда производит сегменты 1–2 сек. Мёрджим их со следующим блоком.
+    # ── Постобработка 1: мёрдж коротких блоков (<_RANDOM_MIN) ───────────────
+    # Whisper иногда производит сегменты 1–2 сек. Мёрджим со следующим.
     merged: list[dict] = []
     i = 0
     while i < len(blocks):
         b = blocks[i]
         dur = b["end"] - b["start"]
-        # Если короткий И есть следующий → мёрджим с ним
         if dur < _RANDOM_MIN and i + 1 < len(blocks):
             nxt = blocks[i + 1]
             merged.append({
@@ -257,7 +256,60 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
                            "start": b["start"], "end": b["end"], "text": b["text"]})
             i += 1
 
-    return merged
+    # ── Постобработка 2: разрезка длинных блоков (>_RANDOM_MAX) ──────────────
+    # Whisper иногда выдаёт сегменты 9-11+ сек. Разрезаем по word-ratio.
+    # После разрезки возможен небольшой overflow (~110%), но блок гарантированно
+    # в диапазоне [_RANDOM_MIN, _RANDOM_MAX].
+    final: list[dict] = []
+    for b in merged:
+        dur = b["end"] - b["start"]
+        if dur <= _RANDOM_MAX:
+            final.append({"id": len(final) + 1,
+                          "start": b["start"], "end": b["end"], "text": b["text"]})
+            continue
+
+        # Делим на минимальное количество частей, чтобы каждая ≤ _RANDOM_MAX
+        words = b["text"].split()
+        n_words = len(words)
+        start = b["start"]
+        remaining_dur = dur
+
+        while remaining_dur > 0:
+            is_last = (remaining_dur <= _RANDOM_MAX)
+            if is_last:
+                part_dur = remaining_dur
+            else:
+                # Берём рандомный кусок в [_RANDOM_MIN, _RANDOM_MAX],
+                # но оставляем хвосту не меньше _RANDOM_MIN
+                hi = min(_RANDOM_MAX, remaining_dur - _RANDOM_MIN)
+                if hi < _RANDOM_MIN:
+                    hi = remaining_dur   # хвост и так короткий
+                part_dur = random.randint(_RANDOM_MIN, int(hi))
+
+            part_end = start + part_dur
+            ratio    = part_dur / remaining_dur if remaining_dur > 0 else 1.0
+
+            if is_last:
+                take = len(words)   # все оставшиеся слова
+            else:
+                take = max(1, min(int(n_words * ratio), len(words) - 1))
+
+            final.append({
+                "id":    len(final) + 1,
+                "start": start,
+                "end":   part_end,
+                "text":  " ".join(words[:take]).strip(),
+            })
+
+            words        = words[take:]
+            n_words      = len(words)
+            remaining_dur -= part_dur
+            start         = part_end
+
+            if not words:
+                break
+
+    return final
 
 
 def _verify_segments(blocks: list[dict], mode: str) -> None:
