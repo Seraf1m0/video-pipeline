@@ -7,7 +7,7 @@ Validator Agent
   3. Видео промпты — наличие и корректность video_prompts.json (если есть)
   4. Медиафайлы   — наличие photo_*.png и video_*.mp4 (если есть)
 
-Запуск: py agents/validator.py [--project Video_YYYYMMDD_HHMMSS] [--fix]
+Запуск: py agents/validator/validator.py [--project Video_YYYYMMDD_HHMMSS] [--fix]
 """
 
 import argparse
@@ -31,7 +31,7 @@ _FFMPEG_DIR = Path(os.environ.get("LOCALAPPDATA", "")) / (
 if _FFMPEG_DIR.exists():
     os.environ["PATH"] = str(_FFMPEG_DIR) + os.pathsep + os.environ.get("PATH", "")
 
-BASE_DIR        = Path(__file__).parent.parent
+BASE_DIR        = Path(__file__).parent.parent.parent
 INPUT_DIR       = BASE_DIR / "data" / "input"
 TRANSCRIPTS_DIR = BASE_DIR / "data" / "transcripts"
 PROMPTS_DIR     = BASE_DIR / "data" / "prompts"

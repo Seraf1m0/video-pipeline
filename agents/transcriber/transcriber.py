@@ -7,7 +7,7 @@ Transcriber Agent
 4. Нарезает на сегменты 3–8 сек подряд без пропусков
 5. Сохраняет data/transcripts/Video_YYYYMMDD_HHMMSS/result.json
 
-Запуск: py agents/transcriber.py
+Запуск: py agents/transcriber/transcriber.py
 """
 
 import argparse
@@ -39,7 +39,7 @@ _FFMPEG_DIR = Path(os.environ.get("LOCALAPPDATA", "")) / (
 if _FFMPEG_DIR.exists():
     os.environ["PATH"] = str(_FFMPEG_DIR) + os.pathsep + os.environ.get("PATH", "")
 
-BASE_DIR = Path(__file__).parent.parent
+BASE_DIR = Path(__file__).parent.parent.parent
 INPUT_DIR = BASE_DIR / "data" / "input"
 TRANSCRIPTS_DIR = BASE_DIR / "data" / "transcripts"
 

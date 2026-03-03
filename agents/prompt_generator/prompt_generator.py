@@ -2,14 +2,14 @@
 Prompt Generator — Photo & Video
 ---------------------------------
 Интерактивный запуск:
-  py agents/prompt_generator.py
+  py agents/prompt_generator/prompt_generator.py
 
 Запуск с аргументами:
-  py agents/prompt_generator.py --type photo --photo-master photo_master_prompt.txt
-  py agents/prompt_generator.py --type photo --photo-master photo_master_prompt.txt --photo-platform gemini
-  py agents/prompt_generator.py --type video --video-master master_video_grok.txt --video-platform grok
-  py agents/prompt_generator.py --type both  --photo-master photo_master_prompt.txt --video-master master_video_veo3.txt
-  py agents/prompt_generator.py --type both  --photo-master photo_master_prompt.txt --video-master master_video_veo3.txt --project Video_20260227_220628
+  py agents/prompt_generator/prompt_generator.py --type photo --photo-master photo_master_prompt.txt
+  py agents/prompt_generator/prompt_generator.py --type photo --photo-master photo_master_prompt.txt --photo-platform gemini
+  py agents/prompt_generator/prompt_generator.py --type video --video-master master_video_grok.txt --video-platform grok
+  py agents/prompt_generator/prompt_generator.py --type both  --photo-master photo_master_prompt.txt --video-master master_video_veo3.txt
+  py agents/prompt_generator/prompt_generator.py --type both  --photo-master photo_master_prompt.txt --video-master master_video_veo3.txt --project Video_20260227_220628
 
 Платформы: gemini | flow | grok
   --photo-platform  (default: gemini)
@@ -39,7 +39,7 @@ if _CLAUDE_DIR.exists():
             os.environ["PATH"] = str(v) + os.pathsep + os.environ.get("PATH", "")
             break
 
-BASE_DIR        = Path(__file__).parent.parent
+BASE_DIR        = Path(__file__).parent.parent.parent
 TRANSCRIPTS_DIR = BASE_DIR / "data" / "transcripts"
 PROMPTS_DIR     = BASE_DIR / "data" / "prompts"
 PHOTO_MASTERS   = BASE_DIR / "config" / "master_prompts" / "photo"

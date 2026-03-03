@@ -9,10 +9,10 @@ Video Cutter + Upscaler Agent
          → data/media/<session>/upscaled/clip_001.mp4 ...
 
 Запуск:
-  py agents/video_cutter.py
-  py agents/video_cutter.py --mode cut
-  py agents/video_cutter.py --mode cut+upscale --method lanczos --resolution 1080
-  py agents/video_cutter.py --project Video_20260227_220628 --source C:/video.mp4
+  py agents/video_cutter/video_cutter.py
+  py agents/video_cutter/video_cutter.py --mode cut
+  py agents/video_cutter/video_cutter.py --mode cut+upscale --method lanczos --resolution 1080
+  py agents/video_cutter/video_cutter.py --project Video_20260227_220628 --source C:/video.mp4
 """
 
 import argparse
@@ -35,7 +35,7 @@ _FFMPEG_DIR = Path(os.environ.get("LOCALAPPDATA", "")) / (
 if _FFMPEG_DIR.exists():
     os.environ["PATH"] = str(_FFMPEG_DIR) + os.pathsep + os.environ.get("PATH", "")
 
-BASE_DIR        = Path(__file__).parent.parent
+BASE_DIR        = Path(__file__).parent.parent.parent
 INPUT_DIR       = BASE_DIR / "data" / "input"
 TRANSCRIPTS_DIR = BASE_DIR / "data" / "transcripts"
 MEDIA_DIR       = BASE_DIR / "data" / "media"
