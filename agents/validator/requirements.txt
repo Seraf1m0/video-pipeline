@@ -1,0 +1,2 @@
+# Нет дополнительных pip-зависимостей (stdlib + ffprobe из winget)
+# ffmpeg: winget install Gyan.FFmpeg

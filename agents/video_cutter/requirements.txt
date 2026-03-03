@@ -1,0 +1,3 @@
+# ffmpeg: winget install Gyan.FFmpeg
+# Real-ESRGAN (опционально, для --method realesrgan):
+#   pip install realesrgan basicsr

@@ -2,7 +2,7 @@
 Video Pipeline — main entry point
 """
 
-from agents.transcription_agent import run as transcribe
+from agents.transcriber.transcriber import run as transcribe
 
 
 def main():

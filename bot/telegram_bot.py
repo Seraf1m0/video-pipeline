@@ -465,7 +465,7 @@ async def _run_prompts_agent(progress_msg, stdin: str, label: str,
         pass
 
     task = asyncio.create_task(run_agent(
-        ["py", str(AGENTS_DIR / "prompt_generator.py"),
+        ["py", str(AGENTS_DIR / "prompt_generator" / "prompt_generator.py"),
          "--type", "photo",
          "--photo-master", "photo_master_prompt.txt",
          "--photo-platform", photo_platform],
@@ -540,7 +540,7 @@ async def _run_video_prompts_agent(progress_msg, stdin: str, label: str,
         pass
 
     task = asyncio.create_task(run_agent(
-        ["py", str(AGENTS_DIR / "prompt_generator.py"),
+        ["py", str(AGENTS_DIR / "prompt_generator" / "prompt_generator.py"),
          "--type", "video",
          "--video-master", "master_video_grok.txt",
          "--video-platform", video_platform],
@@ -615,7 +615,7 @@ async def _run_combined_prompts_agent(progress_msg) -> None:
         pass
 
     task = asyncio.create_task(run_agent(
-        ["py", str(AGENTS_DIR / "prompt_generator.py"),
+        ["py", str(AGENTS_DIR / "prompt_generator" / "prompt_generator.py"),
          "--type", "both",
          "--photo-master", "photo_master_prompt.txt",
          "--video-master", "master_video_grok.txt"],
@@ -696,7 +696,7 @@ async def _run_media_agent(
     type_icons = {"photo": "📷 Фото", "video": "🎬 Видео", "both": "📷+🎬 Фото + Видео"}
     type_label = type_icons.get(mtype, mtype)
 
-    cmd = ["py", str(AGENTS_DIR / "media_generator.py"),
+    cmd = ["py", str(AGENTS_DIR / "media_generator" / "media_generator.py"),
            "--platform", platform_num,
            "--type", mtype]
     if session:
@@ -803,7 +803,7 @@ async def _run_cutter_agent(
 
     # Строим stdin: mode\nmethod\nresolution\n (агент читает интерактивно только без аргументов)
     # Передаём через аргументы командной строки
-    cmd = ["py", str(AGENTS_DIR / "video_cutter.py"), "--mode", mode]
+    cmd = ["py", str(AGENTS_DIR / "video_cutter" / "video_cutter.py"), "--mode", mode]
     if session:
         cmd += ["--project", session]
     if mode == "cut+upscale":
@@ -893,7 +893,7 @@ async def run_pipeline(user_id: int, msg, cfg: dict) -> None:
                 await safe_edit(build_status(hdr1, "\n".join(buf1[-10:])))
 
         cut_mode = cfg.get("cut_mode", "random")
-        cmd1 = ["py", str(AGENTS_DIR / "transcriber.py"), "--mode", cut_mode]
+        cmd1 = ["py", str(AGENTS_DIR / "transcriber" / "transcriber.py"), "--mode", cut_mode]
         if cfg.get("audio_input_path"):
             cmd1 += ["--input", cfg["audio_input_path"]]
         rc1, out1 = await run_agent(cmd1, on_line=on1)
@@ -926,7 +926,7 @@ async def run_pipeline(user_id: int, msg, cfg: dict) -> None:
 
         photo_platform = cfg.get("photo_platform", "gemini")
         task2 = asyncio.create_task(run_agent(
-            ["py", str(AGENTS_DIR / "prompt_generator.py"),
+            ["py", str(AGENTS_DIR / "prompt_generator" / "prompt_generator.py"),
              "--type", "photo",
              "--photo-master", "photo_master_prompt.txt",
              "--photo-platform", photo_platform],
@@ -967,7 +967,7 @@ async def run_pipeline(user_id: int, msg, cfg: dict) -> None:
         await safe_edit(build_status(hdr3))
 
         rc3, out3 = await run_agent(
-            ["py", str(AGENTS_DIR / "validator.py")],
+            ["py", str(AGENTS_DIR / "validator" / "validator.py")],
             stdin_text=None,
             on_line=None,
         )
@@ -995,7 +995,7 @@ async def run_pipeline(user_id: int, msg, cfg: dict) -> None:
         await safe_edit(build_status(hdr4))
 
         media_platform = cfg.get("media_platform_num", "3")
-        cmd4 = ["py", str(AGENTS_DIR / "media_generator.py"),
+        cmd4 = ["py", str(AGENTS_DIR / "media_generator" / "media_generator.py"),
                 "--platform", media_platform,
                 "--type", "photo"]
         if session_name:
@@ -1205,7 +1205,7 @@ async def cb_pmedia(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await q.edit_message_text(
                 f"⚠️ <b>{h(pname)} — требуется авторизация</b>\n\n"
                 f"Куки не найдены. Сначала авторизуйся вручную:\n"
-                f"<pre>py agents/media_generator.py</pre>",
+                f"<pre>py agents/media_generator/media_generator.py</pre>",
                 reply_markup=kb_done(),
                 parse_mode=ParseMode.HTML,
             )
@@ -1437,7 +1437,7 @@ async def cb_cut(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         parse_mode=ParseMode.HTML,
     )
     cb = make_progress_cb(progress, f"⏳ <b>Транскрибирую...</b>\nРежим: {label}", interval=2.5)
-    cmd = ["py", str(AGENTS_DIR / "transcriber.py"), "--mode", mode]
+    cmd = ["py", str(AGENTS_DIR / "transcriber" / "transcriber.py"), "--mode", mode]
     input_path = context.user_data.get("audio_input_path")
     if input_path:
         cmd += ["--input", input_path]
@@ -1713,7 +1713,7 @@ async def cb_mplatform(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if cf and not (cf.exists() and cf.stat().st_size > 20):
             await q.edit_message_text(
                 f"⚠️ <b>{h(pname)} — требуется авторизация</b>\n\n"
-                f"<pre>py agents/media_generator.py</pre>",
+                f"<pre>py agents/media_generator/media_generator.py</pre>",
                 reply_markup=kb_done(), parse_mode=ParseMode.HTML,
             )
             return
@@ -1836,7 +1836,7 @@ async def cb_validate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         f"⏳ <b>Валидирую...</b>\n{label}\n\n<pre>запускаю...</pre>",
         parse_mode=ParseMode.HTML,
     )
-    rc, output = await run_agent(["py", str(AGENTS_DIR / "validator.py")])
+    rc, output = await run_agent(["py", str(AGENTS_DIR / "validator" / "validator.py")])
 
     all_lines = output.splitlines()
     if check_type == "transcription":
