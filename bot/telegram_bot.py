@@ -718,19 +718,35 @@ async def _run_media_agent(
             if p and p.get("total", 0) > 0:
                 cur     = p.get("current", 0)
                 total   = p["total"]
-                bar     = _prompt_bar(cur, total)
-                pct     = int(cur / total * 100)
                 failed  = p.get("failed", [])
-                threads = p.get("threads", 5)
-                text = (
-                    f"⏳ <b>Генерирую фото...</b>\n"
-                    f"🖼 {h(pname)} ({threads} потоков)\n"
-                    f"━━━━━━━━━━━━━━━━\n"
-                    f"📊 Готово: <b>{cur}/{total}</b>\n"
-                    f"<code>{bar}</code> {pct}%"
-                )
-                if failed:
-                    text += f"\n⚠️ Ошибок: {len(failed)}"
+                threads = p.get("threads", 3)
+                status  = p.get("status", "running")
+
+                if status == "autoretry":
+                    ar_round = p.get("autoretry_round", 1)
+                    ar_done  = p.get("autoretry_done", 0)
+                    ar_total = p.get("autoretry_total", 1)
+                    bar = _prompt_bar(ar_done, ar_total)
+                    pct = int(ar_done / ar_total * 100) if ar_total else 0
+                    text = (
+                        f"🔄 <b>Автоповтор #{ar_round}/3...</b>\n"
+                        f"🖼 {h(pname)}\n"
+                        f"━━━━━━━━━━━━━━━━\n"
+                        f"📊 Фото: <b>{ar_done}/{ar_total}</b>\n"
+                        f"<code>{bar}</code> {pct}%"
+                    )
+                else:
+                    bar = _prompt_bar(cur, total)
+                    pct = int(cur / total * 100)
+                    text = (
+                        f"⏳ <b>Генерирую фото...</b>\n"
+                        f"🖼 {h(pname)} ({threads} потоков)\n"
+                        f"━━━━━━━━━━━━━━━━\n"
+                        f"📊 Готово: <b>{cur}/{total}</b>\n"
+                        f"<code>{bar}</code> {pct}%"
+                    )
+                    if failed:
+                        text += f"\n⚠️ Ошибок: {len(failed)}"
             else:
                 elapsed = int(time.monotonic() - t0)
                 text = (
@@ -745,17 +761,22 @@ async def _run_media_agent(
 
         rc, output = task.result()
 
-        p_fin = _read_pixel_progress()
-        done_n = p_fin.get("current", 0) if p_fin else 0
-        total_n = p_fin.get("total", 0) if p_fin else 0
-        failed_n = len(p_fin.get("failed", [])) if p_fin else 0
-        elapsed = int(time.monotonic() - t0)
-        icon = "✅" if rc == 0 and not failed_n else ("⚠️" if done_n else "❌")
+        p_fin    = _read_pixel_progress()
+        done_n   = p_fin.get("current", 0) if p_fin else 0
+        total_n  = p_fin.get("total", 0)   if p_fin else 0
+        fail_lst = p_fin.get("failed", []) if p_fin else []
+        failed_n = len(fail_lst)
+        elapsed  = int(time.monotonic() - t0)
+        icon     = "✅" if rc == 0 and not failed_n else ("⚠️" if done_n else "❌")
+        fail_txt = (
+            f"\n⚠️ После 3 кругов retry осталось {failed_n} ошибок: {fail_lst}"
+            if failed_n else ""
+        )
         await progress_msg.edit_text(
             f"{icon} <b>Генерация завершена!</b>\n"
             f"🖼 {h(pname)}\n"
             f"📊 Сохранено: <b>{done_n}/{total_n}</b>"
-            + (f"\n⚠️ Ошибок: {failed_n}" if failed_n else "")
+            + fail_txt
             + f"\n⏱ Время: {elapsed // 60}м {elapsed % 60}с",
             reply_markup=kb_done(),
             parse_mode=ParseMode.HTML,
@@ -1014,14 +1035,27 @@ async def run_pipeline(user_id: int, msg, cfg: dict) -> None:
                 await asyncio.sleep(3.0)
                 p = _read_pixel_progress()
                 if p and p.get("total", 0) > 0:
-                    cur   = p.get("current", 0)
-                    total = p["total"]
-                    bar   = _prompt_bar(cur, total)
-                    pct   = int(cur / total * 100)
-                    fail  = len(p.get("failed", []))
-                    prog  = f"📊 <b>{cur}/{total}</b> <code>{bar}</code> {pct}%" + (f" ⚠️{fail}" if fail else "")
+                    cur    = p.get("current", 0)
+                    total  = p["total"]
+                    status = p.get("status", "running")
+                    fail   = len(p.get("failed", []))
+
+                    if status == "autoretry":
+                        ar_round = p.get("autoretry_round", 1)
+                        ar_done  = p.get("autoretry_done", 0)
+                        ar_total = p.get("autoretry_total", 1)
+                        bar = _prompt_bar(ar_done, ar_total)
+                        pct = int(ar_done / ar_total * 100) if ar_total else 0
+                        prog = (
+                            f"🔄 <b>Автоповтор #{ar_round}/3</b> "
+                            f"<b>{ar_done}/{ar_total}</b> <code>{bar}</code> {pct}%"
+                        )
+                    else:
+                        bar  = _prompt_bar(cur, total)
+                        pct  = int(cur / total * 100)
+                        prog = f"📊 <b>{cur}/{total}</b> <code>{bar}</code> {pct}%" + (f" ⚠️{fail}" if fail else "")
                 else:
-                    prog  = "<pre>запускаю...</pre>"
+                    prog = "<pre>запускаю...</pre>"
                 await safe_edit(build_status(hdr4, prog))
 
             rc4, out4 = task4.result()

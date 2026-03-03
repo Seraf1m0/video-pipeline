@@ -30,53 +30,95 @@ from utils import (  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
+# Константы
+# ---------------------------------------------------------------------------
+
+# Паузы после каждой провалившейся попытки (индекс = attempt - 1)
+RETRY_DELAYS = [5, 10, 20, 30, 60, 120]  # попытки 1-6, после 7й → FAILED
+MAX_ATTEMPTS = 7
+AUTO_RETRY_ROUNDS = 3       # максимум кругов автоповтора
+AUTO_RETRY_PAUSE  = 60      # пауза между кругами (сек)
+REQUEST_TIMEOUT   = 180     # таймаут одного запроса (сек)
+
+
+# ---------------------------------------------------------------------------
+# Спецсключение для ошибки авторизации
+# ---------------------------------------------------------------------------
+
+class _AuthError(Exception):
+    """401 — неверный API ключ. Стоп всей генерации без retry."""
+    pass
+
+
+# ---------------------------------------------------------------------------
 # Прогресс PixelAgent (temp/pixel_progress.json)
 # ---------------------------------------------------------------------------
 
-def _write_pixel_progress(current: int, total: int, status: str, failed: list[int]) -> None:
+def _write_pixel_progress(current: int, total: int, status: str,
+                           failed: list[int], **extra) -> None:
     PIXEL_PROGRESS_FILE.parent.mkdir(parents=True, exist_ok=True)
     try:
+        data = {
+            "current": current,
+            "total":   total,
+            "status":  status,
+            "failed":  sorted(failed),
+            "threads": PIXEL_MAX_CONCURRENT,
+        }
+        data.update(extra)
         PIXEL_PROGRESS_FILE.write_text(
-            json.dumps({
-                "current": current,
-                "total":   total,
-                "status":  status,
-                "failed":  sorted(failed),
-                "threads": PIXEL_MAX_CONCURRENT,
-            }, ensure_ascii=False),
+            json.dumps(data, ensure_ascii=False),
             encoding="utf-8",
         )
     except Exception:
         pass
 
 
+def _progress_extra(progress: dict) -> dict:
+    """Возвращает autoretry-поля из progress для записи в JSON."""
+    return {
+        k: progress[k]
+        for k in ("autoretry_round", "autoretry_done", "autoretry_total")
+        if k in progress
+    }
+
+
 # ---------------------------------------------------------------------------
-# PixelAgent API — параллельная генерация фото (asyncio + aiohttp)
+# Генерация одного фото (7 попыток)
 # ---------------------------------------------------------------------------
 
 async def _pixel_generate_one(
-    http: aiohttp.ClientSession,
-    sem: asyncio.Semaphore,
-    idx: int,
-    prompt: str,
-    out_path: Path,
-    total: int,
-    progress: dict,
+    http:        aiohttp.ClientSession,
+    sem:         asyncio.Semaphore,
+    idx:         int,
+    prompt:      str,
+    out_path:    Path,
+    total_global: int,
+    progress:    dict,
+    abort_event: asyncio.Event,
 ) -> bool:
-    """Генерирует одно фото: 3 попытки, проверка 16:9, яркости и ошибок API."""
+    """
+    7 попыток с умными паузами.
+    401 → _AuthError (abort всей генерации).
+    """
     async with sem:
-        for attempt in range(1, 4):
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            if abort_event.is_set():
+                return False
+
             try:
-                # --- Запрос к API ---
+                # ── Запрос к API ───────────────────────────────────────────
                 try:
                     async with http.post(
                         f"{PIXEL_API_URL}/api/v1/image/create",
                         json={"prompt": prompt, "aspect_ratio": "16:9"},
-                        timeout=aiohttp.ClientTimeout(total=120),
+                        timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT),
                     ) as resp:
                         if resp.status == 401:
-                            print(f"  [{idx}] 401 — неверный API ключ", flush=True)
-                            return False
+                            print(f"  [{idx}] 401 — неверный API ключ, останавливаю всё", flush=True)
+                            abort_event.set()
+                            raise _AuthError("401: неверный API ключ")
+
                         if resp.status != 200:
                             text = await resp.text()
                             raise ValueError(f"API ошибка {resp.status}: {text[:200]}")
@@ -89,57 +131,141 @@ async def _pixel_generate_one(
                         img_data = base64.b64decode(img_b64)
 
                 except asyncio.TimeoutError:
-                    raise ValueError("Таймаут 120 сек")
-                except ValueError:
-                    raise  # пробрасываем ValueError из проверок статуса
+                    raise ValueError(f"Таймаут {REQUEST_TIMEOUT} сек")
+                except (_AuthError, ValueError):
+                    raise
                 except Exception as e:
                     raise ValueError(f"Ошибка запроса: {e}")
 
-                # --- Проверка изображения ---
+                # ── Проверки изображения ───────────────────────────────────
                 img = Image.open(io.BytesIO(img_data))
 
                 # ПРОВЕРКА 1: aspect ratio строго 16:9 (1.777)
                 w, h = img.size
                 ratio = w / h
                 if ratio < 1.7 or ratio > 1.8:
-                    raise ValueError(f"Неправильное соотношение {w}x{h} (ratio={ratio:.3f}, ожидается 16:9=1.777)")
+                    raise ValueError(
+                        f"Неправильное соотношение {w}x{h} "
+                        f"(ratio={ratio:.3f}, ожидается 16:9=1.777)"
+                    )
 
                 # ПРОВЕРКА 2: фото не чёрное
                 arr = np.array(img)
                 mean_brightness = arr.mean()
                 if mean_brightness < 10:
-                    raise ValueError(f"Фото слишком тёмное/чёрное (brightness={mean_brightness:.1f})")
+                    raise ValueError(
+                        f"Фото слишком тёмное/чёрное (brightness={mean_brightness:.1f})"
+                    )
 
-                # Всё прошло — сохраняем
+                # ── Сохранение ─────────────────────────────────────────────
                 out_path.write_bytes(img_data)
+                # Удаляем маркер FAILED если он был (от предыдущего круга retry)
+                fail_marker = out_path.parent / f"photo_{idx:03d}_FAILED.txt"
+                fail_marker.unlink(missing_ok=True)
+
                 size_kb = len(img_data) // 1024
-                print(f"  [{idx}/{total}] ✓  {out_path.name} ({size_kb}KB)", flush=True)
+                print(f"  [{idx}/{total_global}] ✓  {out_path.name} ({size_kb}KB)", flush=True)
+
                 progress["done"] += 1
-                _write_pixel_progress(progress["done"], total, "running", progress["failed"])
+                if "autoretry_done" in progress:
+                    progress["autoretry_done"] += 1
+                _write_pixel_progress(
+                    progress["done"], total_global,
+                    progress.get("status", "running"),
+                    progress["failed"],
+                    **_progress_extra(progress),
+                )
                 return True
 
             except asyncio.CancelledError:
                 raise
+            except _AuthError:
+                raise
             except Exception as e:
-                print(f"  [{idx}] попытка {attempt} ошибка: {e}", flush=True)
-                if attempt < 3:
-                    await asyncio.sleep(10 * attempt)
+                print(f"  [{idx}] попытка {attempt}/{MAX_ATTEMPTS} ошибка: {e}", flush=True)
+                if attempt < MAX_ATTEMPTS:
+                    delay = RETRY_DELAYS[attempt - 1]
+                    print(f"  [{idx}] пауза {delay}с...", flush=True)
+                    await asyncio.sleep(delay)
 
-    # Все 3 попытки провалились
-    print(f"  [{idx}/{total}] ✗  FAILED", flush=True)
+    # Все 7 попыток провалились
+    print(f"  [{idx}/{total_global}] ✗  FAILED после {MAX_ATTEMPTS} попыток", flush=True)
     fail_path = out_path.parent / f"photo_{idx:03d}_FAILED.txt"
     try:
         fail_path.write_text(
-            f"Failed after 3 attempts\nPrompt: {prompt[:200]}",
+            f"Failed after {MAX_ATTEMPTS} attempts\nPrompt: {prompt[:200]}",
             encoding="utf-8",
         )
     except Exception:
         pass
+
     progress["failed"].append(idx)
     progress["done"] += 1
-    _write_pixel_progress(progress["done"], total, "running", progress["failed"])
+    if "autoretry_done" in progress:
+        progress["autoretry_done"] += 1
+    _write_pixel_progress(
+        progress["done"], total_global,
+        progress.get("status", "running"),
+        progress["failed"],
+        **_progress_extra(progress),
+    )
     return False
 
+
+# ---------------------------------------------------------------------------
+# Один батч генерации
+# ---------------------------------------------------------------------------
+
+async def _run_batch(
+    to_generate:  list[tuple[int, str]],
+    out_dir:      Path,
+    api_key:      str,
+    total_global: int,
+    progress:     dict,
+) -> list[int]:
+    """
+    Запускает один батч (параллельно, с семафором).
+    Возвращает список индексов, провалившихся в ЭТОМ батче.
+    Поднимает _AuthError если получен 401.
+    """
+    failed_before = set(progress["failed"])
+
+    _write_pixel_progress(
+        progress["done"], total_global,
+        progress.get("status", "running"),
+        progress["failed"],
+        **_progress_extra(progress),
+    )
+
+    sem         = asyncio.Semaphore(PIXEL_MAX_CONCURRENT)
+    abort_event = asyncio.Event()
+    headers     = {"X-API-Key": api_key, "Content-Type": "application/json"}
+
+    async with aiohttp.ClientSession(headers=headers) as http:
+        tasks = [
+            asyncio.create_task(
+                _pixel_generate_one(
+                    http, sem, idx, prompt,
+                    out_dir / f"photo_{idx:03d}.png",
+                    total_global, progress, abort_event,
+                )
+            )
+            for idx, prompt in to_generate
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Пробрасываем _AuthError если была
+    for r in results:
+        if isinstance(r, _AuthError):
+            raise r
+
+    # Возвращаем только те, что провалились В ЭТОМ батче
+    return sorted(idx for idx in progress["failed"] if idx not in failed_before)
+
+
+# ---------------------------------------------------------------------------
+# Главная async-функция с авто-retry
+# ---------------------------------------------------------------------------
 
 async def generate_pixel_photos_async(
     prompts: list[str],
@@ -147,13 +273,13 @@ async def generate_pixel_photos_async(
     api_key: str,
 ) -> tuple[int, list[int]]:
     """
-    Асинхронная параллельная генерация фото через PixelAgent API.
-    Возвращает (saved_count, failed_indices).
+    Параллельная генерация + авто-retry до AUTO_RETRY_ROUNDS кругов.
+    Возвращает (saved_count, final_failed_indices).
     """
     total    = len(prompts)
-    progress = {"done": 0, "failed": []}
+    progress = {"done": 0, "failed": [], "status": "running"}
 
-    # Определяем что уже готово
+    # Пропускаем уже готовые
     to_generate: list[tuple[int, str]] = []
     for idx, prompt in enumerate(prompts, start=1):
         out_path = out_dir / f"photo_{idx:03d}.png"
@@ -172,40 +298,82 @@ async def generate_pixel_photos_async(
 
     print(
         f"\n  PixelAgent | Осталось: {len(to_generate)}/{total} фото | "
-        f"{PIXEL_MAX_CONCURRENT} потоков\n",
+        f"{PIXEL_MAX_CONCURRENT} потоков | {MAX_ATTEMPTS} попыток\n",
         flush=True,
     )
-    _write_pixel_progress(progress["done"], total, "running", [])
 
-    sem = asyncio.Semaphore(PIXEL_MAX_CONCURRENT)
-    # X-API-Key — корректный заголовок (Authorization: Bearer возвращает 401)
-    headers = {
-        "X-API-Key":    api_key,
-        "Content-Type": "application/json",
-    }
+    # ── Первичная генерация ─────────────────────────────────────────────────
+    try:
+        current_failed = await _run_batch(to_generate, out_dir, api_key, total, progress)
+    except _AuthError as e:
+        print(f"\n  ❌ Критическая ошибка авторизации: {e}", flush=True)
+        _write_pixel_progress(total, total, "auth_error", progress["failed"])
+        saved = _count_saved(out_dir, total)
+        return saved, progress["failed"]
 
-    async with aiohttp.ClientSession(headers=headers) as http:
-        tasks = [
-            asyncio.create_task(
-                _pixel_generate_one(
-                    http, sem, idx, prompt,
-                    out_dir / f"photo_{idx:03d}.png",
-                    total, progress,
-                )
+    # ── Авто-retry (до AUTO_RETRY_ROUNDS кругов) ────────────────────────────
+    for retry_round in range(1, AUTO_RETRY_ROUNDS + 1):
+        if not current_failed:
+            break
+
+        print(
+            f"\n  🔄 Автоповтор #{retry_round}/{AUTO_RETRY_ROUNDS}: "
+            f"{len(current_failed)} провалившихся фото...",
+            flush=True,
+        )
+        print(f"  ⏳ Пауза {AUTO_RETRY_PAUSE}с перед автоповтором...", flush=True)
+        await asyncio.sleep(AUTO_RETRY_PAUSE)
+
+        # Настраиваем поля для TG-отображения
+        retry_total = len(current_failed)
+        progress["status"]          = "autoretry"
+        progress["autoretry_round"] = retry_round
+        progress["autoretry_total"] = retry_total
+        progress["autoretry_done"]  = 0
+
+        # Убираем текущие failed из списка (они будут заново добавлены если снова провалятся)
+        for idx in current_failed:
+            if idx in progress["failed"]:
+                progress["failed"].remove(idx)
+
+        retry_batch = [(idx, prompts[idx - 1]) for idx in current_failed]
+
+        try:
+            current_failed = await _run_batch(retry_batch, out_dir, api_key, total, progress)
+        except _AuthError as e:
+            print(f"\n  ❌ Критическая ошибка авторизации: {e}", flush=True)
+            break
+
+        # Очищаем autoretry-поля
+        for k in ("autoretry_round", "autoretry_done", "autoretry_total"):
+            progress.pop(k, None)
+        progress["status"] = "running"
+
+        if current_failed:
+            print(
+                f"  ⚠️  После круга #{retry_round}: осталось {len(current_failed)} ошибок",
+                flush=True,
             )
-            for idx, prompt in to_generate
-        ]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        else:
+            print(f"  ✅ Автоповтор #{retry_round}: все фото восстановлены!", flush=True)
 
-    # Считаем реально сохранённые файлы
-    saved = sum(
+    # ── Финал ───────────────────────────────────────────────────────────────
+    saved = _count_saved(out_dir, total)
+    _write_pixel_progress(total, total, "completed", sorted(current_failed))
+    return saved, sorted(current_failed)
+
+
+def _count_saved(out_dir: Path, total: int) -> int:
+    return sum(
         1 for idx in range(1, total + 1)
         if (out_dir / f"photo_{idx:03d}.png").exists()
         and (out_dir / f"photo_{idx:03d}.png").stat().st_size > 500
     )
-    _write_pixel_progress(total, total, "completed", sorted(progress["failed"]))
-    return saved, sorted(progress["failed"])
 
+
+# ---------------------------------------------------------------------------
+# Синхронная обёртка
+# ---------------------------------------------------------------------------
 
 def generate_pixel(media_type: str, prompts: list[str],
                    out_dir: Path, api_key: str) -> int:
@@ -215,17 +383,20 @@ def generate_pixel(media_type: str, prompts: list[str],
         return 0
 
     total = len(prompts)
-    print(f"\n  PixelAgent | Всего: {total} фото\n")
+    print(f"\n  PixelAgent | Всего: {total} фото | MAX_CONCURRENT={PIXEL_MAX_CONCURRENT}\n")
 
     saved, failed = asyncio.run(generate_pixel_photos_async(prompts, out_dir, api_key))
 
     if failed:
-        print(f"\n  ⚠️  Ошибок: {len(failed)} — созданы заглушки *_FAILED.txt")
+        print(f"\n  ⚠️  После всех кругов retry: {len(failed)} ошибок — созданы заглушки *_FAILED.txt")
         print(f"  Провалившиеся: {failed}")
         send_tg_notification(
-            f"⚠️ PixelAgent: {len(failed)}/{total} фото не сгенерированы\n"
+            f"⚠️ PixelAgent: {len(failed)}/{total} фото не сгенерированы "
+            f"(после {AUTO_RETRY_ROUNDS} кругов авто-retry)\n"
             f"Провалившиеся: {failed}"
         )
+    else:
+        print(f"\n  ✅ Все {saved}/{total} фото успешно сгенерированы!")
 
     print(f"\nСгенерировано: {saved}")
     print(f"Всего: {total}")

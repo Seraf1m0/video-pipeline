@@ -65,7 +65,7 @@ PLATFORMS = {
 
 PIXEL_API_URL        = os.environ.get("PIXEL_API_URL", "").strip()
 PIXEL_API_KEY        = os.environ.get("PIXEL_API_KEY", "").strip()
-PIXEL_MAX_CONCURRENT = int(os.environ.get("PIXEL_MAX_CONCURRENT", "5"))
+PIXEL_MAX_CONCURRENT = int(os.environ.get("PIXEL_MAX_CONCURRENT", "3"))
 
 MAX_RETRIES = 3
 RETRY_PAUSE = 5
