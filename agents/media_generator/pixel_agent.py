@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import aiohttp
+import numpy as np
 from PIL import Image
 
 # Добавляем папку модуля в sys.path для импорта utils
@@ -62,45 +63,60 @@ async def _pixel_generate_one(
     total: int,
     progress: dict,
 ) -> bool:
-    """Генерирует одно фото: 3 попытки, проверка ориентации PIL."""
+    """Генерирует одно фото: 3 попытки, проверка 16:9, яркости и ошибок API."""
     async with sem:
         for attempt in range(1, 4):
             try:
-                async with http.post(
-                    f"{PIXEL_API_URL}/api/v1/image/create",
-                    json={"prompt": prompt, "aspect_ratio": "16:9"},
-                    timeout=aiohttp.ClientTimeout(total=120),
-                ) as resp:
-                    if resp.status == 401:
-                        print(f"  [{idx}] 401 — неверный API ключ", flush=True)
-                        return False
-                    if resp.status != 200:
-                        body = await resp.text()
-                        print(f"  [{idx}] HTTP {resp.status}: {body[:80]}, попытка {attempt}", flush=True)
-                        await asyncio.sleep(10 * attempt)
-                        continue
+                # --- Запрос к API ---
+                try:
+                    async with http.post(
+                        f"{PIXEL_API_URL}/api/v1/image/create",
+                        json={"prompt": prompt, "aspect_ratio": "16:9"},
+                        timeout=aiohttp.ClientTimeout(total=120),
+                    ) as resp:
+                        if resp.status == 401:
+                            print(f"  [{idx}] 401 — неверный API ключ", flush=True)
+                            return False
+                        if resp.status != 200:
+                            text = await resp.text()
+                            raise ValueError(f"API ошибка {resp.status}: {text[:200]}")
 
-                    data = await resp.json()
-                    img_b64 = data.get("image_b64")
-                    if not img_b64:
-                        print(f"  [{idx}] нет image_b64 в ответе, попытка {attempt}", flush=True)
-                        await asyncio.sleep(10 * attempt)
-                        continue
+                        data = await resp.json()
+                        img_b64 = data.get("image_b64")
+                        if not img_b64:
+                            raise ValueError("Нет image_b64 в ответе")
 
-                    img_data = base64.b64decode(img_b64)
+                        img_data = base64.b64decode(img_b64)
 
-                    # Проверка ориентации: ОБЯЗАТЕЛЬНО горизонтальное (w >= h)
-                    img = Image.open(io.BytesIO(img_data))
-                    w, h = img.size
-                    if w < h:
-                        raise ValueError(f"Вертикальное фото {w}x{h} — повтор")
+                except asyncio.TimeoutError:
+                    raise ValueError("Таймаут 120 сек")
+                except ValueError:
+                    raise  # пробрасываем ValueError из проверок статуса
+                except Exception as e:
+                    raise ValueError(f"Ошибка запроса: {e}")
 
-                    out_path.write_bytes(img_data)
-                    size_kb = len(img_data) // 1024
-                    print(f"  [{idx}/{total}] ✓  {out_path.name} ({size_kb}KB)", flush=True)
-                    progress["done"] += 1
-                    _write_pixel_progress(progress["done"], total, "running", progress["failed"])
-                    return True
+                # --- Проверка изображения ---
+                img = Image.open(io.BytesIO(img_data))
+
+                # ПРОВЕРКА 1: aspect ratio строго 16:9 (1.777)
+                w, h = img.size
+                ratio = w / h
+                if ratio < 1.7 or ratio > 1.8:
+                    raise ValueError(f"Неправильное соотношение {w}x{h} (ratio={ratio:.3f}, ожидается 16:9=1.777)")
+
+                # ПРОВЕРКА 2: фото не чёрное
+                arr = np.array(img)
+                mean_brightness = arr.mean()
+                if mean_brightness < 10:
+                    raise ValueError(f"Фото слишком тёмное/чёрное (brightness={mean_brightness:.1f})")
+
+                # Всё прошло — сохраняем
+                out_path.write_bytes(img_data)
+                size_kb = len(img_data) // 1024
+                print(f"  [{idx}/{total}] ✓  {out_path.name} ({size_kb}KB)", flush=True)
+                progress["done"] += 1
+                _write_pixel_progress(progress["done"], total, "running", progress["failed"])
+                return True
 
             except asyncio.CancelledError:
                 raise
