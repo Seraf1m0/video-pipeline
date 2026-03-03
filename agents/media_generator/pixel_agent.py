@@ -84,6 +84,66 @@ def _progress_extra(progress: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Валидация и автоисправление изображения
+# ---------------------------------------------------------------------------
+
+def _validate_and_fix_image(img_data: bytes, idx: int) -> tuple[bytes, "Image.Image"]:
+    """
+    Проверяет и при необходимости исправляет изображение:
+
+    1. Портрет (w <= h)        → ValueError, повтор
+    2. Пейзаж, не 16:9         → кадрируем по центру до 16:9
+    3. Пиксель max < 15 / 255  → полностью чёрное (API failure), повтор
+       (mean < 10 было слишком строго — тёмные сцены (космос, ночь)
+        имеют низкое mean, но при этом содержат видимый контент)
+
+    Возвращает (bytes, PIL.Image) — возможно исправленные данные.
+    """
+    img = Image.open(io.BytesIO(img_data))
+    w, h = img.size
+
+    # ── Портрет (строго) → retry ──────────────────────────────────────────
+    # Квадраты (w == h) → уходят в crop-ветку ниже
+    if w < h:
+        raise ValueError(
+            f"Вертикальное фото {w}x{h} (ratio={w/h:.3f}) — retry"
+        )
+
+    # ── Пейзаж не 16:9 → кадрировать по центру ───────────────────────────
+    ratio = w / h
+    if ratio < 1.7 or ratio > 1.8:
+        target_h = int(round(w * 9 / 16))
+        if target_h <= h:
+            top = (h - target_h) // 2
+            img = img.crop((0, top, w, top + target_h))
+            print(
+                f"  [{idx}] [crop] {w}x{h} -> {w}x{target_h} (16:9)",
+                flush=True,
+            )
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            img_data = buf.getvalue()
+            w, h = img.size
+        else:
+            raise ValueError(
+                f"Нельзя кадрировать {w}x{h} до 16:9 "
+                f"(нужна высота {target_h}, есть {h})"
+            )
+
+    # ── Полностью чёрное (API failure) → retry ────────────────────────────
+    # Используем max-пиксель, а НЕ mean: тёмные сцены (космос, ночь)
+    # имеют низкое mean, но содержат видимые яркие пиксели (звёзды, огни).
+    arr = np.array(img)
+    max_brightness = int(arr.max())
+    if max_brightness < 15:
+        raise ValueError(
+            f"Фото полностью чёрное (max_brightness={max_brightness}) — API failure"
+        )
+
+    return img_data, img
+
+
+# ---------------------------------------------------------------------------
 # Генерация одного фото (7 попыток)
 # ---------------------------------------------------------------------------
 
@@ -137,25 +197,8 @@ async def _pixel_generate_one(
                 except Exception as e:
                     raise ValueError(f"Ошибка запроса: {e}")
 
-                # ── Проверки изображения ───────────────────────────────────
-                img = Image.open(io.BytesIO(img_data))
-
-                # ПРОВЕРКА 1: aspect ratio строго 16:9 (1.777)
-                w, h = img.size
-                ratio = w / h
-                if ratio < 1.7 or ratio > 1.8:
-                    raise ValueError(
-                        f"Неправильное соотношение {w}x{h} "
-                        f"(ratio={ratio:.3f}, ожидается 16:9=1.777)"
-                    )
-
-                # ПРОВЕРКА 2: фото не чёрное
-                arr = np.array(img)
-                mean_brightness = arr.mean()
-                if mean_brightness < 10:
-                    raise ValueError(
-                        f"Фото слишком тёмное/чёрное (brightness={mean_brightness:.1f})"
-                    )
+                # ── Проверки и исправление изображения ────────────────────
+                img_data, img = _validate_and_fix_image(img_data, idx)
 
                 # ── Сохранение ─────────────────────────────────────────────
                 out_path.write_bytes(img_data)
