@@ -18,11 +18,16 @@ import os
 import random
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
 import torch
 import whisper
+
+# Windows cp1251 консоль не поддерживает эмодзи — переключаем на UTF-8
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 print(f"CUDA доступен: {torch.cuda.is_available()}")
 print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A'}")
@@ -116,74 +121,111 @@ def ask_cut_mode() -> str:
 def build_segments(whisper_segs: list[dict], mode: str = "random") -> list[dict]:
     """
     Нарезает whisper_segments на блоки с точными целочисленными границами.
-    mode='grok'   — ровно 10 сек на блок
-    mode='random' — рандомно 3–8 сек, новый target на каждый блок
+    mode='grok'   — строго 10 сек (фиксированные границы, исходный алгоритм)
+    mode='random' — рандомно 3–8 сек по границам Whisper-сегментов (без overflow)
     """
     if mode == "grok":
-        dur_fn = lambda: 10
+        blocks = _slice_grok(whisper_segs)
     else:
-        dur_fn = lambda: random.randint(3, 8)
-
-    blocks = _slice_by_blocks(whisper_segs, dur_fn)
+        blocks = _slice_random(whisper_segs)
     _verify_segments(blocks, mode)
     return blocks
 
 
-def _slice_by_blocks(whisper_segs: list[dict], dur_fn) -> list[dict]:
+def _slice_grok(whisper_segs: list[dict]) -> list[dict]:
     """
-    Нарезка по словам с целочисленными границами.
-
-    - current_start = int(первый старт) — всегда int
-    - block_end = current_start + target — всегда int
-    - Слова берутся пропорционально overlap при частичном попадании
-    - random mode: новый target генерируется для каждого нового блока
+    Grok mode: строго 10 сек, фиксированные целочисленные границы.
+    Слова берутся пропорционально overlap (ratio-based split).
+    Последний блок обрезается verify_with_ffmpeg до реального конца аудио.
     """
+    TARGET = 10
     blocks: list[dict] = []
     current_words: list[str] = []
     current_start: int | None = None
-    target = dur_fn()
 
     for ws in whisper_segs:
         if current_start is None:
-            current_start = int(ws["start"])  # целое число
+            current_start = int(ws["start"])
 
         words = ws["text"].strip().split()
         if not words:
             continue
 
-        if ws["end"] <= current_start + target:
-            # Сегмент полностью входит в блок
+        if ws["end"] <= current_start + TARGET:
             current_words.extend(words)
         else:
-            # Сегмент частично входит в блок
-            overlap   = (current_start + target) - ws["start"]
+            overlap   = (current_start + TARGET) - ws["start"]
             total_dur = ws["end"] - ws["start"]
             ratio     = max(0.0, min(1.0, overlap / total_dur)) if total_dur > 0 else 1.0
             take      = max(1, int(len(words) * ratio))
 
             current_words.extend(words[:take])
-
-            # Закрываем блок РОВНО на целое число секунд
-            block_end = current_start + target
-
+            block_end = current_start + TARGET
             blocks.append({
                 "id":    len(blocks) + 1,
-                "start": current_start,   # int
-                "end":   block_end,       # int
+                "start": current_start,
+                "end":   block_end,
                 "text":  " ".join(current_words).strip(),
             })
-
-            # Начинаем новый блок
             current_start = block_end
             current_words = words[take:]
-            target = dur_fn()  # новый target для каждого нового блока
 
-    # Последний блок
     if current_words and current_start is not None:
         blocks.append({
             "id":    len(blocks) + 1,
             "start": current_start,
-            "end":   current_start + target,
+            "end":   current_start + TARGET,
+            "text":  " ".join(current_words).strip(),
+        })
+
+    return blocks
+
+
+def _slice_random(whisper_segs: list[dict]) -> list[dict]:
+    """
+    Random mode: рандомно 3–8 сек, блок закрывается на границе Whisper-сегмента.
+
+    НЕ разрезает сегменты пополам — устраняет overflow (слишком много слов
+    в коротком блоке). Последний блок заканчивается на реальном конце речи.
+    """
+    blocks: list[dict] = []
+    current_words: list[str] = []
+    current_start: int | None = None
+    target = random.randint(3, 8)
+
+    for ws in whisper_segs:
+        words = ws["text"].strip().split()
+        if not words:
+            continue
+
+        if current_start is None:
+            current_start = int(ws["start"])
+
+        elapsed = ws["end"] - current_start
+
+        if current_words and elapsed > target:
+            # Следующий сегмент переполнил бы блок → закрываем ДО него
+            block_end = max(int(round(ws["start"])), current_start + 1)
+            blocks.append({
+                "id":    len(blocks) + 1,
+                "start": current_start,
+                "end":   block_end,
+                "text":  " ".join(current_words).strip(),
+            })
+            current_start = block_end
+            current_words = []
+            target = random.randint(3, 8)
+
+        # Добавляем сегмент целиком (без разрезания)
+        current_words.extend(words)
+
+    # Последний блок — до реального конца последнего Whisper-сегмента
+    if current_words and current_start is not None:
+        last_end = max(int(round(whisper_segs[-1]["end"])), current_start + 1)
+        blocks.append({
+            "id":    len(blocks) + 1,
+            "start": current_start,
+            "end":   last_end,
             "text":  " ".join(current_words).strip(),
         })
 
@@ -205,7 +247,7 @@ def _verify_segments(blocks: list[dict], mode: str) -> None:
                 f"Пропуск между блоком {i} и {i+1}: " \
                 f"{blocks[i-1]['end']}s → {block['start']}s"
 
-    print("✅ Все проверки пройдены")
+    print("[OK] Все проверки пройдены")
     print(f"Первые 5 блоков:")
     for b in blocks[:5]:
         print(f"  #{b['id']}: {b['start']}s-{b['end']}s | {b['text'][:50]}")
@@ -214,6 +256,22 @@ def _verify_segments(blocks: list[dict], mode: str) -> None:
     print(
         f"  Мин: {min(durs)}s | Макс: {max(durs)}s | Ср: {sum(durs)/len(durs):.1f}s"
     )
+
+    # Предупреждение о переполнении (информационно, не ошибка)
+    overflow = [
+        b for b in blocks
+        if b["end"] > b["start"] and
+        len(b["text"].split()) / 2.5 > (b["end"] - b["start"]) * 1.1
+    ]
+    if overflow:
+        print(f"  [!] Переполнение (>110% слов) в {len(overflow)} блоках:")
+        for b in overflow[:5]:
+            dur = b["end"] - b["start"]
+            wc = len(b["text"].split())
+            pct = int(wc / 2.5 / dur * 100)
+            print(f"      #{b['id']}: {dur}s | {wc}w | {pct}% | {b['text'][:40]}")
+    else:
+        print("  Переполнений нет.")
 
 
 # ---------------------------------------------------------------------------
@@ -239,8 +297,19 @@ def verify_with_ffmpeg(audio_path: Path, blocks: list[dict]) -> tuple[list[dict]
     coverage = blocks[-1]["end"] - blocks[0]["start"]
     gap      = real_duration - coverage
 
+    # Последний блок вышел за конец аудио → обрезаем до реального конца
+    if gap < -1:
+        old_end = blocks[-1]["end"]
+        blocks[-1]["end"] = int(real_duration)
+        print(
+            f"   [fix] Последний блок обрезан: {old_end}s -> {int(real_duration)}s "
+            f"(аудио кончается раньше)"
+        )
+        coverage = blocks[-1]["end"] - blocks[0]["start"]
+        gap      = real_duration - coverage
+
     if gap > 1:
-        print(f"   ⚠️ Непокрытый хвост: {gap:.1f}s — добавляю последний блок")
+        print(f"   [!] Непокрытый хвост: {gap:.1f}s — добавляю последний блок")
         last_end = blocks[-1]["end"]
         blocks.append({
             "id":    len(blocks) + 1,
@@ -251,11 +320,11 @@ def verify_with_ffmpeg(audio_path: Path, blocks: list[dict]) -> tuple[list[dict]
         coverage = blocks[-1]["end"] - blocks[0]["start"]
         gap      = real_duration - coverage
 
-    print(f"\n✅ FFmpeg верификация:")
-    print(f"   📏 Длина файла: {real_duration:.1f}s")
-    print(f"   📦 Покрытие блоков: {coverage:.1f}s")
-    print(f"   ⚡ Погрешность: {gap:.1f}s")
-    print(f"   ✅ Все блоки верифицированы")
+    print(f"\n[FFmpeg] Верификация:")
+    print(f"   Длина файла:    {real_duration:.1f}s")
+    print(f"   Покрытие блоков:{coverage:.1f}s")
+    print(f"   Погрешность:    {gap:.1f}s")
+    print(f"   [OK] Все блоки верифицированы")
 
     meta = {
         "ffmpeg_verified": True,
@@ -301,7 +370,7 @@ def extract_audio_segment_ffmpeg(
     expected = end - start
 
     if abs(actual_duration - expected) > 1.0:
-        print(f"  ⚠️ Клип {start}-{end}s: ожидалось {expected}s, получилось {actual_duration:.1f}s")
+        print(f"  [!] Клип {start}-{end}s: ожидалось {expected}s, получилось {actual_duration:.1f}s")
         return False
     return True
 
