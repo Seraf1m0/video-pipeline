@@ -23,6 +23,7 @@ import os
 import re
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -45,7 +46,8 @@ PHOTO_MASTERS   = BASE_DIR / "config" / "master_prompts" / "photo"
 VIDEO_MASTERS   = BASE_DIR / "config" / "master_prompts" / "video"
 PROGRESS_FILE   = BASE_DIR / "temp" / "prompt_progress.json"
 
-BATCH_SIZE = 10
+BATCH_SIZE   = 10
+MAX_PARALLEL = 5
 
 
 def _write_progress(data: dict) -> None:
@@ -212,20 +214,45 @@ def generate_all_photo(
     segments: list[dict],
     progress_ref: dict | None = None,
 ) -> list[tuple[str, str]]:
-    all_results: list[tuple[str, str]] = []
     batches = [segments[i:i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
-    for idx, batch in enumerate(batches):
+    n_batches = len(batches)
+    total = len(segments)
+
+    def _run_batch(idx: int, batch: list[dict]) -> tuple[int, list[tuple[str, str]]]:
         s_id = batch[0]["id"]
         e_id = batch[-1]["id"]
-        print(f"    Батч {idx+1}/{len(batches)}: #{s_id}–#{e_id} ...", end=" ", flush=True)
+        print(f"    Батч {idx+1}/{n_batches}: #{s_id}–#{e_id} ...", end=" ", flush=True)
         raw = call_claude(build_photo_prompt(master, batch))
         results = parse_photo_output(raw, len(batch))
-        all_results.extend(results)
         print(f"OK ({len(results)})")
-        if progress_ref is not None:
-            progress_ref["current"] = len(all_results)
-            progress_ref["current_text"] = (all_results[-1][0][:50] + "...") if all_results else ""
-            _write_progress(progress_ref)
+        return idx, results
+
+    batch_results: dict[int, list[tuple[str, str]]] = {}
+    completed_count = 0
+
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as executor:
+        futures = {
+            executor.submit(_run_batch, idx, batch): idx
+            for idx, batch in enumerate(batches)
+        }
+        for future in as_completed(futures):
+            idx, results = future.result()
+            batch_results[idx] = results
+            completed_count += len(results)
+            if progress_ref is not None:
+                progress_ref["current"] = min(completed_count, total)
+                _write_progress(progress_ref)
+
+    # Собираем в правильном порядке
+    all_results: list[tuple[str, str]] = []
+    for i in sorted(batch_results.keys()):
+        all_results.extend(batch_results[i])
+
+    if progress_ref is not None:
+        progress_ref["current"] = len(all_results)
+        progress_ref["current_text"] = (all_results[-1][0][:50] + "...") if all_results else ""
+        _write_progress(progress_ref)
+
     return all_results
 
 
@@ -275,21 +302,50 @@ def generate_all_video(
     photo_results: list[tuple[str, str]],
     progress_ref: dict | None = None,
 ) -> list[str]:
-    all_prompts: list[str] = []
     batches = [segments[i:i + BATCH_SIZE] for i in range(0, len(segments), BATCH_SIZE)]
     photo_batches = [photo_results[i:i + BATCH_SIZE] for i in range(0, len(photo_results), BATCH_SIZE)]
-    for idx, (batch, photo_batch) in enumerate(zip(batches, photo_batches)):
+    n_batches = len(batches)
+    total = len(segments)
+
+    def _run_batch(
+        idx: int,
+        batch: list[dict],
+        photo_batch: list[tuple[str, str]],
+    ) -> tuple[int, list[str]]:
         s_id = batch[0]["id"]
         e_id = batch[-1]["id"]
-        print(f"    Батч {idx+1}/{len(batches)}: #{s_id}–#{e_id} ...", end=" ", flush=True)
+        print(f"    Батч {idx+1}/{n_batches}: #{s_id}–#{e_id} ...", end=" ", flush=True)
         raw = call_claude(build_video_prompt(master, batch, photo_batch))
         prompts = parse_video_output(raw, len(batch))
-        all_prompts.extend(prompts)
         print(f"OK ({len(prompts)})")
-        if progress_ref is not None:
-            progress_ref["current"] = len(all_prompts)
-            progress_ref["current_text"] = (all_prompts[-1][:50] + "...") if all_prompts else ""
-            _write_progress(progress_ref)
+        return idx, prompts
+
+    batch_results: dict[int, list[str]] = {}
+    completed_count = 0
+
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as executor:
+        futures = {
+            executor.submit(_run_batch, idx, batch, photo_batch): idx
+            for idx, (batch, photo_batch) in enumerate(zip(batches, photo_batches))
+        }
+        for future in as_completed(futures):
+            idx, prompts = future.result()
+            batch_results[idx] = prompts
+            completed_count += len(prompts)
+            if progress_ref is not None:
+                progress_ref["current"] = min(completed_count, total)
+                _write_progress(progress_ref)
+
+    # Собираем в правильном порядке
+    all_prompts: list[str] = []
+    for i in sorted(batch_results.keys()):
+        all_prompts.extend(batch_results[i])
+
+    if progress_ref is not None:
+        progress_ref["current"] = len(all_prompts)
+        progress_ref["current_text"] = (all_prompts[-1][:50] + "...") if all_prompts else ""
+        _write_progress(progress_ref)
+
     return all_prompts
 
 
