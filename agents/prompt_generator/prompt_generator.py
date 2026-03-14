@@ -46,6 +46,37 @@ PHOTO_MASTERS   = BASE_DIR / "config" / "master_prompts" / "photo"
 VIDEO_MASTERS   = BASE_DIR / "config" / "master_prompts" / "video"
 PROGRESS_FILE   = BASE_DIR / "temp" / "prompt_progress.json"
 
+# ── Channel manager (контекст из активного канала) ────────────────────────────
+try:
+    _BOT_DIR = BASE_DIR / "bot"
+    if str(_BOT_DIR) not in sys.path:
+        sys.path.insert(0, str(_BOT_DIR))
+    from channel_manager import get_active_channel as _get_active_channel
+
+    def get_channel_context() -> dict:
+        channel = _get_active_channel()
+        if channel:
+            ctx = {
+                "source_language": channel["prompt_generator"]["source_language"],
+                "system_context":  channel["prompt_generator"]["system_context"],
+                "niche":           channel["validator"]["niche"],
+            }
+            print(f"  🌐 Канал: {channel['emoji']} {channel['name']} "
+                  f"| src={ctx['source_language']} | niche={ctx['niche']}")
+            return ctx
+        return {
+            "source_language": "de",
+            "system_context":  "Scientific space documentary",
+            "niche":           "cosmos",
+        }
+except Exception:
+    def get_channel_context() -> dict:
+        return {
+            "source_language": "de",
+            "system_context":  "Scientific space documentary",
+            "niche":           "cosmos",
+        }
+
 BATCH_SIZE   = 10
 MAX_PARALLEL = 5
 
@@ -142,7 +173,11 @@ def load_segments(session: str) -> list[dict]:
 
 def load_photo_prompts(session: str) -> list[tuple[str, str]]:
     """Загружает фото-промпты из photo_prompts.json для standalone видео-режима."""
-    p = PROMPTS_DIR / session / "photo_prompts.json"
+    # Новая структура: data/prompts/{session}/photo/photo_prompts.json
+    p = PROMPTS_DIR / session / "photo" / "photo_prompts.json"
+    # Fallback: старая плоская структура
+    if not p.exists():
+        p = PROMPTS_DIR / session / "photo_prompts.json"
     if not p.exists():
         raise FileNotFoundError(
             f"photo_prompts.json не найден: {p}\n"
@@ -178,12 +213,20 @@ def call_claude(prompt: str) -> str:
 # ---------------------------------------------------------------------------
 
 def build_photo_prompt(master: str, segments: list[dict]) -> str:
+    ctx = get_channel_context()
+    channel_header = (
+        f"# Channel context\n"
+        f"Source language: {ctx['source_language']}\n"
+        f"Context: {ctx['system_context']}\n"
+        f"Niche: {ctx['niche']}\n"
+        f"Generate all prompts in ENGLISH only.\n\n"
+    )
     lines = []
     for s in segments:
         lines.append(f"SEGMENT {s['id']}")
         lines.append(f'[{s["start"]}s-{s["end"]}s] Script text: "{s["text"]}"')
     return (
-        f"{master}\n\n"
+        f"{channel_header}{master}\n\n"
         f"Теперь создай промпты для этих сегментов:\n"
         + "\n".join(lines)
     )
@@ -266,13 +309,21 @@ def build_video_prompt(
     segments: list[dict],
     photo_results: list[tuple[str, str]],
 ) -> str:
+    ctx = get_channel_context()
+    channel_header = (
+        f"# Channel context\n"
+        f"Source language: {ctx['source_language']}\n"
+        f"Context: {ctx['system_context']}\n"
+        f"Niche: {ctx['niche']}\n"
+        f"Generate all prompts in ENGLISH only.\n\n"
+    )
     lines = []
     for s, (pos, _neg) in zip(segments, photo_results):
         lines.append(f"SEGMENT {s['id']} (Photo Prompt)")
         lines.append(pos)
         lines.append("")
     return (
-        f"{master}\n\n"
+        f"{channel_header}{master}\n\n"
         f"Теперь создай промпты для этих сегментов:\n"
         + "\n".join(lines)
     )
@@ -283,11 +334,17 @@ def parse_video_output(text: str, n_segments: int) -> list[str]:
     parts = re.split(r"\bSEGMENT\s+\d+\s*\(Photo Prompt\)", text, flags=re.IGNORECASE)
     segment_parts = [p.strip() for p in parts[1:] if p.strip()]
     for part in segment_parts:
-        fvp_match = re.search(r"Final\s+Video\s+Prompt\s*\n", part, re.IGNORECASE)
+        # "Final Video Prompt", "Final Video Prompt:", etc. — flexible match
+        fvp_match = re.search(r"Final\s+Video\s+Prompt[^\S\n]*[:\-]?\s*\n", part, re.IGNORECASE)
+        if not fvp_match:
+            # fallback: "Video Prompt" without "Final"
+            fvp_match = re.search(r"\bVideo\s+Prompt[^\S\n]*[:\-]?\s*\n", part, re.IGNORECASE)
         if fvp_match:
             video_prompt = part[fvp_match.end():].strip()
         else:
-            video_prompt = part.strip()
+            # No marker found — take the last paragraph (skip echoed photo prompt)
+            paragraphs = [p.strip() for p in part.split("\n\n") if p.strip()]
+            video_prompt = paragraphs[-1] if paragraphs else part.strip()
         results.append(video_prompt)
     if len(results) != n_segments:
         raise ValueError(
@@ -359,7 +416,7 @@ def save_photo(
     segments: list[dict],
     results: list[tuple[str, str]],
 ) -> tuple[Path, Path]:
-    out_dir = PROMPTS_DIR / session
+    out_dir = PROMPTS_DIR / session / "photo"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     data = [
@@ -387,7 +444,7 @@ def save_photo(
 
 
 def save_video(session: str, segments: list[dict], prompts: list[str]) -> tuple[Path, Path]:
-    out_dir = PROMPTS_DIR / session
+    out_dir = PROMPTS_DIR / session / "video"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     data = [

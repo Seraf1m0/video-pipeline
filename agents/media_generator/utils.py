@@ -81,6 +81,9 @@ PIXEL_PROGRESS_FILE = BASE_DIR / "temp" / "pixel_progress.json"
 # Максимум попыток на один клип (с перезапуском браузера)
 GROK_MAX_RETRIES = 3
 
+# Количество параллельных вкладок (Chrome-процессов) для Grok
+GROK_NUM_TABS = int(os.environ.get("GROK_NUM_TABS", "3"))
+
 
 # ---------------------------------------------------------------------------
 # TG уведомления
@@ -176,7 +179,10 @@ def find_latest_session() -> str | None:
 def read_prompts(session: str, kind: str) -> list[str]:
     """kind = 'photo' или 'video'"""
     filename = f"{kind}_prompts.txt"
-    txt = PROMPTS_DIR / session / filename
+    # Новая структура: data/prompts/{session}/{kind}/
+    txt = PROMPTS_DIR / session / kind / filename
+    if not txt.exists():  # fallback: старая плоская структура
+        txt = PROMPTS_DIR / session / filename
     if not txt.exists():
         print(f"  [!] Файл не найден: {txt}")
         return []

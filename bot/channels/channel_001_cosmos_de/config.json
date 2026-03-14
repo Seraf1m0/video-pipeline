@@ -1,0 +1,26 @@
+{
+  "id": "channel_001_cosmos_de",
+  "name": "Cosmos DE",
+  "emoji": "🌌",
+  "language": "de",
+  "niche": "cosmos",
+  "tg_channel": "",
+  "transcriber": {
+    "language": "de",
+    "task": "transcribe"
+  },
+  "prompt_generator": {
+    "language": "en",
+    "source_language": "de",
+    "system_context": "Scientific space documentary in German"
+  },
+  "assembler": {
+    "subtitle_language": "de",
+    "music_dir": "",
+    "intro_enabled": true
+  },
+  "validator": {
+    "niche": "cosmos",
+    "stock_query_language": "en"
+  }
+}

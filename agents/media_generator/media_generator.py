@@ -38,7 +38,7 @@ from utils import (  # noqa: E402
     ask_media_type,
 )
 from pixel_agent import generate_pixel        # noqa: E402
-from grok_agent import generate_grok_video    # noqa: E402
+from grok_agent import generate_grok_video    # noqa: E402  (multi-tab)
 from flow_agent import generate_flow          # noqa: E402
 
 
@@ -51,6 +51,8 @@ def run() -> None:
     parser.add_argument("--type", dest="gen_type", choices=["photo", "video", "both"],
                         help="Тип: photo | video | both")
     parser.add_argument("--session", help="Имя сессии (по умолчанию — последняя)")
+    parser.add_argument("--tabs", type=int, default=None,
+                        help="Кол-во вкладок для Grok (по умолчанию GROK_NUM_TABS из .env)")
     args = parser.parse_args()
 
     # ── Сессия ────────────────────────────────────────────────────────────
@@ -120,7 +122,8 @@ def run() -> None:
                 if len(photos) != len(prompts):
                     print(f"  [!] Фото: {len(photos)}, промптов: {len(prompts)} — беру первые {n}")
                 saved = generate_grok_video(
-                    platform, photos[:n], prompts[:n], out_dir, session=session
+                    platform, photos[:n], prompts[:n], out_dir,
+                    session=session, num_tabs=args.tabs,
                 )
 
         else:

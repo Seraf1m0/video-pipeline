@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Editor</title>
+<style>
+:root {
+  --bg:       #1a1a1e;
+  --bg2:      #111114;
+  --panel:    #222228;
+  --panel2:   #2a2a32;
+  --border:   #35353f;
+  --border2:  #44444e;
+  --accent:   #7c6af5;
+  --accent2:  #a78bfa;
+  --green:    #22c55e;
+  --red:      #ef4444;
+  --amber:    #f59e0b;
+  --text:     #d4d4e0;
+  --text2:    #9090a8;
+  --intro-c:  #2563eb;
+  --clip-c:   #5b4be0;
+  --vo-c:     #059669;
+  --music-c:  #b45309;
+  --ruler-c:  #3a3a46;
+  --track-h:  32px;
+  --label-w:  52px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg2); color: var(--text);
+  height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  font-size: 13px;
+}
+
+/* ── TITLEBAR ──────────────────────────────────────────────────────── */
+.titlebar {
+  height: 36px; background: #0d0d10; display: flex; align-items: center;
+  padding: 0 14px; gap: 10px; flex-shrink: 0; user-select: none;
+  border-bottom: 1px solid #000;
+}
+.titlebar-logo { font-size: 12px; font-weight: 700; color: var(--accent2); letter-spacing: .05em; }
+.titlebar-sep  { width: 1px; height: 16px; background: var(--border); }
+.titlebar-session {
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;
+  min-width: 210px;
+}
+.titlebar-session:focus { outline: 1px solid var(--accent); }
+.badge {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 600;
+  letter-spacing: .04em;
+}
+.badge.ok  { background: #14532d44; color: var(--green); border: 1px solid #14532d; }
+.badge.no  { background: #2a2a3a; color: var(--text2); border: 1px solid var(--border); }
+.titlebar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* Timecode display */
+.timecode {
+  font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700;
+  color: var(--accent2); background: #0a0a10; border: 1px solid var(--border);
+  padding: 3px 10px; border-radius: 4px; letter-spacing: .06em; min-width: 98px;
+  text-align: center;
+}
+
+/* ── TOOLBAR ───────────────────────────────────────────────────────── */
+.toolbar {
+  height: 40px; background: var(--panel); display: flex; align-items: center;
+  padding: 0 10px; gap: 6px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.btn {
+  padding: 5px 14px; border: 1px solid transparent; border-radius: 4px;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all .12s;
+  white-space: nowrap;
+}
+.btn:hover  { opacity: .88; }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.btn-primary   { background: var(--accent); color: #fff; border-color: #5a4dcc; }
+.btn-secondary { background: var(--panel2); color: var(--text); border-color: var(--border); }
+.btn-green     { background: #166534; color: var(--green); border-color: #15803d; }
+.btn-icon      { padding: 5px 9px; font-size: 14px; }
+.toolbar-sep   { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
+.preview-start-wrap { display: flex; align-items: center; gap: 5px; }
+.preview-start-wrap label { font-size: 11px; color: var(--text2); }
+.preview-start-wrap input {
+  width: 54px; background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text); padding: 3px 6px; border-radius: 4px; font-size: 12px;
+  text-align: center;
+}
+
+/* Status */
+.status-wrap { display: flex; align-items: center; gap: 6px; }
+.status-dot  { width: 7px; height: 7px; border-radius: 50%; background: var(--text2); }
+.status-dot.running { background: var(--amber); animation: pulse 1s infinite; }
+.status-dot.done    { background: var(--green); }
+.status-dot.error   { background: var(--red); }
+.status-text { font-size: 11px; color: var(--text2); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* Progress bar */
+.progress-bar-wrap {
+  flex: 1; max-width: 200px; height: 4px; background: var(--border);
+  border-radius: 2px; overflow: hidden; display: none;
+}
+.progress-bar-wrap.visible { display: block; }
+.progress-bar { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+
+/* ── MAIN SPLIT ────────────────────────────────────────────────────── */
+.main {
+  display: grid; grid-template-columns: 1fr 300px;
+  flex: 1; min-height: 0; overflow: hidden;
+}
+
+/* ── VIDEO PLAYER ──────────────────────────────────────────────────── */
+.player-wrap {
+  background: #000; display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+#mainVideo { max-width: 100%; max-height: 100%; display: block; }
+.player-placeholder {
+  color: var(--text2); text-align: center; line-height: 2.2;
+}
+.player-placeholder .icon { font-size: 40px; display: block; margin-bottom: 8px; }
+.player-placeholder .hint { font-size: 11px; color: #555; }
+
+/* Transport overlay */
+.transport-overlay {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; opacity: 0;
+  transition: opacity .2s; pointer-events: none;
+}
+.player-wrap:hover .transport-overlay { opacity: 1; pointer-events: all; }
+.transport-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.65); color: #fff; font-size: 14px;
+  backdrop-filter: blur(4px); transition: background .12s;
+}
+.transport-btn:hover { background: rgba(124,106,245,.8); }
+.transport-btn.play-btn { width: 40px; height: 40px; font-size: 16px; }
+
+/* ── SIDEBAR ───────────────────────────────────────────────────────── */
+.sidebar {
+  background: var(--panel); border-left: 1px solid var(--border);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.sidebar-section {
+  border-bottom: 1px solid var(--border); padding: 10px 12px;
+}
+.sidebar-section:last-child { border-bottom: none; flex: 1; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; cursor: pointer; user-select: none;
+}
+.section-header h3 {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text2); font-weight: 700;
+}
+.section-header .collapse-btn { font-size: 10px; color: var(--text2); }
+.section-body { }
+.section-body.collapsed { display: none; }
+
+/* Sliders */
+.ctrl-row {
+  display: grid; grid-template-columns: 78px 1fr 46px;
+  align-items: center; gap: 6px; margin-bottom: 7px;
+}
+.ctrl-row label { font-size: 11px; color: var(--text2); }
+.ctrl-row input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  height: 3px; background: var(--border2); border-radius: 2px; cursor: pointer;
+  outline: none; width: 100%;
+}
+.ctrl-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 11px; height: 11px;
+  border-radius: 50%; background: var(--accent2); cursor: pointer;
+  box-shadow: 0 0 4px rgba(167,139,250,.4);
+}
+.ctrl-row input[type=range]::-webkit-slider-thumb:hover { background: #fff; }
+.ctrl-row .val {
+  font-size: 11px; font-family: 'Courier New', monospace;
+  text-align: right; color: var(--text); background: var(--panel2);
+  padding: 1px 4px; border-radius: 3px; border: 1px solid var(--border);
+}
+.row-btns { display: flex; gap: 5px; margin-top: 4px; }
+.row-btns .btn { flex: 1; font-size: 11px; padding: 4px 6px; }
+
+/* Lumetri gradient indicators */
+.lumetri-bar {
+  height: 3px; border-radius: 1px; margin-bottom: 10px; margin-top: -2px;
+}
+
+/* Color wheel mini */
+.color-visual { display: flex; gap: 8px; margin-bottom: 10px; }
+.color-swatch {
+  flex: 1; height: 28px; border-radius: 4px; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: rgba(255,255,255,.6); letter-spacing: .04em;
+}
+
+/* Checkboxes */
+.option-row { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.option-row label { font-size: 12px; cursor: pointer; }
+input[type=checkbox] {
+  accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer;
+}
+
+/* Log */
+.log-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 8px; font-size: 10px; font-family: 'Courier New', monospace;
+  color: #7a8090; max-height: 100px; overflow-y: auto; display: none;
+}
+.log-box.visible { display: block; }
+.log-line.info  { color: var(--text2); }
+.log-line.ok    { color: var(--green); }
+.log-line.warn  { color: var(--amber); }
+.log-line.error { color: var(--red); }
+
+/* Result */
+.result-file {
+  font-size: 11px; font-family: monospace; color: var(--green);
+  word-break: break-all; margin-bottom: 8px;
+}
+
+/* ── TIMELINE ──────────────────────────────────────────────────────── */
+.timeline-section {
+  flex-shrink: 0; background: var(--bg2); border-top: 2px solid var(--border);
+  height: 170px; display: flex; flex-direction: column;
+}
+.timeline-header {
+  display: flex; align-items: center; padding: 4px 8px;
+  border-bottom: 1px solid var(--border); gap: 8px; flex-shrink: 0;
+}
+.tl-zoom-group { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.tl-zoom-btn {
+  width: 22px; height: 22px; border: 1px solid var(--border); background: var(--panel);
+  color: var(--text); border-radius: 3px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.tl-zoom-btn:hover { background: var(--panel2); color: var(--accent2); }
+.tl-zoom-label { font-size: 10px; color: var(--text2); min-width: 30px; text-align: center; }
+.tl-info { font-size: 10px; color: var(--text2); }
+
+/* Timeline scroll body */
+.timeline-body { flex: 1; overflow-x: auto; overflow-y: hidden; position: relative; }
+.timeline-inner { position: relative; min-width: 100%; height: 100%; }
+
+/* Time ruler */
+.tl-ruler {
+  height: 18px; position: relative; border-bottom: 1px solid var(--border);
+  overflow: hidden; flex-shrink: 0;
+}
+.tl-ruler-inner { position: absolute; top: 0; left: var(--label-w); right: 0; height: 100%; }
+.tick {
+  position: absolute; top: 0; bottom: 0; display: flex; flex-direction: column;
+  align-items: center; pointer-events: none;
+}
+.tick-line { width: 1px; background: var(--ruler-c); flex: 1; }
+.tick-label { font-size: 9px; color: var(--text2); white-space: nowrap; padding: 1px 2px; }
+.tick.major .tick-line { background: var(--border2); }
+.tick.major .tick-label { color: var(--text); }
+
+/* Tracks */
+.tl-tracks { position: relative; }
+.tl-track {
+  display: flex; align-items: center; height: var(--track-h);
+  border-bottom: 1px solid var(--border); position: relative;
+}
+.tl-track:hover { background: rgba(255,255,255,.02); }
+.tl-label {
+  width: var(--label-w); flex-shrink: 0; font-size: 9px;
+  color: var(--text2); text-align: right; padding-right: 7px;
+  user-select: none; font-weight: 600; letter-spacing: .03em;
+}
+.tl-clips { display: flex; height: 26px; position: relative; gap: 0; }
+
+/* Clip blocks */
+.clip-block {
+  height: 100%; border-radius: 2px; cursor: pointer;
+  display: flex; align-items: center;
+  font-size: 9px; color: rgba(255,255,255,.75);
+  overflow: hidden; white-space: nowrap; padding: 0 5px; flex-shrink: 0;
+  transition: filter .1s; border: 1px solid transparent; margin-right: 1px;
+  position: relative;
+}
+.clip-block:hover { filter: brightness(1.25); }
+.clip-block.intro { background: var(--intro-c); border-color: #1d4ed8; }
+.clip-block.clip  { background: var(--clip-c); border-color: #4c3dcc; }
+.clip-block.active { border-color: #fff !important; }
+
+/* Audio bars */
+.tl-bar { height: 16px; border-radius: 2px; opacity: .65; flex-shrink: 0; margin-top: 1px; }
+.tl-bar.vo    { background: var(--vo-c); border: 1px solid #065f46; }
+.tl-bar.music { background: var(--music-c); border: 1px solid #92400e; }
+
+/* Cursor */
+.tl-cursor {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: linear-gradient(to bottom, #fff, rgba(255,255,255,.3));
+  pointer-events: none; z-index: 20; will-change: left;
+}
+.tl-cursor::before {
+  content: ''; position: absolute; top: -3px; left: -4px;
+  width: 9px; height: 9px; background: #fff; clip-path: polygon(50% 0%,100% 100%,0% 100%);
+}
+/* Cursor head in ruler */
+.tl-cursor-head {
+  position: absolute; top: 0; width: 1px;
+  background: #fff; z-index: 21; pointer-events: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Tooltip */
+.clip-tooltip {
+  position: fixed; background: #1a1a28; border: 1px solid var(--accent);
+  color: var(--text); font-size: 10px; padding: 5px 8px; border-radius: 4px;
+  max-width: 260px; pointer-events: none; z-index: 200; display: none; line-height: 1.6;
+  box-shadow: 0 4px 16px rgba(0,0,0,.5);
+}
+
+/* ── KEYBOARD HINT ─────────────────────────────────────────────────── */
+.kb-hint {
+  position: fixed; bottom: 8px; left: 8px; font-size: 9px; color: var(--text2);
+  opacity: .5; pointer-events: none; line-height: 1.8;
+}
+</style>
+</head>
+<body>
+
+<!-- TITLEBAR -->
+<div class="titlebar">
+  <span class="titlebar-logo">▶ VIDEO EDITOR</span>
+  <div class="titlebar-sep"></div>
+
+  <select id="sessionSelect" class="titlebar-session" onchange="loadSession()">
+    <option value="">— выбери сессию —</option>
+    {% for s in sessions %}
+    <option value="{{ s.name }}"
+      data-srt="{{ 'true' if s.has_srt else 'false' }}"
+      data-music="{{ 'true' if s.has_music else 'false' }}"
+      data-final="{{ s.final_size or '' }}"
+      data-has-data="{{ 'true' if s.has_data else 'false' }}">
+      {{ s.name }}{% if s.final_size %} · {{ s.final_size }}{% endif %}
+    </option>
+    {% endfor %}
+  </select>
+
+  <span id="badge-srt"   class="badge no">SRT</span>
+  <span id="badge-music" class="badge no">Music</span>
+
+  <div class="titlebar-right">
+    <div class="timecode" id="timecode">00:00:00</div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="btn btn-secondary" title="Step back (←)" onclick="stepBack()">⏮</button>
+  <button class="btn btn-secondary btn-icon" id="btnPlay" onclick="togglePlay()" title="Play/Pause (Space)">▶</button>
+  <button class="btn btn-secondary" title="Step forward (→)" onclick="stepForward()">⏭</button>
+
+  <div class="toolbar-sep"></div>
+
+  <div class="preview-start-wrap">
+    <label>от с:</label>
+    <input id="previewStart" type="number" value="90" min="0" step="10">
+  </div>
+  <button class="btn btn-secondary" onclick="doPreview()" title="30s цветовое превью">▶ Превью 30с</button>
+  <button class="btn btn-primary"   onclick="doAssemble()" title="Полная сборка">🚀 Собрать</button>
+
+  <div class="toolbar-sep"></div>
+
+  <div class="status-wrap">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Готов</span>
+  </div>
+  <div class="progress-bar-wrap" id="progressWrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- PLAYER -->
+  <div class="player-wrap" id="playerWrap">
+    <div class="player-placeholder" id="playerPlaceholder">
+      <span class="icon">🎬</span>
+      Выбери сессию и нажми <b>Собрать</b><br>
+      <span class="hint">Пробел — play/pause · J/K/L — jog · ← → — ±5s</span>
+    </div>
+    <video id="mainVideo" controls style="display:none"
+      onended="onVideoEnded()" ontimeupdate="onTimeUpdate()"></video>
+
+    <!-- Transport overlay (shown on hover) -->
+    <div class="transport-overlay">
+      <button class="transport-btn" onclick="stepBack()" title="−5s">⏮</button>
+      <button class="transport-btn play-btn" id="playOverlayBtn" onclick="togglePlay()">▶</button>
+      <button class="transport-btn" onclick="stepForward()" title="+5s">⏭</button>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Lumetri Color -->
+    <div class="sidebar-section">
+      <div class="section-header" onclick="toggleSection('lumetri-body', this)">
+        <h3>🎨 Lumetri Color</h3>
+        <span class="collapse-btn">▼</span>
+      </div>
+      <div class="section-body" id="lumetri-body">
+        <!-- Color visual preview -->
+        <div class="color-visual">
+          <div class="color-swatch" id="swatchWarm" style="background:linear-gradient(90deg,#1a2040,#1a3040)">TEMP</div>
+          <div class="color-swatch" id="swatchExp"  style="background:linear-gradient(90deg,#111,#333)">EXP</div>
+          <div class="color-swatch" id="swatchSat"  style="background:linear-gradient(90deg,#222,#443030)">SAT</div>
+        </div>
+
+        <div class="ctrl-row">
+          <label>Temperature</label>
+          <input type="range" id="temperature" min="-100" max="100" step="0.5" value="0" oninput="onSlider(this,'v_temperature',updateColorVisual)">
+          <span class="val" id="v_temperature">0</span>
+        </div>
+        <div class="ctrl-row">
+          <label>Exposure</label>
+          <input type="range" id="exposure" min="-5" max="5" step="0.05" value="0" oninput="onSlider(this,'v_exposure',updateColorVisual)">
+          <span class="val" id="v_exposure">0.00</span>
+        </div>
+        <div class="ctrl-row">
+          <label>Contrast</label>
+          <input type="range" id="contrast" min="-100" max="100" step="0.5" value="0" oninput="onSlider(this,'v_contrast')">
+          <span class="val" id="v_contrast">0</span>
+        </div>
+        <div class="ctrl-row">
+          <label>Highlights</label>
+          <input type="range" id="highlights" min="-100" max="100" step="0.5" value="0" oninput="onSlider(this,'v_highlights')">
+          <span class="val" id="v_highlights">0</span>
+        </div>
+        <div class="ctrl-row">
+          <label>Whites</label>
+          <input type="range" id="whites" min="-100" max="100" step="0.5" value="0" oninput="onSlider(this,'v_whites')">
+          <span class="val" id="v_whites">0</span>
+        </div>
+        <div class="ctrl-row">
+          <label>Saturation</label>
+          <input type="range" id="saturation" min="0" max="200" step="0.5" value="100" oninput="onSlider(this,'v_saturation',updateColorVisual)">
+          <span class="val" id="v_saturation">100</span>
+        </div>
+        <div class="row-btns">
+          <button class="btn btn-secondary" onclick="resetToLumetri()" title="Значения из premiere_data.json">↺ JSON</button>
+          <button class="btn btn-secondary" onclick="resetColorDefault()" title="Сброс в 0">✕ Сброс</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Mixer -->
+    <div class="sidebar-section">
+      <div class="section-header" onclick="toggleSection('audio-body', this)">
+        <h3>🔊 Audio Mixer</h3>
+        <span class="collapse-btn">▼</span>
+      </div>
+      <div class="section-body" id="audio-body">
+        <div class="ctrl-row">
+          <label>Voiceover</label>
+          <input type="range" id="voDb" min="-30" max="6" step="0.5" value="-6" oninput="onDbSlider(this,'v_voDb')">
+          <span class="val" id="v_voDb">-6dB</span>
+        </div>
+        <div class="ctrl-row">
+          <label>Music</label>
+          <input type="range" id="musicDb" min="-50" max="0" step="0.5" value="-33" oninput="onDbSlider(this,'v_musicDb')">
+          <span class="val" id="v_musicDb">-33dB</span>
+        </div>
+        <div class="ctrl-row">
+          <label>Intro audio</label>
+          <input type="range" id="introDb" min="-50" max="0" step="0.5" value="-37" oninput="onDbSlider(this,'v_introDb')">
+          <span class="val" id="v_introDb">-37dB</span>
+        </div>
+        <div class="row-btns">
+          <button class="btn btn-secondary" onclick="resetAudio()">↺ Сброс</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="sidebar-section">
+      <div class="section-header" onclick="toggleSection('opts-body', this)">
+        <h3>⚙️ Параметры</h3>
+        <span class="collapse-btn">▼</span>
+      </div>
+      <div class="section-body" id="opts-body">
+        <div class="option-row">
+          <input type="checkbox" id="withSubs" checked>
+          <label for="withSubs">Субтитры (subtitles.srt)</label>
+        </div>
+        <div class="option-row">
+          <input type="checkbox" id="withMusic" checked>
+          <label for="withMusic">Музыка</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="sidebar-section" id="resultSection" style="display:none">
+      <div class="section-header">
+        <h3>✅ Результат</h3>
+      </div>
+      <div class="section-body">
+        <div class="result-file" id="resultLink"></div>
+        <div class="row-btns">
+          <button class="btn btn-green" id="btnLoadResult" onclick="loadResult()" style="display:none">
+            ▶ Загрузить в плеер
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="sidebar-section">
+      <div class="section-header" onclick="toggleSection('log-body', this)">
+        <h3>📋 Лог</h3>
+        <span class="collapse-btn">▼</span>
+      </div>
+      <div class="section-body" id="log-body">
+        <div class="log-box" id="logBox"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TIMELINE -->
+<div class="timeline-section">
+  <div class="timeline-header">
+    <span class="tl-info" id="tlInfo">—</span>
+    <div class="tl-zoom-group">
+      <span class="tl-zoom-label" id="zoomLabel">×1</span>
+      <button class="tl-zoom-btn" onclick="zoomTimeline(-1)" title="Zoom out (-)">−</button>
+      <button class="tl-zoom-btn" onclick="zoomTimeline(1)"  title="Zoom in (+)">+</button>
+      <button class="tl-zoom-btn" onclick="zoomFit()"        title="Fit to window">⊡</button>
+    </div>
+  </div>
+
+  <!-- ruler -->
+  <div class="tl-ruler" id="tlRuler">
+    <div class="tl-ruler-inner" id="tlRulerInner"></div>
+    <div class="tl-cursor-head" id="tlCursorHead" style="left: calc(var(--label-w) + 0px)"></div>
+  </div>
+
+  <!-- tracks -->
+  <div class="timeline-body" id="timelineBody">
+    <div class="timeline-inner" id="timelineInner">
+      <div class="tl-tracks" id="tlTracks">
+        <div class="tl-track">
+          <span class="tl-label">V1</span>
+          <div class="tl-clips" id="clipsV1"></div>
+        </div>
+        <div class="tl-track">
+          <span class="tl-label">A1 VO</span>
+          <div class="tl-clips" id="clipsA1"></div>
+        </div>
+        <div class="tl-track">
+          <span class="tl-label">A2 ♪</span>
+          <div class="tl-clips" id="clipsA2"></div>
+        </div>
+      </div>
+      <div class="tl-cursor" id="tlCursor" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="clip-tooltip" id="clipTooltip"></div>
+
+<!-- KB hint -->
+<div class="kb-hint">Space: play/pause · J/K/L: jog · ←/→: ±5s · +/−: zoom</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let SESSION      = "";
+let SESSION_DATA = null;
+let TOTAL_DUR    = 0;
+let PX_PER_SEC   = 8;
+let RESULT_FILE  = null;
+let POLL_TIMER   = null;
+let RAF_ID       = null;
+
+// ── Format helpers ────────────────────────────────────────────────────────────
+function fmtTime(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+function fmtShort(s) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Slider helpers ────────────────────────────────────────────────────────────
+function onSlider(el, valId, cb) {
+  const v = parseFloat(el.value);
+  const decimals = el.step && parseFloat(el.step) < 1 ? 2 : 0;
+  document.getElementById(valId).textContent = v.toFixed(decimals);
+  if (cb) cb();
+}
+function onDbSlider(el, valId) {
+  document.getElementById(valId).textContent = parseFloat(el.value).toFixed(1) + 'dB';
+}
+function setSlider(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = val;
+  el.dispatchEvent(new Event('input'));
+}
+
+// ── Color visual ──────────────────────────────────────────────────────────────
+function updateColorVisual() {
+  const temp = parseFloat(document.getElementById('temperature').value);
+  const exp  = parseFloat(document.getElementById('exposure').value);
+  const sat  = parseFloat(document.getElementById('saturation').value);
+
+  // Temperature swatch
+  const warmR = temp > 0 ? Math.round(20 + temp * 0.3) : 20;
+  const coolB = temp < 0 ? Math.round(40 - temp * 0.3) : 40;
+  document.getElementById('swatchWarm').style.background =
+    `linear-gradient(90deg, rgb(${warmR},25,${coolB}), rgb(${warmR+10},30,${coolB+10}))`;
+
+  // Exposure swatch
+  const bright = Math.round(17 + exp * 30);
+  const b = Math.max(5, Math.min(120, bright));
+  document.getElementById('swatchExp').style.background =
+    `linear-gradient(90deg, rgb(${b-5},${b-5},${b-5}), rgb(${b+10},${b+10},${b+10}))`;
+
+  // Saturation swatch
+  const s = sat / 100;
+  const rr = Math.round(68 * s), gg = Math.round(20 * s), bb = Math.round(20 * s);
+  document.getElementById('swatchSat').style.background =
+    `linear-gradient(90deg, #222, rgb(${34+rr},${17+gg},${17+bb}))`;
+}
+
+// ── Resets ────────────────────────────────────────────────────────────────────
+function resetColorDefault() {
+  ['temperature','exposure','contrast','highlights','whites'].forEach(id => setSlider(id, 0));
+  setSlider('saturation', 100);
+}
+function resetToLumetri() {
+  if (!SESSION_DATA?.lumetri) return;
+  const L = SESSION_DATA.lumetri;
+  setSlider('temperature', L.temperature ?? 0);
+  setSlider('exposure',    L.exposure    ?? 0);
+  setSlider('contrast',    L.contrast    ?? 0);
+  setSlider('highlights',  L.highlights  ?? 0);
+  setSlider('whites',      L.whites      ?? 0);
+  setSlider('saturation',  L.saturation  ?? 100);
+}
+function resetAudio() {
+  setSlider('voDb',    -6);
+  setSlider('musicDb', -33);
+  setSlider('introDb', -37);
+}
+
+// ── Collapsible sections ──────────────────────────────────────────────────────
+function toggleSection(bodyId, header) {
+  const body = document.getElementById(bodyId);
+  const btn  = header.querySelector('.collapse-btn');
+  const collapsed = body.classList.toggle('collapsed');
+  if (btn) btn.textContent = collapsed ? '▶' : '▼';
+}
+
+// ── Settings payload ──────────────────────────────────────────────────────────
+function getSettings() {
+  return {
+    lumetri: {
+      temperature: +document.getElementById('temperature').value,
+      exposure:    +document.getElementById('exposure').value,
+      contrast:    +document.getElementById('contrast').value,
+      highlights:  +document.getElementById('highlights').value,
+      whites:      +document.getElementById('whites').value,
+      saturation:  +document.getElementById('saturation').value,
+    },
+    voDb:    +document.getElementById('voDb').value,
+    musicDb: +document.getElementById('musicDb').value,
+    introDb: +document.getElementById('introDb').value,
+  };
+}
+
+// ── Session load ──────────────────────────────────────────────────────────────
+async function loadSession() {
+  const sel = document.getElementById('sessionSelect');
+  SESSION = sel.value;
+  if (!SESSION) return;
+
+  const opt = sel.selectedOptions[0];
+  document.getElementById('badge-srt').className   = 'badge ' + (opt.dataset.srt   === 'true' ? 'ok' : 'no');
+  document.getElementById('badge-music').className  = 'badge ' + (opt.dataset.music === 'true' ? 'ok' : 'no');
+
+  if (opt.dataset.hasData === 'true') {
+    try {
+      const r = await fetch(`/api/session/${SESSION}/data`);
+      SESSION_DATA = await r.json();
+      buildTimeline(SESSION_DATA);
+      resetToLumetri();
+
+      // Load audio dB from data
+      if (SESSION_DATA.voiceover_db  != null) setSlider('voDb',    SESSION_DATA.voiceover_db);
+      if (SESSION_DATA.music_db      != null) setSlider('musicDb', SESSION_DATA.music_db);
+      if (SESSION_DATA.intro_audio_db != null) setSlider('introDb', SESSION_DATA.intro_audio_db);
+    } catch(e) { console.warn('premiere_data.json:', e); }
+  }
+
+  // Try to load existing video
+  for (const f of ['final_premiere.mp4', 'montage_with_audio.mp4']) {
+    if (await videoExists(SESSION, f)) { loadVideo(f); return; }
+  }
+  document.getElementById('mainVideo').style.display = 'none';
+  document.getElementById('playerPlaceholder').style.display = 'flex';
+  document.getElementById('playerPlaceholder').style.flexDirection = 'column';
+  document.getElementById('playerPlaceholder').style.alignItems = 'center';
+  document.getElementById('playerPlaceholder').style.justifyContent = 'center';
+}
+
+async function videoExists(session, file) {
+  try { const r = await fetch(`/video/${session}/${file}`, {method:'HEAD'}); return r.ok; }
+  catch { return false; }
+}
+
+function loadVideo(file) {
+  const v = document.getElementById('mainVideo');
+  v.src = `/video/${SESSION}/${file}`;
+  v.style.display = 'block';
+  document.getElementById('playerPlaceholder').style.display = 'none';
+  document.getElementById('tlCursor').style.display = 'block';
+  RESULT_FILE = file;
+  startRafLoop();
+}
+
+// ── Transport ─────────────────────────────────────────────────────────────────
+const video = () => document.getElementById('mainVideo');
+function togglePlay() {
+  const v = video();
+  if (!v.src) return;
+  v.paused ? v.play() : v.pause();
+}
+function stepBack()    { const v = video(); v.currentTime = Math.max(0, v.currentTime - 5); }
+function stepForward() { const v = video(); v.currentTime = Math.min(v.duration || 0, v.currentTime + 5); }
+
+// J/K/L and other keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const v = video();
+  switch(e.key) {
+    case ' ': e.preventDefault(); togglePlay(); break;
+    case 'j': e.preventDefault(); v.currentTime = Math.max(0, v.currentTime - 5); break;
+    case 'l': e.preventDefault(); v.currentTime = Math.min(v.duration||0, v.currentTime + 5); break;
+    case 'k': e.preventDefault(); v.paused ? v.play() : v.pause(); break;
+    case 'ArrowLeft':  e.preventDefault(); stepBack(); break;
+    case 'ArrowRight': e.preventDefault(); stepForward(); break;
+    case '+': case '=': zoomTimeline(1); break;
+    case '-': zoomTimeline(-1); break;
+  }
+});
+
+// Update play button icon
+document.getElementById('mainVideo').addEventListener('play',  () => {
+  document.getElementById('btnPlay').textContent = '⏸';
+  document.getElementById('playOverlayBtn').textContent = '⏸';
+});
+document.getElementById('mainVideo').addEventListener('pause', () => {
+  document.getElementById('btnPlay').textContent = '▶';
+  document.getElementById('playOverlayBtn').textContent = '▶';
+});
+
+// ── RAF loop: timecode + cursor ───────────────────────────────────────────────
+function startRafLoop() {
+  if (RAF_ID) cancelAnimationFrame(RAF_ID);
+  function loop() {
+    const v = document.getElementById('mainVideo');
+    if (v && v.readyState > 0) {
+      updateTimecodeAndCursor(v.currentTime);
+    }
+    RAF_ID = requestAnimationFrame(loop);
+  }
+  RAF_ID = requestAnimationFrame(loop);
+}
+
+function updateTimecodeAndCursor(t) {
+  document.getElementById('timecode').textContent = fmtTime(t);
+  if (!TOTAL_DUR) return;
+
+  const pct = t / TOTAL_DUR;
+  const labelW = 52;
+  const totalPx = TOTAL_DUR * PX_PER_SEC;
+  const x = pct * totalPx;
+
+  // Cursor in tracks area
+  const cursor = document.getElementById('tlCursor');
+  cursor.style.left = (x + labelW) + 'px';
+
+  // Cursor head in ruler
+  document.getElementById('tlCursorHead').style.left = (x + labelW) + 'px';
+
+  // Auto-scroll timeline to keep cursor visible
+  const body = document.getElementById('timelineBody');
+  const cursorPageX = x + labelW - body.scrollLeft;
+  if (cursorPageX > body.clientWidth * 0.8) {
+    body.scrollLeft = x + labelW - body.clientWidth * 0.3;
+  } else if (cursorPageX < labelW + 10) {
+    body.scrollLeft = Math.max(0, x);
+  }
+
+  // Highlight active clip
+  document.querySelectorAll('.clip-block.clip').forEach(b => {
+    const start = parseFloat(b.dataset.start || 0);
+    const dur   = parseFloat(b.dataset.dur   || 5);
+    b.classList.toggle('active', t >= start && t < start + dur);
+  });
+}
+
+function onTimeUpdate() { /* handled by RAF */ }
+function onVideoEnded()  { }
+
+// ── Timeline ──────────────────────────────────────────────────────────────────
+function buildTimeline(data) {
+  if (!data?.clips?.length) return;
+
+  const introDur = data.intro?.duration || 0;
+  const clips    = data.clips;
+  const lastClip = clips[clips.length - 1];
+  TOTAL_DUR = lastClip ? lastClip.end_time : introDur;
+
+  // Fit zoom to window
+  const bodyW = document.getElementById('timelineBody').clientWidth - 60;
+  PX_PER_SEC  = Math.max(3, Math.min(20, bodyW / TOTAL_DUR));
+
+  renderTimeline(data);
+  buildRuler();
+  updateZoomLabel();
+
+  const mins = Math.floor(TOTAL_DUR / 60), secs = Math.floor(TOTAL_DUR % 60);
+  document.getElementById('tlInfo').textContent =
+    `${clips.length + 1} клип${clips.length >= 5 ? 'ов' : 'а'}  ·  ${mins}м ${secs}с`;
+}
+
+function renderTimeline(data) {
+  const totalPx = TOTAL_DUR * PX_PER_SEC;
+  const inner   = document.getElementById('timelineInner');
+  inner.style.minWidth = (totalPx + 60) + 'px';
+  document.getElementById('tlTracks').style.minWidth = (totalPx + 60) + 'px';
+
+  const introDur = data.intro?.duration || 0;
+  const clips    = data.clips;
+
+  // V1: Intro + clips
+  const v1 = document.getElementById('clipsV1');
+  v1.innerHTML = '';
+  const iBlock = makeBlock('intro', introDur, 'INTRO', {start:0, dur: introDur});
+  iBlock.onclick = () => seekTo(0);
+  v1.appendChild(iBlock);
+
+  clips.forEach((clip, i) => {
+    const label = clip.text ? clip.text.substring(0,30) : `#${i+1}`;
+    const block = makeBlock('clip', clip.duration, label, {start: clip.start_time, dur: clip.duration});
+    block.dataset.start = clip.start_time;
+    block.dataset.dur   = clip.duration;
+    block.onclick       = () => seekTo(clip.start_time);
+    block.onmouseenter  = e => showTooltip(e, clip);
+    block.onmouseleave  = () => hideTooltip();
+    v1.appendChild(block);
+  });
+
+  // A1: voiceover full bar
+  const a1 = document.getElementById('clipsA1');
+  a1.innerHTML = '';
+  const voBar = document.createElement('div');
+  voBar.className = 'tl-bar vo';
+  voBar.style.width = totalPx + 'px';
+  a1.appendChild(voBar);
+
+  // A2: music (starts at music_start_sec)
+  const a2 = document.getElementById('clipsA2');
+  a2.innerHTML = '';
+  const musicStart = data.music_start_sec || 88;
+  const spacer = document.createElement('div');
+  spacer.style.cssText = `width:${musicStart * PX_PER_SEC}px;flex-shrink:0`;
+  a2.appendChild(spacer);
+  const mBar = document.createElement('div');
+  mBar.className = 'tl-bar music';
+  mBar.style.width = Math.max(0, (TOTAL_DUR - musicStart)) * PX_PER_SEC + 'px';
+  a2.appendChild(mBar);
+
+  // Timeline click to seek
+  document.getElementById('tlTracks').onclick = e => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const labelW = 52;
+    const px = e.clientX - rect.left - labelW + document.getElementById('timelineBody').scrollLeft;
+    if (px < 0) return;
+    seekTo(px / PX_PER_SEC);
+  };
+}
+
+function makeBlock(type, dur, label, data) {
+  const el = document.createElement('div');
+  el.className = `clip-block ${type}`;
+  el.style.width = Math.max(2, dur * PX_PER_SEC) + 'px';
+  el.textContent = label;
+  el.title = label;
+  return el;
+}
+
+function seekTo(t) {
+  const v = document.getElementById('mainVideo');
+  if (v.src) { v.currentTime = t; v.play().catch(()=>{}); }
+}
+
+// ── Ruler ─────────────────────────────────────────────────────────────────────
+function buildRuler() {
+  const inner = document.getElementById('tlRulerInner');
+  inner.innerHTML = '';
+  inner.style.width = (TOTAL_DUR * PX_PER_SEC) + 'px';
+
+  // Choose tick interval based on zoom
+  const intervals = [1,2,5,10,15,30,60,120,300];
+  const minPx = 40;  // minimum px between major ticks
+  let majorInt = intervals.find(i => i * PX_PER_SEC >= minPx) || 300;
+  let minorInt = majorInt / 5;
+  if (minorInt * PX_PER_SEC < 6) minorInt = majorInt;
+
+  for (let t = 0; t <= TOTAL_DUR; t += minorInt) {
+    const isMajor = Math.abs(t % majorInt) < 0.01;
+    const tick = document.createElement('div');
+    tick.className = 'tick' + (isMajor ? ' major' : '');
+    tick.style.left = (t * PX_PER_SEC) + 'px';
+    tick.style.position = 'absolute';
+    tick.style.top = '0'; tick.style.bottom = '0';
+    tick.innerHTML = `<div class="tick-line" style="height:100%;width:1px"></div>`;
+    if (isMajor) {
+      const lbl = document.createElement('div');
+      lbl.className = 'tick-label';
+      lbl.textContent = fmtShort(t);
+      lbl.style.cssText = 'position:absolute;bottom:1px;left:2px;font-size:9px;color:var(--text);';
+      tick.appendChild(lbl);
+    }
+    tick.style.cssText += `left:${t * PX_PER_SEC}px;position:absolute;top:0;bottom:0;width:1px;`;
+    inner.appendChild(tick);
+  }
+
+  // Ruler click to seek
+  inner.onclick = e => {
+    const px = e.offsetX;
+    seekTo(px / PX_PER_SEC);
+  };
+}
+
+// ── Zoom ──────────────────────────────────────────────────────────────────────
+const ZOOM_LEVELS = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30];
+let   ZOOM_IDX    = 3;
+
+function zoomTimeline(delta) {
+  ZOOM_IDX = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, ZOOM_IDX + delta));
+  PX_PER_SEC = ZOOM_LEVELS[ZOOM_IDX];
+  if (SESSION_DATA) { renderTimeline(SESSION_DATA); buildRuler(); }
+  updateZoomLabel();
+}
+function zoomFit() {
+  if (!TOTAL_DUR) return;
+  const bodyW = document.getElementById('timelineBody').clientWidth - 60;
+  PX_PER_SEC  = Math.max(2, Math.min(30, bodyW / TOTAL_DUR));
+  ZOOM_IDX = ZOOM_LEVELS.findIndex(z => z >= PX_PER_SEC);
+  if (ZOOM_IDX < 0) ZOOM_IDX = 0;
+  if (SESSION_DATA) { renderTimeline(SESSION_DATA); buildRuler(); }
+  updateZoomLabel();
+}
+function updateZoomLabel() {
+  document.getElementById('zoomLabel').textContent = PX_PER_SEC.toFixed(0) + 'px/s';
+}
+
+// Scroll to zoom with mouse wheel on timeline
+document.getElementById('timelineBody').addEventListener('wheel', e => {
+  if (e.ctrlKey || e.altKey) {
+    e.preventDefault();
+    zoomTimeline(e.deltaY < 0 ? 1 : -1);
+  }
+}, {passive: false});
+
+// ── Tooltip ───────────────────────────────────────────────────────────────────
+const tooltip = document.getElementById('clipTooltip');
+function showTooltip(e, clip) {
+  tooltip.innerHTML =
+    `<b>${fmtShort(clip.start_time)}</b> → <b>${fmtShort(clip.end_time)}</b> · ${clip.duration.toFixed(2)}s<br>` +
+    escHtml((clip.text || '—').substring(0, 120));
+  tooltip.style.display = 'block';
+  moveTooltip(e);
+}
+function hideTooltip() { tooltip.style.display = 'none'; }
+document.addEventListener('mousemove', e => {
+  if (tooltip.style.display === 'block') moveTooltip(e);
+});
+function moveTooltip(e) {
+  tooltip.style.left = (e.clientX + 14) + 'px';
+  tooltip.style.top  = (e.clientY - 36) + 'px';
+}
+
+// ── Status ────────────────────────────────────────────────────────────────────
+function setStatus(cls, msg) {
+  document.getElementById('statusDot').className  = 'status-dot ' + cls;
+  document.getElementById('statusText').textContent = msg;
+  const pw = document.getElementById('progressWrap');
+  if (cls === 'running') { pw.classList.add('visible'); }
+  else { pw.classList.remove('visible'); document.getElementById('progressBar').style.width = '0'; }
+}
+function setProgress(pct) {
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ── Task polling ──────────────────────────────────────────────────────────────
+function pollTask(taskId, onDone) {
+  if (POLL_TIMER) clearInterval(POLL_TIMER);
+  let fakeProgress = 0;
+  POLL_TIMER = setInterval(async () => {
+    try {
+      const r = await fetch(`/api/task/${taskId}`);
+      const t = await r.json();
+
+      if (t.log?.length) {
+        const box = document.getElementById('logBox');
+        box.className = 'log-box visible';
+        box.innerHTML = t.log.slice(-30).map(l => {
+          const cls = l.includes('✅') ? 'ok' : l.includes('⚠') ? 'warn' : l.includes('❌') ? 'error' : 'info';
+          return `<div class="log-line ${cls}">${escHtml(l)}</div>`;
+        }).join('');
+        box.scrollTop = box.scrollHeight;
+      }
+
+      // Fake progress for running tasks
+      if (t.status === 'running') {
+        fakeProgress = Math.min(fakeProgress + 1, 90);
+        setProgress(t.progress || fakeProgress);
+      }
+
+      if (t.status === 'done') {
+        clearInterval(POLL_TIMER);
+        setProgress(100);
+        setTimeout(() => setProgress(0), 1500);
+        onDone(t.file);
+      } else if (t.status === 'error') {
+        clearInterval(POLL_TIMER);
+        setStatus('error', '❌ Ошибка');
+        logAppend('❌ ' + (t.error || 'unknown error'), 'error');
+      }
+    } catch(e) { /* ignore */ }
+  }, 1000);
+}
+
+function logAppend(msg, cls='info') {
+  const box = document.getElementById('logBox');
+  box.className = 'log-box visible';
+  box.innerHTML += `<div class="log-line ${cls}">${escHtml(msg)}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── Assemble ──────────────────────────────────────────────────────────────────
+async function doAssemble() {
+  if (!SESSION) { alert('Выбери сессию'); return; }
+  setStatus('running', '⏳ Сборка...');
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('logBox').innerHTML = '';
+
+  const r = await fetch('/api/assemble', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      session:    SESSION,
+      settings:   getSettings(),
+      with_subs:  document.getElementById('withSubs').checked,
+      with_music: document.getElementById('withMusic').checked,
+    })
+  });
+  const {task_id, error} = await r.json();
+  if (error) { setStatus('error', '❌ ' + error); return; }
+
+  pollTask(task_id, file => {
+    setStatus('done', '✅ Готово');
+    RESULT_FILE = file;
+    document.getElementById('resultSection').style.display = '';
+    document.getElementById('resultLink').textContent = file;
+    const btn = document.getElementById('btnLoadResult');
+    btn.style.display = '';
+    btn.onclick = () => loadVideo(file);
+    logAppend('✅ Сборка завершена: ' + file, 'ok');
+  });
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+async function doPreview() {
+  if (!SESSION) { alert('Выбери сессию'); return; }
+  setStatus('running', '⏳ Превью...');
+
+  const r = await fetch('/api/preview', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      session:       SESSION,
+      settings:      getSettings(),
+      preview_start: +document.getElementById('previewStart').value,
+    })
+  });
+  const {task_id, error} = await r.json();
+  if (error) { setStatus('error', '❌ ' + error); return; }
+
+  pollTask(task_id, file => {
+    setStatus('done', '✅ Превью готово');
+    loadVideo(file);
+    logAppend('▶ Превью: ' + file, 'ok');
+  });
+}
+
+function loadResult() {
+  if (RESULT_FILE) loadVideo(RESULT_FILE);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  resetColorDefault();
+  resetAudio();
+  updateColorVisual();
+  startRafLoop();
+
+  const sel = document.getElementById('sessionSelect');
+  if (sel.options.length > 1) {
+    sel.selectedIndex = 1;
+    loadSession();
+  }
+});
+</script>
+</body>
+</html>

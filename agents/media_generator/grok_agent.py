@@ -1,15 +1,22 @@
 """
-Grok Agent — Image-to-Video generation
-----------------------------------------
+Grok Agent — Image-to-Video generation (multi-tab parallel)
+------------------------------------------------------------
 Генерация видео через grok.com/imagine.
 Требуется SuperGrok подписка.
 Платформа 2 в media_generator.py.
+
+Параллельный режим: каждая «вкладка» — отдельный Chrome-процесс
+на своём CDP-порту и своём профиле. Управляется через GROK_NUM_TABS.
 """
 
 import base64
 import json
+import socket
+import subprocess
 import sys
+import threading
 import time
+import urllib.request
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -20,11 +27,13 @@ if str(_MODULE_DIR) not in sys.path:
     sys.path.insert(0, str(_MODULE_DIR))
 
 from utils import (  # noqa: E402
+    CHROME_PATH,
     CHROME_CDP_PORT,
     GROK_VIDEO_TIMEOUT,
     GROK_DEBUG_DIR,
     GROK_PROGRESS_FILE,
     GROK_MAX_RETRIES,
+    GROK_NUM_TABS,
     cookies_exist,
     load_cookies,
     save_cookies,
@@ -35,6 +44,8 @@ from utils import (  # noqa: E402
     read_photos,
     send_tg_notification,
 )
+
+_IMAGINE_URL = "https://grok.com/imagine"
 
 
 # ---------------------------------------------------------------------------
@@ -52,12 +63,23 @@ def grok_load_progress(session: str) -> set[int]:
     return set()
 
 
-def grok_save_progress(session: str, completed: set[int], total: int) -> None:
+def grok_save_progress(
+    session: str,
+    completed: set[int],
+    total: int,
+    tabs_status: dict | None = None,
+) -> None:
     try:
         GROK_PROGRESS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        data: dict = {
+            "session":   session,
+            "total":     total,
+            "completed": sorted(completed),
+        }
+        if tabs_status:
+            data["tabs_status"] = tabs_status
         GROK_PROGRESS_FILE.write_text(
-            json.dumps({"session": session, "total": total,
-                        "completed": sorted(completed)}, ensure_ascii=False, indent=2),
+            json.dumps(data, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
     except Exception as e:
@@ -89,6 +111,33 @@ def _grok_try_locators(page, selectors: list[str], timeout_ms: int = 3000):
         except Exception:
             continue
     return None
+
+
+def _js_click_text(page, texts: list[str]) -> str | None:
+    """
+    Находит первый DOM-элемент с совпадающим текстом/aria-label и кликает через
+    dispatchEvent (обходит CSS pointer-events: none и HTML-оверлеи).
+    Возвращает найденный текст или None.
+    """
+    return page.evaluate(
+        """(texts) => {
+            const elements = Array.from(document.querySelectorAll(
+                'button, [role="radio"], [role="option"], [role="tab"], [role="button"], label'
+            ));
+            for (const text of texts) {
+                const el = elements.find(e =>
+                    (e.textContent || '').trim() === text ||
+                    (e.getAttribute('aria-label') || '') === text
+                );
+                if (el) {
+                    el.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+                    return text;
+                }
+            }
+            return null;
+        }""",
+        texts,
+    )
 
 
 def _grok_click_image_btn(page) -> bool:
@@ -153,59 +202,137 @@ def _grok_upload_photo(page, photo_path: Path) -> bool:
     return True
 
 
-def _grok_set_video_mode(page) -> bool:
-    """Шаг 6: Переключает тип генерации на Video через dropdown на /imagine."""
-    dropdown_btn = None
-    try:
-        btns = page.locator('button[aria-haspopup="menu"]')
-        count = btns.count()
-        for i in range(count):
-            btn = btns.nth(i)
-            try:
-                bbox = btn.bounding_box()
-                if bbox and bbox['width'] > 80:
-                    dropdown_btn = btn
-                    break
-            except Exception:
-                continue
-    except Exception as e:
-        print(f"    [!] Ошибка поиска dropdown: {e}")
+def _grok_open_video_panel(page, idx: int = 0) -> bool:
+    """
+    Новый UI (2026-03): кнопки «Изображение» / «Видео» / «720p» / «10s» — прямо в строке ввода.
+    Просто кликаем «Видео» inline-кнопку. Никакого dropdown/панели.
+    """
+    def _dump_all_interactive(label: str) -> None:
+        """Диагностический дамп всех интерактивных элементов."""
+        try:
+            items = page.evaluate("""() => {
+                const sels = 'button,[role="button"],[role="radio"],[role="option"],' +
+                             '[role="menuitem"],[role="menuitemradio"],label,select';
+                return Array.from(document.querySelectorAll(sels))
+                    .map(e => {
+                        const r = e.getBoundingClientRect();
+                        return {
+                            tag: e.tagName,
+                            t: (e.textContent||'').trim().replace(/\\s+/g,' ').slice(0,30),
+                            l: e.getAttribute('aria-label')||'',
+                            role: e.getAttribute('role')||'',
+                            p: `(${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)}x${Math.round(r.height)})`,
+                            vis: r.width > 0 && r.height > 0,
+                        };
+                    }).filter(e => e.vis);
+            }""")
+            print(f"    [diag:{label}] {[(e['t'] or e['l'], e['role'], e['p']) for e in items[:20]]}")
+        except Exception as ex:
+            print(f"    [diag:{label}] ошибка: {ex}")
 
-    if dropdown_btn is None:
-        print("    [!] Dropdown кнопка (aria-haspopup=menu) не найдена")
-        return False
+    # Новый UI (2026-03): кнопка «Видео» прямо в строке ввода — кликаем напрямую
+    video_btn = _grok_try_locators(page, [
+        "button:has-text('Видео')",
+        "button:has-text('Video')",
+        "[aria-label='Видео']",
+        "[aria-label='Video']",
+    ], timeout_ms=4000)
 
-    btn_text = ""
-    try:
-        btn_text = dropdown_btn.inner_text().strip()
-    except Exception:
-        pass
-    print(f"    Dropdown: '{btn_text}' — открываю...")
+    if video_btn:
+        try:
+            video_btn.click(force=True)
+            print("    ✓ Режим «Видео» активирован")
+            page.wait_for_timeout(500)
+            return True
+        except Exception as e:
+            print(f"    [!] click Видео: {e}")
 
-    if "идео" in btn_text:
-        print("    Video уже выбран в dropdown")
-        return True
+    _dump_all_interactive("no_video_btn")
+    print("    [!] Кнопка «Видео» не найдена — продолжаю с настройками по умолчанию")
+    return True
 
-    dropdown_btn.click()
-    page.wait_for_timeout(800)
 
-    video_item = _grok_try_locators(page, [
+def _grok_select_video_in_menu(page) -> bool:
+    """
+    Если после клика на dropdown открылось меню с режимами (Изображение/Видео),
+    выбираем «Видео». Используем force=True.
+    """
+    video_option = _grok_try_locators(page, [
         "[role='menuitemradio']:has-text('Видео')",
         "[role='menuitem']:has-text('Видео')",
         "[role='option']:has-text('Видео')",
-        "li:has-text('Видео')",
-        ":text-is('Видео')",
+    ], timeout_ms=800)
+    if video_option:
+        try:
+            video_option.click(force=True)
+            print("    ✓ Выбран режим «Видео» в меню")
+            page.wait_for_timeout(500)
+            return True
+        except Exception:
+            video_option.dispatch_event("click")
+            page.wait_for_timeout(500)
+            return True
+    return False
+
+
+def _grok_configure_and_make_video(page) -> bool:
+    """
+    Выбирает настройки 10s / 720p / 16:9 и нажимает «Сделать видео».
+    Использует JS dispatch_event для обхода CSS pointer-events и HTML-оверлеев.
+    Работает как с открытой панелью, так и без неё (если кнопки есть в DOM).
+    """
+    # ── Длительность: 10 секунд ──────────────────────────────────────────────
+    found = _js_click_text(page, ["10s", "10 с", "10с", "10 sec", "10 сек", "10"])
+    if found:
+        page.wait_for_timeout(400)
+        print(f"    ✓ Длительность: {found!r}")
+    else:
+        print("    [!] 10s не найдено — по умолчанию")
+
+    # ── Разрешение: 720p ─────────────────────────────────────────────────────
+    found = _js_click_text(page, ["720p", "720", "HD"])
+    if found:
+        page.wait_for_timeout(400)
+        print(f"    ✓ Разрешение: {found!r}")
+    else:
+        print("    [!] 720p не найдено — по умолчанию")
+
+    # ── Соотношение сторон: 16:9 ─────────────────────────────────────────────
+    found = _js_click_text(page, ["16:9"])
+    if found:
+        page.wait_for_timeout(400)
+        print(f"    ✓ Соотношение: {found!r}")
+    else:
+        print("    [!] 16:9 не найдено — по умолчанию")
+
+    # ── Кнопка отправки (↑) — новый UI 2026-03 ───────────────────────────────
+    send_btn = _grok_try_locators(page, [
+        "button[aria-label='Отправить']",
+        "button[aria-label='Send']",
+        "button[aria-label='Submit']",
+        "button[type='submit']",
+        "[data-testid*='send']",
+        "[data-testid*='submit']",
     ], timeout_ms=3000)
 
-    if video_item is None:
-        page.keyboard.press("Escape")
-        print("    [!] Пункт 'Видео' в меню не найден (возможно, требуется SuperGrok)")
-        return False
+    if send_btn:
+        try:
+            send_btn.click(force=True)
+            print("    ✓ Отправлено (кнопка отправки)")
+            return True
+        except Exception as e:
+            print(f"    [!] click send: {e}")
 
-    video_item.click()
-    page.wait_for_timeout(800)
-    print("    Video режим выбран через dropdown")
-    return True
+    # Fallback: Enter в текстовом поле
+    try:
+        page.keyboard.press("Enter")
+        print("    ✓ Отправлено (Enter)")
+        return True
+    except Exception as e:
+        print(f"    [!] Enter: {e}")
+
+    print("    [!] Кнопка отправки не найдена — прерываю")
+    return False
 
 
 def _grok_set_duration(page, seconds: int = 10) -> bool:
@@ -335,7 +462,29 @@ def _grok_find_video_url(page) -> str | None:
 
 
 def _grok_download_video(page, video_url: str) -> bytes | None:
-    """Скачивает видео через браузер с credentials."""
+    """Скачивает видео через Python urllib с куками из браузера."""
+    # Сначала пробуем через Python (обходит CORS для imagine-public.x.ai)
+    try:
+        cookies = page.context.cookies()
+        cookie_str = "; ".join(f"{c['name']}={c['value']}" for c in cookies)
+        req = urllib.request.Request(
+            video_url,
+            headers={
+                "Cookie": cookie_str,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Referer": "https://grok.com/",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = resp.read()
+        if len(data) > 1024:
+            print(f"    [dl] Python urllib OK ({len(data)//1024}KB)")
+            return data
+        print(f"    [dl] пустой ответ (urllib) для {video_url[:60]}")
+    except Exception as e:
+        print(f"    [dl] urllib ошибка: {e}")
+
+    # Fallback: browser fetch
     try:
         b64 = page.evaluate(
             """async (url) => {
@@ -391,16 +540,110 @@ def _wait_for_grok_video(page, timeout: int = GROK_VIDEO_TIMEOUT) -> str | None:
     return None
 
 
+def _wait_for_grok_image(page, timeout: int = 120) -> str | None:
+    """Ждёт появления AI-сгенерированного изображения от Grok (до нажатия «Создать видео»)."""
+    deadline = time.time() + timeout
+    poll = 3
+    ticks = 0
+
+    while time.time() < deadline:
+        time.sleep(poll)
+        ticks += 1
+
+        url = page.evaluate("""() => {
+            const imgs = Array.from(document.querySelectorAll('img[src]'));
+            // CDN Grok assets
+            const cdn = imgs.find(i => i.src.includes('assets.grok.com') && i.src.includes('image'));
+            if (cdn) return cdn.src;
+            // Большое изображение в контенте (не аватар)
+            const big = imgs.filter(i => {
+                const r = i.getBoundingClientRect();
+                return r.width > 200 && r.height > 200
+                    && !i.src.startsWith('data:')
+                    && !i.src.includes('avatar')
+                    && !i.src.includes('logo');
+            });
+            return big.length ? big[big.length - 1].src : null;
+        }""")
+
+        if url:
+            return url
+
+        if ticks % 5 == 0:
+            remaining = int(deadline - time.time())
+            print(f"    [ожидание изображения... ~{remaining}с]", flush=True)
+
+    return None
+
+
+def _grok_click_create_video(page) -> bool:
+    """
+    Кликает кнопку «Создать видео» на сгенерированном изображении.
+    Сначала наводит мышь на изображение, чтобы кнопка стала видимой.
+    """
+    # Наводим мышь на сгенерированное изображение
+    img = _grok_try_locators(page, [
+        "img[src*='assets.grok.com']",
+        "img[src*='generated']",
+        "main img",
+        "article img",
+        "[class*='image'] img",
+    ], timeout_ms=5000)
+
+    if img:
+        try:
+            img.hover()
+            page.wait_for_timeout(600)
+        except Exception:
+            pass
+
+    # Ищем кнопку
+    btn = _grok_try_locators(page, [
+        "[aria-label='Создать видео']",
+        "[aria-label='Create video']",
+        "button:has-text('Создать видео')",
+        "button:has-text('Create video')",
+        "[data-testid*='create-video']",
+    ], timeout_ms=5000)
+
+    if btn is None:
+        # JS hover на последнем крупном img
+        page.evaluate("""() => {
+            const imgs = Array.from(document.querySelectorAll('img'));
+            const big = imgs.filter(i => {
+                const r = i.getBoundingClientRect();
+                return r.width > 200 && r.height > 200;
+            });
+            if (big.length) big[big.length-1].dispatchEvent(
+                new MouseEvent('mouseover', {bubbles: true})
+            );
+        }""")
+        page.wait_for_timeout(800)
+
+        btn = _grok_try_locators(page, [
+            "[aria-label='Создать видео']",
+            "[aria-label='Create video']",
+            "button:has-text('Создать видео')",
+            "button:has-text('Create video')",
+        ], timeout_ms=3000)
+
+    if btn:
+        btn.click()
+        print("    [v] Кнопка «Создать видео» нажата")
+        return True
+
+    print("    [!] Кнопка «Создать видео» не найдена")
+    return False
+
+
 def _grok_generate_one(page, idx: int, total: int, photo_path: Path,
                         prompt: str, out_path: Path) -> bool:
     """
-    Генерирует одно видео через Grok /imagine.
-    Порядок: navigate → upload photo → insert prompt → VIDEO → 10s → verify → generate → wait → download.
+    Генерирует одно видео через Grok /imagine — прямой флоу:
+      1. Navigate → Upload photo → Prompt → Switch to VIDEO → 16:9 → 10s → Generate → Wait → Download
     """
-    IMAGINE_URL = "https://grok.com/imagine"
-
     # Шаг 1: Открываем /imagine
-    page.goto(IMAGINE_URL, wait_until="domcontentloaded", timeout=30_000)
+    page.goto(_IMAGINE_URL, wait_until="domcontentloaded", timeout=30_000)
     page.wait_for_timeout(2000)
     _grok_screenshot(page, idx, "1_imagine")
 
@@ -414,8 +657,7 @@ def _grok_generate_one(page, idx: int, total: int, photo_path: Path,
         print("    ОШИБКА: не удалось загрузить фото")
         _grok_screenshot(page, idx, "err_photo")
         return False
-
-    page.wait_for_timeout(800)
+    page.wait_for_timeout(2500)   # ждём пока input bar восстановится после загрузки фото
     _grok_screenshot(page, idx, "2_photo_loaded")
 
     # Шаг 3: Вставляем промпт
@@ -426,61 +668,83 @@ def _grok_generate_one(page, idx: int, total: int, photo_path: Path,
         "textarea",
         "[placeholder*='Опиши' i]",
         "[placeholder*='prompt' i]",
-    ], timeout_ms=5000)
+        "[placeholder*='текст' i]",
+    ], timeout_ms=8000)
 
     if text_area is None:
         print("    ОШИБКА: поле ввода не найдено")
         _grok_screenshot(page, idx, "err_textarea")
         return False
 
-    text_area.click()
-    page.wait_for_timeout(200)
-    page.evaluate(f"""() => {{
-        const el = document.activeElement;
-        const txt = {json.dumps(prompt)};
-        if (el && el.isContentEditable) {{
-            el.textContent = '';
-            document.execCommand('insertText', false, txt);
-        }}
-    }}""")
-    page.wait_for_timeout(400)
-    print(f"    Промпт вставлен ({len(prompt)} символов)")
+    inserted_len = 0
+    for _attempt in range(4):
+        text_area.click()
+        page.wait_for_timeout(300)
+
+        # Очищаем поле перед повторной вставкой
+        page.evaluate("""() => {
+            const el = document.activeElement;
+            if (el && el.isContentEditable) el.textContent = '';
+            else if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) el.value = '';
+        }""")
+        page.wait_for_timeout(100)
+
+        page.evaluate(f"""() => {{
+            const el = document.activeElement;
+            const txt = {json.dumps(prompt)};
+            if (el && el.isContentEditable) {{
+                document.execCommand('insertText', false, txt);
+            }} else if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {{
+                el.value = txt;
+                el.dispatchEvent(new Event('input', {{bubbles: true}}));
+            }}
+        }}""")
+        page.wait_for_timeout(500)
+
+        # Проверяем фактическую длину вставленного текста
+        try:
+            inserted_len = page.evaluate("""() => {
+                const el = document.querySelector(
+                    "div[contenteditable='true'], [role='textbox'], textarea");
+                return el ? (el.textContent || el.value || '').trim().length : 0;
+            }""")
+        except Exception:
+            inserted_len = 0
+
+        if inserted_len >= max(10, len(prompt) // 2):
+            break
+
+        # Turnstile активен — ждём его завершения и повторяем
+        print(f"    [!] Промпт вставлен частично ({inserted_len}/{len(prompt)} симв)"
+              f" — ожидаю Turnstile... (попытка {_attempt + 1}/4)")
+        page.wait_for_timeout(5000)
+
+    print(f"    Промпт вставлен ({inserted_len} символов)")
     _grok_screenshot(page, idx, "3_prompt_filled")
 
-    # Шаг 4: Переключаем в VIDEO режим
-    print("    [4] Переключаю в VIDEO режим...", flush=True)
-    _grok_set_video_mode(page)
-    page.wait_for_timeout(600)
-    _grok_screenshot(page, idx, "4_video_mode")
+    # Шаг 4: Открываем панель видео-опций (иконка камеры + ∨)
+    print("    [4] Открываю панель видео-опций...", flush=True)
+    panel_ok = _grok_open_video_panel(page, idx)
+    _grok_screenshot(page, idx, "4_panel")
 
-    # Шаг 5: Устанавливаем 10 секунд
-    print("    [5] Устанавливаю длительность 10с...", flush=True)
-    _grok_set_duration(page, seconds=10)
-    page.wait_for_timeout(400)
+    if not panel_ok:
+        print("    [!] Панель не открылась — прерываю")
+        return False
 
-    # Шаг 6: Проверяем состояние
-    print("    [6] Проверка состояния...", flush=True)
-    _grok_verify_state(page, idx)
+    # Шаг 5: Настраиваем 10s, 720p, 16:9 и нажимаем «Сделать видео»
+    print("    [5] Настраиваю параметры и нажимаю «Сделать видео»...", flush=True)
+    video_started = _grok_configure_and_make_video(page)
+    _grok_screenshot(page, idx, "5_make_video")
 
-    # Шаг 7: Нажимаем Generate
-    print("    [7] Нажимаю Generate...", flush=True)
-    send_btn = _grok_try_locators(page, [
-        "button[type='submit']",
-        "button[aria-label*='send' i]",
-        "button[aria-label*='generate' i]",
-        "[data-testid*='send']",
-        "button[aria-label='Send message']",
-    ], timeout_ms=3000)
+    if not video_started:
+        print("    [!] «Сделать видео» не сработало — прерываю")
+        return False
 
-    if send_btn:
-        send_btn.click()
-    else:
-        text_area.press("Enter")
     page.wait_for_timeout(1500)
-    _grok_screenshot(page, idx, "7_sent")
+    _grok_screenshot(page, idx, "6_sent")
 
-    # Шаг 8: Ждём <video> с generated_video.mp4
-    print(f"    [8] Жду видео (до {GROK_VIDEO_TIMEOUT}с)...", flush=True)
+    # Шаг 7: Ждём готовое видео
+    print(f"    [7] Жду видео (до {GROK_VIDEO_TIMEOUT}с)...", flush=True)
     video_url = _wait_for_grok_video(page)
 
     if not video_url:
@@ -489,10 +753,10 @@ def _grok_generate_one(page, idx: int, total: int, photo_path: Path,
         return False
 
     print(f"    Видео: ...{video_url[-60:]}")
-    _grok_screenshot(page, idx, "8_video_found")
+    _grok_screenshot(page, idx, "7_video_found")
 
-    # Шаг 9: Скачиваем и сохраняем
-    print("    [9] Скачиваю...", flush=True)
+    # Шаг 8: Скачиваем и сохраняем
+    print("    [8] Скачиваю...", flush=True)
     video_bytes = _grok_download_video(page, video_url)
 
     if video_bytes and len(video_bytes) > 1024:
@@ -506,7 +770,181 @@ def _grok_generate_one(page, idx: int, total: int, photo_path: Path,
 
 
 # ---------------------------------------------------------------------------
-# Grok image-to-video — public API
+# Multi-tab helpers
+# ---------------------------------------------------------------------------
+
+def _is_cdp_open_on(port: int) -> bool:
+    """Проверяет доступность CDP-порта."""
+    with socket.socket() as s:
+        s.settimeout(1)
+        try:
+            s.connect(("localhost", port))
+            return True
+        except Exception:
+            return False
+
+
+def _launch_chrome_on_port(port: int, profile_dir: str) -> subprocess.Popen:
+    """Запускает Chrome на заданном CDP-порту и профиле."""
+    print(f"  [port:{port}] Запускаю Chrome (профиль: {Path(profile_dir).name})...")
+    proc = subprocess.Popen([
+        CHROME_PATH,
+        f"--remote-debugging-port={port}",
+        f"--user-data-dir={profile_dir}",
+        "--no-first-run",
+        "--no-default-browser-check",
+        _IMAGINE_URL,
+    ])
+    for _ in range(30):
+        time.sleep(1)
+        if _is_cdp_open_on(port):
+            print(f"  [port:{port}] Chrome готов (CDP).")
+            return proc
+    raise RuntimeError(f"Chrome не поднял CDP на порту {port} за 30 секунд")
+
+
+def _worker_thread(
+    worker_id: int,
+    indices: list[int],
+    photos: list[Path],
+    prompts: list[str],
+    out_dir: Path,
+    session: str,
+    platform: dict,
+    cdp_port: int,
+    profile_dir: str,
+    completed_set: set,
+    lock: threading.Lock,
+    saved_counter: list,   # [int]
+    tabs_status: dict,
+    total: int,
+) -> None:
+    """Один воркер: открывает Chrome, обрабатывает свои видео по очереди."""
+    tag = f"[Tab-{worker_id}]"
+    print(f"\n{tag} Старт: {len(indices)} видео  #{indices[0]}..#{indices[-1]}", flush=True)
+
+    chrome_proc = None
+    try:
+        chrome_proc = _launch_chrome_on_port(cdp_port, profile_dir)
+
+        with sync_playwright() as pw:
+            browser = pw.chromium.connect_over_cdp(f"http://localhost:{cdp_port}")
+            ctx = browser.contexts[0] if browser.contexts else browser.new_context()
+
+            # Инжектируем сохранённые куки (автологин)
+            cookies = load_cookies(platform) if cookies_exist(platform) else []
+            if cookies:
+                ctx.add_cookies(cookies)
+                print(f"  {tag} Куки инжектированы ({len(cookies)} записей)")
+
+            page = ctx.new_page()
+            page.goto(_IMAGINE_URL, wait_until="domcontentloaded", timeout=60_000)
+            page.wait_for_timeout(3000)
+
+            # Проверяем залогинен: ищем input[type=file] или contenteditable — они есть только у авторизованных
+            def _is_logged_in(p) -> bool:
+                try:
+                    return p.evaluate("""() => {
+                        // Если есть поле ввода — залогинен
+                        if (document.querySelector("div[contenteditable='true']")) return true;
+                        if (document.querySelector("input[type='file']")) return true;
+                        // Если есть кнопка "Войти" прямо в хедере — не залогинен
+                        const header = document.querySelector('header, nav, [class*="header"], [class*="nav"]');
+                        if (header) {
+                            const btns = Array.from(header.querySelectorAll('button, a'));
+                            const hasLogin = btns.some(b => {
+                                const txt = (b.textContent || '').trim().toLowerCase();
+                                return txt === 'войти' || txt === 'sign in' || txt === 'login';
+                            });
+                            if (hasLogin) return false;
+                        }
+                        return true;
+                    }""")
+                except Exception:
+                    return False
+
+            if not _is_logged_in(page):
+                # Попробуем перезагрузить — иногда куки применяются с задержкой
+                print(f"  {tag} Куки применяются, перезагружаю...", flush=True)
+                page.reload(wait_until="domcontentloaded", timeout=30_000)
+                page.wait_for_timeout(3000)
+
+            if not _is_logged_in(page):
+                print(f"{tag} ❌ Не залогинен после инъекции куков — пропускаю вкладку")
+                print(f"{tag} 💡 Запусти setup: py agents/media_generator/media_generator.py --platform 2 --setup")
+                return
+
+            print(f"  {tag} ✅ Сессия активна ({page.url[:60]})")
+            # Обновляем сохранённые куки из живой сессии
+            try:
+                save_cookies(platform, ctx.cookies())
+            except Exception:
+                pass
+
+            for idx in indices:
+                out_path = out_dir / f"video_{idx:03d}.mp4"
+
+                # Пропускаем уже готовые
+                if out_path.exists() and out_path.stat().st_size > 1024:
+                    with lock:
+                        completed_set.add(idx)
+                        saved_counter[0] += 1
+                        tabs_status[worker_id]["done"] += 1
+                        grok_save_progress(session, completed_set, total, tabs_status)
+                    continue
+
+                photo_path = photos[idx - 1]
+                prompt     = prompts[idx - 1]
+
+                print(f"\n{tag} [{idx}/{total}] {photo_path.stem}", flush=True)
+
+                success = False
+                for attempt in range(1, GROK_MAX_RETRIES + 1):
+                    if attempt > 1:
+                        print(f"  {tag} Попытка {attempt}/{GROK_MAX_RETRIES}...", flush=True)
+                        try:
+                            page.goto(_IMAGINE_URL, wait_until="domcontentloaded", timeout=30_000)
+                            page.wait_for_timeout(3000)
+                        except Exception:
+                            break
+                    try:
+                        success = _grok_generate_one(page, idx, total, photo_path, prompt, out_path)
+                    except Exception as e:
+                        print(f"  {tag} ОШИБКА (попытка {attempt}): {e}")
+                    if success:
+                        break
+
+                with lock:
+                    if success:
+                        completed_set.add(idx)
+                        saved_counter[0] += 1
+                        tabs_status[worker_id]["done"] += 1
+                    grok_save_progress(session, completed_set, total, tabs_status)
+
+                if success and saved_counter[0] % 10 == 0:
+                    send_tg_notification(
+                        f"🎬 Grok: {saved_counter[0]}/{total} видео"
+                        + (f" [{session}]" if session else "")
+                    )
+
+                if idx != indices[-1]:
+                    time.sleep(3)
+
+            try:
+                save_cookies(platform, ctx.cookies())
+            except Exception:
+                pass
+
+    except Exception as e:
+        print(f"{tag} КРИТИЧЕСКАЯ ОШИБКА: {e}", flush=True)
+    finally:
+        if chrome_proc:
+            chrome_proc.terminate()
+            print(f"  {tag} Chrome закрыт.")
+
+
+# ---------------------------------------------------------------------------
+# Grok image-to-video — multi-tab public API
 # ---------------------------------------------------------------------------
 
 def generate_grok_video(
@@ -515,156 +953,96 @@ def generate_grok_video(
     prompts: list[str],
     out_dir: Path,
     session: str = "",
+    num_tabs: int | None = None,
 ) -> int:
     """
     Генерация видео через Grok (grok.com/imagine).
-    Требуется SuperGrok подписка.
-    Поддерживает: прогресс, 3 попытки с перезапуском, TG уведомление каждые 10 клипов.
+    num_tabs — количество параллельных Chrome вкладок (по умолчанию GROK_NUM_TABS).
+    Каждая вкладка — отдельный Chrome-процесс на своём CDP-порту.
     """
-    if not cookies_exist(platform):
+    if num_tabs is None:
+        num_tabs = GROK_NUM_TABS
+
+    # Проверяем что хотя бы один таб-профиль существует (пользователь уже залогинился)
+    base_profile = platform["profile_dir"]
+    tab_profiles_exist = any(
+        Path(f"{base_profile}-tab{i}").exists() for i in range(1, num_tabs + 1)
+    )
+    if not tab_profiles_exist and not cookies_exist(platform):
         run_setup_mode(platform)
         print("Перезапусти агент для начала генерации.")
         return 0
 
     total = min(len(photos), len(prompts))
 
+    # Собираем что нужно сделать
     completed_set = grok_load_progress(session)
-    if completed_set:
-        print(f"  Прогресс загружен: {len(completed_set)}/{total} уже готово")
-
-    saved = 0
+    todo = []
     for idx in range(1, total + 1):
         out_path = out_dir / f"video_{idx:03d}.mp4"
-        if out_path.exists() and out_path.stat().st_size > 1024:
+        if idx in completed_set or (out_path.exists() and out_path.stat().st_size > 1024):
             completed_set.add(idx)
-            saved += 1
+        else:
+            todo.append(idx)
 
-    print(f"  Всего видео: {total}  (пропускаю уже готовые: {saved})\n")
+    already_done = total - len(todo)
+    print(f"\n  Всего видео: {total}  Готово: {already_done}  Осталось: {len(todo)}  Вкладок: {num_tabs}\n")
 
-    def _run_with_page(start_idx: int) -> tuple[int, bool]:
-        nonlocal saved
+    if not todo:
+        print("  Все видео уже готовы!")
+        return total
 
-        chrome_proc = None
-        if not is_cdp_open():
-            chrome_proc = launch_chrome(platform["profile_dir"], platform["url"])
+    # Распределяем по вкладкам (round-robin)
+    actual_tabs = min(num_tabs, len(todo))
+    chunks: list[list[int]] = [[] for _ in range(actual_tabs)]
+    for i, idx in enumerate(todo):
+        chunks[i % actual_tabs].append(idx)
 
-        local_saved = 0
-        need_restart = False
+    lock          = threading.Lock()
+    saved_counter = [0]
+    tabs_status   = {
+        i + 1: {"assigned": len(chunks[i]), "done": 0}
+        for i in range(actual_tabs)
+    }
 
-        try:
-            with sync_playwright() as pw:
-                browser = pw.chromium.connect_over_cdp(
-                    f"http://localhost:{CHROME_CDP_PORT}"
-                )
-                ctx = browser.contexts[0] if browser.contexts else browser.new_context()
+    grok_save_progress(session, completed_set, total, tabs_status)
 
-                cookies = load_cookies(platform)
-                ctx.add_cookies(cookies)
-                print(f"  Куки применены ({len(cookies)} записей)")
+    base_profile = platform["profile_dir"]
 
-                IMAGINE_URL = "https://grok.com/imagine"
-                page = None
-                for p in ctx.pages:
-                    if "grok" in p.url:
-                        page = p
-                        break
-                if page is None:
-                    page = ctx.new_page()
+    threads = []
+    for i, chunk in enumerate(chunks):
+        worker_id  = i + 1
+        cdp_port   = CHROME_CDP_PORT + i
+        # Отдельный профиль для каждой вкладки (Chrome не поддерживает общий профиль)
+        profile_dir = f"{base_profile}-tab{worker_id}"
 
-                page.goto(IMAGINE_URL, wait_until="domcontentloaded", timeout=60_000)
-                page.wait_for_timeout(2000)
+        t = threading.Thread(
+            target=_worker_thread,
+            args=(
+                worker_id, chunk, photos, prompts, out_dir, session, platform,
+                cdp_port, profile_dir, completed_set, lock, saved_counter,
+                tabs_status, total,
+            ),
+            daemon=True,
+            name=f"grok-tab-{worker_id}",
+        )
+        threads.append(t)
 
-                if any(kw in page.url for kw in ["login", "signin", "auth"]):
-                    print("  Куки протухли — запускаю setup mode...")
-                    invalidate_cookies(platform)
-                    run_setup_mode(platform)
-                    print("Перезапусти агент для начала генерации.")
-                    return local_saved, False
+    # Запускаем все потоки
+    for t in threads:
+        t.start()
 
-                for idx in range(start_idx, total + 1):
-                    if idx in completed_set:
-                        continue
+    # Ждём завершения
+    for t in threads:
+        t.join()
 
-                    photo_path = photos[idx - 1]
-                    prompt     = prompts[idx - 1]
-                    out_path   = out_dir / f"video_{idx:03d}.mp4"
+    final_saved = len(completed_set)
 
-                    print(f"\n  [{idx}/{total}] {photo_path.stem}", flush=True)
-
-                    success = False
-                    for attempt in range(1, GROK_MAX_RETRIES + 1):
-                        if attempt > 1:
-                            print(f"    Попытка {attempt}/{GROK_MAX_RETRIES}...", flush=True)
-                            try:
-                                page.goto(IMAGINE_URL, wait_until="domcontentloaded", timeout=30_000)
-                                page.wait_for_timeout(3000)
-                            except Exception:
-                                need_restart = True
-                                break
-                        try:
-                            success = _grok_generate_one(
-                                page, idx, total, photo_path, prompt, out_path
-                            )
-                        except Exception as e:
-                            print(f"    ОШИБКА (попытка {attempt}): {e}")
-                            _grok_screenshot(page, idx, f"err_attempt{attempt}")
-                            if attempt == GROK_MAX_RETRIES:
-                                need_restart = True
-                        if success:
-                            break
-
-                    if success:
-                        completed_set.add(idx)
-                        saved += 1
-                        local_saved += 1
-                        grok_save_progress(session, completed_set, total)
-
-                        # TG уведомление каждые 10 клипов
-                        if saved % 10 == 0:
-                            send_tg_notification(
-                                f"🎬 Grok: сгенерировано {saved}/{total} видео"
-                                + (f" [{session}]" if session else "")
-                            )
-                    elif need_restart:
-                        break
-
-                    if idx < total:
-                        time.sleep(3)
-
-                try:
-                    save_cookies(platform, ctx.cookies())
-                except Exception:
-                    pass
-
-        finally:
-            if chrome_proc:
-                chrome_proc.terminate()
-                print("  Chrome закрыт.")
-
-        return local_saved, need_restart
-
-    # Основной цикл с перезапуском Chrome при ошибках
-    restart_attempts = 0
-    start_from = 1
-    while True:
-        _, need_restart = _run_with_page(start_from)
-        if not need_restart:
-            break
-        restart_attempts += 1
-        if restart_attempts >= GROK_MAX_RETRIES:
-            print(f"  [!] Достигнут лимит перезапусков ({GROK_MAX_RETRIES}), останавливаюсь.")
-            break
-        remaining = [i for i in range(1, total + 1) if i not in completed_set]
-        if not remaining:
-            break
-        start_from = remaining[0]
-        print(f"\n  [перезапуск Chrome] продолжаю с видео #{start_from}...\n")
-        time.sleep(10)
-
-    if saved == total:
+    if final_saved >= total:
         send_tg_notification(
             f"✅ Grok: все {total} видео готовы!"
             + (f"\n📁 {session}" if session else "")
         )
 
-    return saved
+    grok_save_progress(session, completed_set, total, tabs_status)
+    return final_saved

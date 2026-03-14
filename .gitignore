@@ -17,3 +17,22 @@ data/input/
 data/media/
 data/transcripts/
 data/prompts/
+data/output/
+
+# Логи и временные файлы
+logs/
+temp/
+assembler_log.txt
+nul
+tempconcat_final.txt
+prproj_analysis.txt
+temp_prproj.xml
+
+# Временные скрипты
+tmp_*.py
+tmp_*.png
+
+# Прочее
+bot/logs/
+bot/active_channel.json
+.claude/

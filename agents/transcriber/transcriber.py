@@ -25,6 +25,24 @@ from pathlib import Path
 import torch
 import whisper
 
+# ── Channel manager (язык из активного канала) ────────────────────────────────
+try:
+    _BOT_DIR = Path(__file__).resolve().parent.parent.parent / "bot"
+    if str(_BOT_DIR) not in sys.path:
+        sys.path.insert(0, str(_BOT_DIR))
+    from channel_manager import get_active_channel as _get_active_channel
+
+    def get_transcribe_language() -> str:
+        channel = _get_active_channel()
+        if channel:
+            lang = channel["transcriber"]["language"]
+            print(f"  🌐 Язык транскрипции: {lang} ({channel['name']})")
+            return lang
+        return "de"
+except Exception:
+    def get_transcribe_language() -> str:
+        return "de"
+
 # Windows cp1251 консоль не поддерживает эмодзи — переключаем на UTF-8
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -86,20 +104,34 @@ def move_to_session(audio_path: Path, session: str) -> Path:
     return dest
 
 
-def transcribe(model, audio_path: Path, use_gpu: bool = False) -> tuple[list[dict], float]:
-    """Транскрибирует файл, возвращает сегменты и длину в секундах."""
+def transcribe(model, audio_path: Path, use_gpu: bool = False) -> tuple[list[dict], float, list[dict]]:
+    """Транскрибирует файл, возвращает сегменты, длину и word-level тайминги."""
     print(f"[Whisper] Транскрибирую: {audio_path.name}")
     result = model.transcribe(
         str(audio_path),
-        language="de",
+        language=get_transcribe_language(),
         verbose=False,
         condition_on_previous_text=False,
-        fp16=use_gpu,   # fp16 на GPU — быстрее; на CPU — False (не поддерживается)
+        fp16=use_gpu,       # fp16 на GPU — быстрее; на CPU — False (не поддерживается)
+        word_timestamps=True,  # точные тайминги для каждого слова
     )
     segments = result["segments"]
     duration = segments[-1]["end"] if segments else 0.0
-    print(f"[Whisper] Готово — {len(segments)} сегментов, {duration:.1f}s")
-    return segments, duration
+
+    # Собираем word-level тайминги из всех сегментов
+    all_words: list[dict] = []
+    for seg in segments:
+        for w in seg.get("words", []):
+            word_text = w["word"].strip()
+            if word_text:
+                all_words.append({
+                    "word":  word_text,
+                    "start": round(w["start"], 3),
+                    "end":   round(w["end"],   3),
+                })
+
+    print(f"[Whisper] Готово — {len(segments)} сегментов, {len(all_words)} слов, {duration:.1f}s")
+    return segments, duration, all_words
 
 
 def ask_cut_mode() -> str:
@@ -364,6 +396,9 @@ def verify_with_ffmpeg(audio_path: Path, blocks: list[dict]) -> tuple[list[dict]
     Если непокрытый хвост > 1с — добавляет финальный блок "[конец]".
     Возвращает (обновлённые блоки, метаданные для result.json).
     """
+    real_duration = None
+
+    # Попытка 1: -show_format
     cmd = [
         "ffprobe", "-v", "quiet",
         "-print_format", "json",
@@ -371,8 +406,34 @@ def verify_with_ffmpeg(audio_path: Path, blocks: list[dict]) -> tuple[list[dict]
         str(audio_path),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    info = json.loads(result.stdout)
-    real_duration = float(info["format"]["duration"])
+    try:
+        info = json.loads(result.stdout)
+        real_duration = float(info["format"]["duration"])
+    except (json.JSONDecodeError, KeyError, ValueError):
+        pass
+
+    # Попытка 2: -show_streams (fallback для некоторых форматов)
+    if real_duration is None:
+        cmd2 = [
+            "ffprobe", "-v", "quiet",
+            "-print_format", "json",
+            "-show_streams",
+            str(audio_path),
+        ]
+        result2 = subprocess.run(cmd2, capture_output=True, text=True)
+        try:
+            info2 = json.loads(result2.stdout)
+            for stream in info2.get("streams", []):
+                if "duration" in stream:
+                    real_duration = float(stream["duration"])
+                    break
+        except (json.JSONDecodeError, KeyError, ValueError):
+            pass
+
+    # Fallback: используем длину из Whisper-сегментов
+    if real_duration is None:
+        real_duration = float(blocks[-1]["end"]) if blocks else 0.0
+        print(f"   [!] ffprobe не дал длину — используем Whisper: {real_duration:.1f}s")
 
     coverage = blocks[-1]["end"] - blocks[0]["start"]
     gap      = real_duration - coverage
@@ -459,7 +520,8 @@ def extract_audio_segment_ffmpeg(
 # Сохранение
 # ---------------------------------------------------------------------------
 
-def save(session: str, segments: list[dict], meta: dict | None = None) -> Path:
+def save(session: str, segments: list[dict], meta: dict | None = None,
+         words: list[dict] | None = None) -> Path:
     out_dir = TRANSCRIPTS_DIR / session
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "result.json"
@@ -468,6 +530,8 @@ def save(session: str, segments: list[dict], meta: dict | None = None) -> Path:
     if meta:
         data.update(meta)
     data["segments"] = segments
+    if words:
+        data["words"] = words
 
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -530,6 +594,8 @@ def run():
                         help="Cut mode: random (3-8s by Whisper pauses) or grok (exactly 10s)")
     parser.add_argument("--input", default=None, metavar="PATH",
                         help="Path to MP3/WAV file (skips auto-search)")
+    parser.add_argument("--session-name", default=None, metavar="SESSION",
+                        help="Override output session name; skips file move (file stays in place)")
     args = parser.parse_args()
 
     if args.input:
@@ -546,10 +612,14 @@ def run():
             print("        Положи файл прямо в data/input/ и запусти снова.")
             return
 
-    session = make_session_name()
-    print(f"[Agent] Сессия: {session}")
-
-    audio_path = move_to_session(audio_path, session)
+    if args.session_name:
+        session = args.session_name
+        print(f"[Agent] Сессия (задана вручную): {session}")
+        print(f"[Agent] Файл остаётся: {audio_path}")
+    else:
+        session = make_session_name()
+        print(f"[Agent] Сессия: {session}")
+        audio_path = move_to_session(audio_path, session)
 
     if args.mode:
         mode = args.mode
@@ -569,11 +639,11 @@ def run():
     model = whisper.load_model(model_size, device=device)
     print(f"[Whisper] Модель загружена.")
 
-    whisper_segs, duration = transcribe(model, audio_path, use_gpu=(device == "cuda"))
+    whisper_segs, duration, all_words = transcribe(model, audio_path, use_gpu=(device == "cuda"))
     segments = build_segments(whisper_segs, mode)
     segments, ffmpeg_meta = verify_with_ffmpeg(audio_path, segments)
 
-    json_path = save(session, segments, ffmpeg_meta)
+    json_path = save(session, segments, ffmpeg_meta, words=all_words)
     srt_path  = save_srt(session, segments)
     vtt_path  = save_vtt(session, segments)
 

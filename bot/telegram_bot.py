@@ -1,3 +1,5 @@
+
+
 """
 Telegram Bot — Video Pipeline Control Panel
 --------------------------------------------
@@ -12,7 +14,9 @@ import json
 import logging
 import os
 import re
+import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -35,8 +39,18 @@ logging.basicConfig(
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
+# bot/ dir в path для channel_manager
+_BOT_DIR = Path(__file__).resolve().parent
+if str(_BOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_BOT_DIR))
 
 from dotenv import load_dotenv, dotenv_values
+from channel_manager import (
+    get_all_channels,
+    get_active_channel,
+    set_active_channel,
+    get_channel_config,
+)
 
 ENV_FILE = BASE_DIR / "config" / ".env"
 load_dotenv(ENV_FILE)
@@ -66,6 +80,11 @@ CONFIG_DIR           = BASE_DIR / "config"
 AGENTS_DIR           = BASE_DIR / "agents"
 PROMPT_PROGRESS_FILE = BASE_DIR / "temp" / "prompt_progress.json"
 PIXEL_PROGRESS_FILE  = BASE_DIR / "temp" / "pixel_progress.json"
+BLIP_PROGRESS_FILE        = BASE_DIR / "temp" / "blip_progress.json"
+REGEN_PROGRESS_FILE       = BASE_DIR / "temp" / "regen_progress.json"
+GROK_PROGRESS_FILE        = BASE_DIR / "temp" / "grok_progress.json"
+VIDEO_VALIDATOR_PROGRESS  = BASE_DIR / "temp" / "video_validator_progress.json"
+NORM_UPSCALE_PROGRESS     = BASE_DIR / "temp" / "normalize_upscale_progress.json"
 
 # ─── Константы платформ ───────────────────────────────────────────────────────
 
@@ -109,8 +128,35 @@ KB_STOP  = InlineKeyboardMarkup([
 ])
 
 
+def _get_channel_btn_label() -> str:
+    """Метка кнопки канала: emoji + name активного канала."""
+    try:
+        ch = get_active_channel()
+        if ch:
+            return f"📡 {ch['emoji']} {ch['name']}"
+    except Exception:
+        pass
+    return "📡 Канал"
+
+
+def get_main_menu_text() -> str:
+    """Текст главного меню с активным каналом."""
+    try:
+        ch = get_active_channel()
+        ch_name = f"{ch['emoji']} {ch['name']}" if ch else "не выбран"
+    except Exception:
+        ch_name = "не выбран"
+    return (
+        f"🎬 <b>Video Pipeline Bot</b>\n\n"
+        f"📡 Канал: <b>{ch_name}</b>\n\n"
+        f"Выбери действие:"
+    )
+
+
 def kb_main() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
+        [InlineKeyboardButton(_get_channel_btn_label(), callback_data="channels:show")],
+        [InlineKeyboardButton("──────────────────",  callback_data="noop")],
         [InlineKeyboardButton("🚀 Запустить всё",    callback_data="pipeline:start")],
         [InlineKeyboardButton("──────────────────",  callback_data="noop")],
         [InlineKeyboardButton("🎙 Транскрипция",     callback_data="menu:transcription")],
@@ -120,7 +166,12 @@ def kb_main() -> InlineKeyboardMarkup:
             InlineKeyboardButton("🎬 Видео",         callback_data="menu:video"),
         ],
         [InlineKeyboardButton("✂️ Нарезка видео",    callback_data="menu:cutter")],
+        [InlineKeyboardButton("🔍 Апскейл",          callback_data="menu:upscale")],
+        [InlineKeyboardButton("🎬 FFmpeg монтаж",      callback_data="menu:montage")],
+        [InlineKeyboardButton("🖥 Редактор",          callback_data="menu:editor")],
         [InlineKeyboardButton("✅ Валидация",          callback_data="menu:validation")],
+        [InlineKeyboardButton("🔍 BLIP анализ",       callback_data="menu:blip")],
+        [InlineKeyboardButton("🎬 Валидация видео",   callback_data="menu:video_validator")],
         [InlineKeyboardButton("📊 Статус проекта",    callback_data="menu:status")],
     ])
 
@@ -136,10 +187,11 @@ def kb_cut_mode() -> InlineKeyboardMarkup:
 
 
 def kb_prompt_type() -> InlineKeyboardMarkup:
-    """Выбор типа промптов: фото или видео."""
+    """Выбор типа промптов: фото, видео или оба."""
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📷 Фото промпты",  callback_data="ptype:photo")],
-        [InlineKeyboardButton("🎬 Видео промпты", callback_data="ptype:video")],
+        [InlineKeyboardButton("📷 Фото промпты",        callback_data="ptype:photo")],
+        [InlineKeyboardButton("🎬 Видео промпты",       callback_data="ptype:video")],
+        [InlineKeyboardButton("📷🎬 Фото + Видео",      callback_data="ptype:both")],
         [BACK_BTN],
     ])
 
@@ -196,6 +248,43 @@ def kb_media_type(is_api: bool = False) -> InlineKeyboardMarkup:
 
 
 
+def kb_pixel_menu(version: str) -> InlineKeyboardMarkup:
+    """PixelAgent: выбор типа генерации + переключатель версии API."""
+    v1_label = "✅ v1" if version == "v1" else "◻️ v1"
+    v2_label = "✅ v2" if version == "v2" else "◻️ v2"
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📷 Фото",  callback_data="mtype:photo")],
+        [InlineKeyboardButton("🎬 Видео", callback_data="mtype:video")],
+        [InlineKeyboardButton("──────────────────", callback_data="noop")],
+        [
+            InlineKeyboardButton(f"⚙️ API: {v1_label}", callback_data="pixelver:v1"),
+            InlineKeyboardButton(f"⚙️ API: {v2_label}", callback_data="pixelver:v2"),
+        ],
+        [BACK_BTN],
+    ])
+
+
+def kb_upscale_type() -> InlineKeyboardMarkup:
+    """Выбор что апскейлить: фото или видео."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📷 Фото",  callback_data="uptype:photo")],
+        [InlineKeyboardButton("🎬 Видео", callback_data="uptype:video")],
+        [BACK_BTN],
+    ])
+
+
+def kb_upscale_resolution() -> InlineKeyboardMarkup:
+    """Разрешение для апскейла фото (без 720 — смысла нет)."""
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("1080p", callback_data="upres:1080"),
+            InlineKeyboardButton("2K",    callback_data="upres:2k"),
+            InlineKeyboardButton("4K",    callback_data="upres:4k"),
+        ],
+        [BACK_BTN],
+    ])
+
+
 def kb_validation() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🎙 Транскрипцию", callback_data="validate:transcription")],
@@ -209,10 +298,41 @@ def kb_done() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[BACK_BTN]])
 
 
+def kb_done_with_blip() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔍 BLIP анализ", callback_data="menu:blip")],
+        [BACK_BTN],
+    ])
+
+
+def kb_blip_type() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📸 Фото",   callback_data="blip:photo")],
+        [InlineKeyboardButton("🎬 Видео",  callback_data="blip:video")],
+        [InlineKeyboardButton("📸🎬 Оба",  callback_data="blip:both")],
+        [BACK_BTN],
+    ])
+
+
+def kb_blip_regen(has_bad_photos: bool, has_bad_videos: bool) -> InlineKeyboardMarkup:
+    rows = []
+    if has_bad_photos and has_bad_videos:
+        rows.append([InlineKeyboardButton("✅ Да, фото",  callback_data="blip_regen:photo")])
+        rows.append([InlineKeyboardButton("✅ Да, видео", callback_data="blip_regen:video")])
+        rows.append([InlineKeyboardButton("✅ Оба",       callback_data="blip_regen:both")])
+    elif has_bad_photos:
+        rows.append([InlineKeyboardButton("✅ Да, фото",  callback_data="blip_regen:photo")])
+    elif has_bad_videos:
+        rows.append([InlineKeyboardButton("✅ Да, видео", callback_data="blip_regen:video")])
+    rows.append([InlineKeyboardButton("❌ Нет", callback_data="back:main")])
+    return InlineKeyboardMarkup(rows)
+
+
 def kb_cutter_mode() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✂️ Только нарезка",      callback_data="cutter:cut")],
-        [InlineKeyboardButton("✂️+🔍 Нарезка + Апскейл", callback_data="cutter:cut+upscale")],
+        [InlineKeyboardButton("✂️ Только нарезка",        callback_data="cutter:cut")],
+        [InlineKeyboardButton("✂️+🔍 Нарезка + Апскейл",  callback_data="cutter:cut+upscale")],
+        [InlineKeyboardButton("🔍 Апскейл видео (Grok)",  callback_data="cutter:upscale")],
         [BACK_BTN],
     ])
 
@@ -236,6 +356,17 @@ def kb_cutter_resolution() -> InlineKeyboardMarkup:
             InlineKeyboardButton("2K",    callback_data="cres:2k"),
             InlineKeyboardButton("4K",    callback_data="cres:4k"),
         ],
+        [BACK_BTN],
+    ])
+
+
+def kb_montage_subs() -> InlineKeyboardMarkup:
+    """Выбор режима монтажа: субтитры × музыка."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Субтитры + музыка",    callback_data="montage:subs_music")],
+        [InlineKeyboardButton("📝 Только субтитры",      callback_data="montage:subs_nomusic")],
+        [InlineKeyboardButton("🎵 Только музыка",        callback_data="montage:nosubs_music")],
+        [InlineKeyboardButton("❌ Без субтитров/музыки", callback_data="montage:nosubs_nomusic")],
         [BACK_BTN],
     ])
 
@@ -315,13 +446,21 @@ def get_project_status() -> str:
     else:
         lines.append("🎙 Транскрипция: ❌ нет")
 
-    pf = PROMPTS_DIR / session / "photo_prompts.json"
+    # Новая структура: photo/photo_prompts.json; fallback: photo_prompts.json
+    pf = PROMPTS_DIR / session / "photo" / "photo_prompts.json"
+    if not pf.exists():
+        pf = PROMPTS_DIR / session / "photo_prompts.json"
+    vf = PROMPTS_DIR / session / "video" / "video_prompts.json"
+    if not vf.exists():
+        vf = PROMPTS_DIR / session / "video_prompts.json"
     total_pr = 0
     if pf.exists():
         try:
             pr = json.loads(pf.read_text(encoding="utf-8"))
             total_pr = len(pr)
-            lines.append(f"✍️ Промпты: ✅ {total_pr} промптов")
+            vid_n = len(json.loads(vf.read_text(encoding="utf-8"))) if vf.exists() else 0
+            vid_str = f" | 🎬 {vid_n}" if vid_n else ""
+            lines.append(f"✍️ Промпты: ✅ 📷 {total_pr}{vid_str}")
         except Exception:
             lines.append("✍️ Промпты: ⚠️ ошибка файла")
     else:
@@ -370,6 +509,7 @@ async def run_agent(
     """
     env = os.environ.copy()
     env.pop("CLAUDECODE", None)
+    env["TQDM_DISABLE"] = "1"   # отключаем tqdm прогресс-бары (они не делают \n → переполняют буфер)
 
     proc = await asyncio.create_subprocess_exec(
         *args,
@@ -378,6 +518,7 @@ async def run_agent(
         stderr=asyncio.subprocess.STDOUT,
         cwd=str(BASE_DIR),
         env=env,
+        limit=10 * 1024 * 1024,  # 10MB буфер (по умолчанию 64KB — мало для BLIP-2)
     )
 
     if stdin_text:
@@ -450,6 +591,27 @@ def _read_prompt_progress() -> dict | None:
 def _read_pixel_progress() -> dict | None:
     try:
         return json.loads(PIXEL_PROGRESS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _read_blip_progress() -> dict | None:
+    try:
+        return json.loads(BLIP_PROGRESS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _read_regen_progress() -> dict | None:
+    try:
+        return json.loads(REGEN_PROGRESS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _read_grok_progress() -> dict | None:
+    try:
+        return json.loads(GROK_PROGRESS_FILE.read_text(encoding="utf-8"))
     except Exception:
         return None
 
@@ -702,7 +864,70 @@ async def _run_media_agent(
     if session:
         cmd += ["--session", session]
 
-    if platform_num == "3":
+    if platform_num == "2" and mtype == "video":
+        # ── Grok видео: polling из grok_progress.json (multi-tab) ───────────
+        try:
+            GROK_PROGRESS_FILE.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+        task = asyncio.create_task(run_agent(cmd))
+        t0   = time.monotonic()
+
+        while not task.done():
+            await asyncio.sleep(3.0)
+            p = _read_grok_progress()
+            elapsed = int(time.monotonic() - t0)
+            if p and p.get("total", 0) > 0:
+                completed = len(p.get("completed", []))
+                total     = p["total"]
+                pct       = int(completed / total * 100) if total else 0
+                bar       = _prompt_bar(completed, total)
+
+                tabs_status = p.get("tabs_status", {})
+                if tabs_status:
+                    parts = [
+                        f"Tab-{k}: {v['done']}/{v['assigned']}"
+                        for k, v in sorted(tabs_status.items(), key=lambda x: int(x[0]))
+                    ]
+                    tabs_text = "\n🗂 " + "  |  ".join(parts)
+                else:
+                    tabs_text = ""
+
+                text = (
+                    f"🎬 <b>Grok: генерирую видео...</b>\n"
+                    f"━━━━━━━━━━━━━━━━\n"
+                    f"📊 Готово: <b>{completed}/{total}</b>\n"
+                    f"<code>{bar}</code> {pct}%\n"
+                    f"⏱ {elapsed // 60}м {elapsed % 60}с"
+                    + tabs_text
+                )
+            else:
+                text = (
+                    f"🎬 <b>Grok: запуск вкладок...</b>\n"
+                    f"⏳ {elapsed}с — открываю Chrome..."
+                )
+            try:
+                await progress_msg.edit_text(text, parse_mode=ParseMode.HTML)
+            except Exception:
+                pass
+
+        rc, _ = task.result()
+        elapsed = int(time.monotonic() - t0)
+        p_fin = _read_grok_progress()
+        done_n  = len(p_fin.get("completed", [])) if p_fin else 0
+        total_n = p_fin.get("total", 0) if p_fin else 0
+        icon    = "✅" if rc == 0 else "❌"
+        await progress_msg.edit_text(
+            f"{icon} <b>Генерация завершена!</b>\n"
+            f"🎬 Grok видео\n"
+            f"📊 Сохранено: <b>{done_n}/{total_n}</b>\n"
+            f"⏱ Время: {elapsed // 60}м {elapsed % 60}с",
+            reply_markup=kb_done(),
+            parse_mode=ParseMode.HTML,
+        )
+
+    elif platform_num == "3":
         # ── PixelAgent: polling из pixel_progress.json ──────────────────────
         try:
             PIXEL_PROGRESS_FILE.unlink(missing_ok=True)
@@ -782,7 +1007,7 @@ async def _run_media_agent(
             parse_mode=ParseMode.HTML,
         )
     else:
-        # ── Browser-платформы (Flow, Grok): streaming ───────────────────────
+        # ── Browser-платформы (Flow и др.): streaming ───────────────────────
         header = f"⏳ <b>Генерирую медиа...</b>\n{type_label} | {h(pname)}"
         cb     = make_progress_cb(progress_msg, header, interval=2.0)
         rc, output = await run_agent(cmd, on_line=cb)
@@ -801,6 +1026,115 @@ async def _run_media_agent(
             parse_mode=ParseMode.HTML,
         )
 
+async def _run_blip_agent(
+    progress_msg,
+    gen_type: str,
+    session: str = "",
+    threshold: float = 0.15,
+) -> None:
+    try:
+        BLIP_PROGRESS_FILE.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+    type_icons = {"photo": "📸 Фото", "video": "🎬 Видео", "both": "📸🎬 Оба"}
+    type_label = type_icons.get(gen_type, gen_type)
+    cmd = ["py", str(AGENTS_DIR / "blip_validator" / "blip_validator.py"),
+           "--type", gen_type, "--threshold", str(threshold)]
+    if session:
+        cmd += ["--project", session]
+
+    task = asyncio.create_task(run_agent(cmd))
+    t0   = time.monotonic()
+
+    while not task.done():
+        await asyncio.sleep(3.0)
+        p = _read_blip_progress()
+        if p and p.get("total", 0) > 0:
+            cur    = p.get("current", 0)
+            total  = p["total"]
+            status = p.get("status", "running")
+            speed  = p.get("speed", 0.0)
+            ptype  = p.get("type", gen_type)
+            bar    = _prompt_bar(cur, total)
+            pct    = int(cur / total * 100) if total else 0
+            icon   = "📸" if ptype == "photo" else "🎬"
+            if status == "loading":
+                text = f"🔍 <b>BLIP анализ...</b>\n{type_label}\n\n<pre>Загружаю модель...</pre>"
+            else:
+                eta_str = f"  ETA ~{int((total-cur)/speed)}с" if speed > 0 and cur < total else ""
+                text = (
+                    f"🔍 <b>BLIP анализирует {icon}...</b>\n{type_label}\n"
+                    f"━━━━━━━━━━━━━━━━\n"
+                    f"📊 Готово: <b>{cur}/{total}</b>\n"
+                    f"<code>{bar}</code> {pct}%\n"
+                    f"⚡ {speed:.1f} шт/с на RTX 3060{eta_str}"
+                )
+        else:
+            elapsed = int(time.monotonic() - t0)
+            text = f"🔍 <b>BLIP анализ...</b>\n{type_label}\n\n<pre>запускаю... ({elapsed}с)</pre>"
+        try:
+            await progress_msg.edit_text(text, parse_mode=ParseMode.HTML)
+        except Exception:
+            pass
+
+    rc, output = task.result()
+
+    summary: dict = {}
+    m_sum = re.search(r"BLIP_SUMMARY:\s*(\{.+\})", output)
+    if m_sum:
+        try:
+            summary = json.loads(m_sum.group(1))
+        except Exception:
+            pass
+
+    if rc != 0 and not summary:
+        err_tail = "\n".join(output.splitlines()[-10:])
+        await progress_msg.edit_text(
+            f"❌ <b>BLIP завершился с ошибкой!</b>\n\n<pre>{h(err_tail)}</pre>",
+            reply_markup=kb_done(), parse_mode=ParseMode.HTML,
+        )
+        return
+
+    lines = ["🔍 <b>BLIP анализ завершён!</b>\n"]
+    ph_tot  = summary.get("photos_total", 0)
+    ph_ok   = summary.get("photos_ok",    0)
+    ph_bad  = summary.get("photos_bad",   0)
+    vid_tot = summary.get("videos_total", 0)
+    vid_ok  = summary.get("videos_ok",    0)
+    vid_bad = summary.get("videos_bad",   0)
+
+    if ph_tot > 0:
+        bad_ids = summary.get("bad_photos", [])
+        ids_str = ", ".join(f"#{n}" for n in bad_ids[:15])
+        if len(bad_ids) > 15:
+            ids_str += f"... ещё {len(bad_ids)-15}"
+        lines += [f"📸 <b>Фото:</b>", f"  ✅ Хорошие: <b>{ph_ok}/{ph_tot}</b>"]
+        if ph_bad:
+            lines.append(f"  ⚠️ Плохие: <b>{ph_bad}/{ph_tot}</b> → {ids_str}")
+
+    if vid_tot > 0:
+        bad_ids = summary.get("bad_videos", [])
+        ids_str = ", ".join(f"#{n}" for n in bad_ids[:15])
+        if len(bad_ids) > 15:
+            ids_str += f"... ещё {len(bad_ids)-15}"
+        lines += [f"\n🎬 <b>Видео:</b>", f"  ✅ Хорошие: <b>{vid_ok}/{vid_tot}</b>"]
+        if vid_bad:
+            lines.append(f"  ⚠️ Плохие: <b>{vid_bad}/{vid_tot}</b> → {ids_str}")
+
+    has_bad_p = ph_bad > 0
+    has_bad_v = vid_bad > 0
+    if has_bad_p or has_bad_v:
+        lines.append("\n<b>Перегенерировать плохие?</b>")
+        kb = kb_blip_regen(has_bad_p, has_bad_v)
+    else:
+        kb = kb_done()
+
+    await progress_msg.edit_text(
+        "\n".join(lines), reply_markup=kb, parse_mode=ParseMode.HTML,
+    )
+
+
 async def _run_cutter_agent(
     progress_msg,
     mode: str,
@@ -817,40 +1151,230 @@ async def _run_cutter_agent(
             f"⏳ <b>Нарезка + Апскейл...</b>\n"
             f"Метод: {method_labels.get(method, method)} → {res_labels.get(resolution, resolution)}"
         )
+    elif mode == "upscale":
+        header = (
+            f"⏳ <b>Апскейл видео...</b>\n"
+            f"Метод: {method_labels.get(method, method)} → {res_labels.get(resolution, resolution)}"
+        )
     else:
         header = "⏳ <b>Нарезка видео...</b>"
 
     cb = make_progress_cb(progress_msg, header, interval=3.0)
 
-    # Строим stdin: mode\nmethod\nresolution\n (агент читает интерактивно только без аргументов)
-    # Передаём через аргументы командной строки
     cmd = ["py", str(AGENTS_DIR / "video_cutter" / "video_cutter.py"), "--mode", mode]
     if session:
         cmd += ["--project", session]
-    if mode == "cut+upscale":
+    if mode in ("cut+upscale", "upscale"):
         cmd += ["--method", method, "--resolution", resolution]
 
     rc, output = await run_agent(cmd, on_line=cb)
 
-    cut_m = re.search(r"Нарезано[:\s]+(\d+)", output)
-    up_m  = re.search(r"Апскейл[:\s]+(\d+)", output)
-    time_m = re.search(r"Общее время[:\s]+([\w\s]+)", output)
-
-    cut_count  = cut_m.group(1)  if cut_m  else "?"
-    up_count   = up_m.group(1)   if up_m   else None
-    total_time = time_m.group(1).strip() if time_m else "?"
-
     icon = "✅" if rc == 0 else "⚠️"
-    lines = [
-        f"{icon} <b>Нарезка завершена!</b>",
-        f"✂️ Нарезано: <b>{cut_count}</b> клипов",
-    ]
-    if up_count:
-        lines.append(f"🔍 Апскейл: <b>{up_count}</b> клипов → {res_labels.get(resolution, '')}")
-    lines.append(f"⏱ Время: {h(total_time)}")
+
+    # Последние строки с ошибкой (показываем если rc != 0)
+    err_lines = [l for l in output.splitlines() if l.strip()][-3:] if rc != 0 else []
+
+    if mode == "upscale":
+        up_m   = re.search(r"Обработано:\s*(\d+(?:/\d+)?)", output)
+        time_m = re.search(r"Время:\s*([^\n]+)", output)
+        up_count   = up_m.group(1).strip()  if up_m   else None
+        total_time = time_m.group(1).strip() if time_m else None
+        lines = [f"{icon} <b>Апскейл завершён!</b>"]
+        if up_count:
+            lines.append(f"🔍 Обработано: <b>{up_count}</b> → {res_labels.get(resolution, resolution)}")
+        if total_time:
+            lines.append(f"⏱ Время: {h(total_time)}")
+        if err_lines and not up_count:
+            lines.append(f"\n<pre>{h(chr(10).join(err_lines))}</pre>")
+    else:
+        cut_m  = re.search(r"Нарезано:\s*(\d+)", output)
+        up_m   = re.search(r"Апскейл:\s*(\d+)", output)
+        time_m = re.search(r"Общее время:\s*([^\n]+)", output)
+        cut_count  = cut_m.group(1)  if cut_m  else "?"
+        up_count   = up_m.group(1)   if up_m   else None
+        total_time = time_m.group(1).strip() if time_m else "?"
+        lines = [
+            f"{icon} <b>Нарезка завершена!</b>",
+            f"✂️ Нарезано: <b>{cut_count}</b> клипов",
+        ]
+        if up_count:
+            lines.append(f"🔍 Апскейл: <b>{up_count}</b> клипов → {res_labels.get(resolution, '')}")
+        lines.append(f"⏱ Время: {h(total_time)}")
+        if err_lines and cut_count == "?":
+            lines.append(f"\n<pre>{h(chr(10).join(err_lines))}</pre>")
 
     await progress_msg.edit_text(
         "\n".join(lines),
+        reply_markup=kb_done(),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+async def _run_photo_upscaler(
+    progress_msg,
+    method: str = "lanczos",
+    resolution: str = "2k",
+    session: str = "",
+) -> None:
+    """Запускает photo_upscaler.py и показывает прогресс."""
+    res_labels    = {"1080": "1080p", "2k": "2K", "4k": "4K"}
+    method_labels = {"realesrgan": "Real-ESRGAN", "lanczos": "Lanczos", "bicubic": "Bicubic"}
+    header = (
+        f"⏳ <b>Апскейл фото...</b>\n"
+        f"Метод: {method_labels.get(method, method)} → {res_labels.get(resolution, resolution)}"
+    )
+    cb = make_progress_cb(progress_msg, header, interval=2.0)
+
+    cmd = [
+        "py", str(AGENTS_DIR / "upscaler" / "photo_upscaler.py"),
+        "--method", method, "--resolution", resolution,
+    ]
+    if session:
+        cmd += ["--project", session]
+
+    rc, output = await run_agent(cmd, on_line=cb)
+
+    icon    = "✅" if rc == 0 else "⚠️"
+    done_m  = re.search(r"Обработано[:\s]+(\d+)", output)
+    time_m  = re.search(r"Время[:\s]+([\w\s]+)", output)
+    done_n  = done_m.group(1).strip() if done_m else "?"
+    elapsed = time_m.group(1).strip() if time_m else "?"
+    lines = [
+        f"{icon} <b>Апскейл фото завершён!</b>",
+        f"📷 Обработано: <b>{done_n}</b> фото → {res_labels.get(resolution, resolution)}",
+        f"⏱ Время: {h(elapsed)}",
+    ]
+    await progress_msg.edit_text(
+        "\n".join(lines),
+        reply_markup=kb_done(),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+async def _run_assembler(
+    progress_msg,
+    with_subs:  bool = True,
+    with_music: bool = True,
+    session:    str  = "",
+) -> None:
+    """
+    Запускает assembler.py и показывает структурированный прогресс в Telegram.
+    Парсит строки [АССЕМБЛЕР] для отображения этапов.
+    """
+    parts = []
+    if with_subs:  parts.append("субтитры")
+    if with_music: parts.append("музыка")
+    label = " + ".join(parts) if parts else "без субтитров/музыки"
+
+    # Маппинг ключевых фраз → красивые названия этапов
+    _STAGE_MAP = [
+        ("Загрузка данных",          "📂 Загрузка данных"),
+        ("Генерация project.json",   "🗂 project.json"),
+        ("Монтаж сцен",              "✂️ Монтаж сцен"),
+        ("Склейка",                  "🔗 Склейка интро + сцены"),
+        ("Музыкальный трек",         "🎵 Музыкальный трек"),
+        ("Аудио-микс",               "🎚 Аудио-микс"),
+        ("Финальный экспорт",        "📤 Финальный экспорт"),
+        ("Субтитры + экспорт",       "📝 Субтитры"),
+    ]
+
+    state = {
+        "done_stages": [],       # [("✅ Монтаж сцен", detail)]
+        "cur_stage":   "🚀 Запуск...",
+        "cur_detail":  "",
+        "last_edit":   0.0,
+    }
+
+    def _detect_stage(line: str) -> str | None:
+        """Определить, начался ли новый этап по строке лога."""
+        for keyword, label in _STAGE_MAP:
+            if keyword.lower() in line.lower():
+                return label
+        return None
+
+    def _build_text() -> str:
+        lines_out = [f"🎬 <b>FFmpeg монтаж ({h(label)})...</b>", ""]
+        for stage, detail in state["done_stages"]:
+            lines_out.append(f"✅ {h(stage)}" + (f"  <i>{h(detail)}</i>" if detail else ""))
+        lines_out.append(f"🔄 {h(state['cur_stage'])}")
+        if state["cur_detail"]:
+            lines_out.append(f"<pre>{h(state['cur_detail'][-180:])}</pre>")
+        return "\n".join(lines_out)
+
+    async def on_line(line: str) -> None:
+        # Убираем префикс [АССЕМБЛЕР]
+        clean = re.sub(r"^\[АССЕМБЛЕР\]\s*", "", line).strip()
+        if not clean:
+            return
+
+        # Определяем смену этапа
+        new_stage = _detect_stage(clean)
+        if new_stage:
+            # Завершаем предыдущий этап
+            if state["cur_stage"] != "🚀 Запуск...":
+                state["done_stages"].append((state["cur_stage"], ""))
+            state["cur_stage"]  = new_stage
+            state["cur_detail"] = ""
+        else:
+            # Накапливаем детали текущего этапа
+            state["cur_detail"] = clean
+
+        # Обновляем Telegram раз в 4 секунды
+        now = time.monotonic()
+        if now - state["last_edit"] >= 4.0:
+            state["last_edit"] = now
+            try:
+                await progress_msg.edit_text(
+                    _build_text(),
+                    parse_mode=ParseMode.HTML,
+                )
+            except Exception:
+                pass
+
+    cmd = ["py", str(AGENTS_DIR / "assembler" / "assembler.py")]
+    if session:
+        cmd += ["--session", session]
+    if not with_subs:
+        cmd += ["--no-subs"]
+    if not with_music:
+        cmd += ["--no-music"]
+
+    rc, output = await run_agent(cmd, on_line=on_line)
+
+    # Парсим итоговые данные из вывода
+    time_m = re.search(r"Время[:\s]+([\dм\sс]+)", output)
+    file_m = re.search(r"📁\s+(.+\.mp4)", output)
+    size_m = re.search(r"Размер[:\s]+([\d.,]+\s*МБ)", output)
+
+    total_time = time_m.group(1).strip() if time_m else "?"
+    out_file   = Path(file_m.group(1).strip()).name if file_m else "final_complete.mp4"
+    out_size   = size_m.group(1).strip() if size_m else ""
+
+    if rc == 0:
+        result_lines = [
+            f"✅ <b>Монтаж завершён!</b>",
+            f"🎬 <b>{h(out_file)}</b>",
+            f"⚙️ Режим: {h(label)}",
+        ]
+        if out_size:
+            result_lines.append(f"📦 Размер: {h(out_size)}")
+        result_lines.append(f"⏱ Время: {h(total_time)}")
+        # Показать все пройденные этапы
+        result_lines.append("")
+        for stage, _ in state["done_stages"]:
+            result_lines.append(f"  ✅ {h(stage)}")
+        if state["cur_stage"] not in ("🚀 Запуск...",):
+            result_lines.append(f"  ✅ {h(state['cur_stage'])}")
+    else:
+        tail = "\n".join(output.splitlines()[-8:])
+        result_lines = [
+            f"❌ <b>Ошибка монтажа!</b>",
+            f"⚙️ Режим: {h(label)}",
+            f"<pre>{h(tail)}</pre>",
+        ]
+
+    await progress_msg.edit_text(
+        "\n".join(result_lines),
         reply_markup=kb_done(),
         parse_mode=ParseMode.HTML,
     )
@@ -1321,8 +1845,9 @@ async def cb_pcutter(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
     if choice == "skip":
         await q.edit_message_text(
-            "⏭ <b>Нарезка видео пропущена.</b>\n\nПайплайн полностью завершён! 🎉",
-            reply_markup=kb_done(),
+            "⏭ <b>Нарезка видео пропущена.</b>\n\nПайплайн полностью завершён! 🎉\n\n"
+            "Запустить BLIP анализ медиа?",
+            reply_markup=kb_done_with_blip(),
             parse_mode=ParseMode.HTML,
         )
         return
@@ -1352,7 +1877,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     context.user_data.clear()
     await update.message.reply_text(
-        "🎬 <b>Video Pipeline Bot</b>\n\nВыбери действие:",
+        get_main_menu_text(),
         reply_markup=kb_main(),
         parse_mode=ParseMode.HTML,
     )
@@ -1366,7 +1891,49 @@ async def cb_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data.pop("state", None)
     context.user_data.pop("pipeline_cfg", None)
     await q.edit_message_text(
-        "🎬 <b>Video Pipeline Bot</b>\n\nВыбери действие:",
+        get_main_menu_text(),
+        reply_markup=kb_main(),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+async def cb_channels_show(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Показать список каналов для переключения."""
+    if not await is_allowed(update):
+        return
+    q = update.callback_query
+    await q.answer()
+
+    channels = get_all_channels()
+    active   = get_active_channel()
+
+    text = "📡 <b>Выберите канал:</b>\n\n"
+    for ch in channels:
+        is_active = active and ch["id"] == active["id"]
+        mark = "✅ " if is_active else "   "
+        text += f"{mark}{ch['emoji']} <b>{ch['name']}</b> ({ch['language'].upper()})\n"
+
+    rows = []
+    for ch in channels:
+        is_active = active and ch["id"] == active["id"]
+        label = f"{'✅ ' if is_active else ''}{ch['emoji']} {ch['name']}"
+        rows.append([InlineKeyboardButton(label, callback_data=f"channels:set:{ch['id']}")])
+    rows.append([BACK_BTN])
+
+    await q.edit_message_text(text, reply_markup=InlineKeyboardMarkup(rows), parse_mode=ParseMode.HTML)
+
+
+async def cb_channels_set(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Установить активный канал и вернуться в главное меню."""
+    if not await is_allowed(update):
+        return
+    q = update.callback_query
+    channel_id = q.data.split(":", 2)[2]
+    set_active_channel(channel_id)
+    ch = get_channel_config(channel_id)
+    await q.answer(f"✅ Канал: {ch['emoji']} {ch['name']}" if ch else "✅ Канал выбран")
+    await q.edit_message_text(
+        get_main_menu_text(),
         reply_markup=kb_main(),
         parse_mode=ParseMode.HTML,
     )
@@ -1541,24 +2108,32 @@ async def cb_prompts(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 
 async def cb_prompt_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Выбор типа промптов: фото или видео → выбор платформы."""
+    """Выбор типа промптов: фото, видео или оба → выбор платформы."""
     if not await is_allowed(update):
         return
     q     = update.callback_query
     await q.answer()
-    ptype = q.data.split(":")[1]  # "photo" or "video"
+    ptype = q.data.split(":")[1]  # "photo", "video", "both"
+    context.user_data["prompt_type"] = ptype
     if ptype == "photo":
         await q.edit_message_text(
             "📷 <b>Фото промпты</b>\n\nВыбери платформу:",
             reply_markup=kb_photo_platform(),
             parse_mode=ParseMode.HTML,
         )
-    else:
+    elif ptype == "video":
         await q.edit_message_text(
             "🎬 <b>Видео промпты</b>\n\nВыбери платформу:",
             reply_markup=kb_video_platform(),
             parse_mode=ParseMode.HTML,
         )
+    else:  # both
+        # Для "оба" — сразу запускаем с PixelAgent для фото + Grok для видео
+        progress = await q.edit_message_text(
+            "📷🎬 <b>Фото + Видео промпты</b>\n\n<pre>запускаю...</pre>",
+            parse_mode=ParseMode.HTML,
+        )
+        await _run_combined_prompts_agent(progress)
 
 
 async def cb_photo_platform(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1677,13 +2252,14 @@ async def cb_cutter(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def cb_cutter_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Выбор режима: cut / cut+upscale."""
+    """Выбор режима: cut / cut+upscale / upscale."""
     if not await is_allowed(update):
         return
     q    = update.callback_query
     await q.answer()
-    mode = q.data.split(":")[1]    # "cut" или "cut+upscale"
+    mode = q.data.split(":")[1]    # "cut" | "cut+upscale" | "upscale"
     context.user_data["cutter_mode"] = mode
+    context.user_data["upscale_kind"] = "video"   # cutter всегда работает с видео
 
     if mode == "cut":
         progress = await q.edit_message_text(
@@ -1691,6 +2267,12 @@ async def cb_cutter_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             parse_mode=ParseMode.HTML,
         )
         await _run_cutter_agent(progress, mode="cut")
+    elif mode == "upscale":
+        await q.edit_message_text(
+            "🔍 <b>Апскейл видео (Grok)</b>\n\nМетод апскейла?",
+            reply_markup=kb_cutter_method(),
+            parse_mode=ParseMode.HTML,
+        )
     else:
         await q.edit_message_text(
             "✂️+🔍 <b>Нарезка + Апскейл</b>\n\nМетод апскейла?",
@@ -1700,37 +2282,322 @@ async def cb_cutter_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def cb_cutter_upscale_method(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Выбор метода апскейла."""
+    """Выбор метода апскейла (видео: cutter, или фото: upscaler)."""
     if not await is_allowed(update):
         return
     q      = update.callback_query
     await q.answer()
     method = q.data.split(":")[1]
     context.user_data["cutter_method"] = method
-    await q.edit_message_text(
-        "✂️+🔍 <b>Нарезка + Апскейл</b>\n\nЦелевое разрешение?",
-        reply_markup=kb_cutter_resolution(),
-        parse_mode=ParseMode.HTML,
-    )
+
+    kind = context.user_data.get("upscale_kind", "video")
+    if kind == "photo":
+        # Фото-апскейл: свои разрешения (без 720)
+        context.user_data["upscale_method"] = method
+        await q.edit_message_text(
+            "📷 <b>Апскейл фото</b>\n\nЦелевое разрешение?",
+            reply_markup=kb_upscale_resolution(),
+            parse_mode=ParseMode.HTML,
+        )
+    else:
+        cutter_mode = context.user_data.get("cutter_mode", "cut+upscale")
+        title = "🎬 <b>Апскейл видео</b>" if cutter_mode == "upscale" else "✂️+🔍 <b>Нарезка + Апскейл</b>"
+        await q.edit_message_text(
+            f"{title}\n\nЦелевое разрешение?",
+            reply_markup=kb_cutter_resolution(),
+            parse_mode=ParseMode.HTML,
+        )
 
 
 async def cb_cutter_resolution(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Выбор разрешения → запуск."""
+    """Выбор разрешения → запуск (cut+upscale или upscale)."""
     if not await is_allowed(update):
         return
     q          = update.callback_query
     await q.answer()
     resolution = q.data.split(":")[1]
     method     = context.user_data.get("cutter_method", "lanczos")
+    mode       = context.user_data.get("cutter_mode", "cut+upscale")
     res_labels = {"720": "720p", "1080": "1080p", "2k": "2K", "4k": "4K"}
+    method_labels = {"realesrgan": "Real-ESRGAN", "lanczos": "Lanczos", "bicubic": "Bicubic"}
 
+    if mode == "upscale":
+        header = (
+            f"⏳ <b>Апскейл видео (Grok)</b>\n"
+            f"Метод: {method_labels.get(method, method)} → {res_labels.get(resolution, resolution)}\n\n"
+            f"<pre>запускаю...</pre>"
+        )
+    else:
+        header = (
+            f"⏳ <b>Нарезка + Апскейл</b>\n"
+            f"Метод: {method_labels.get(method, method)} → {res_labels.get(resolution, resolution)}\n\n"
+            f"<pre>запускаю...</pre>"
+        )
+
+    progress = await q.edit_message_text(header, parse_mode=ParseMode.HTML)
+    await _run_cutter_agent(progress, mode=mode, method=method, resolution=resolution)
+
+
+async def cb_upscale_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """🔍 Апскейл — выбор типа: фото или видео."""
+    if not await is_allowed(update):
+        return
+    q = update.callback_query
+    await q.answer()
+    await q.edit_message_text(
+        "🔍 <b>Апскейл</b>\n\nЧто апскейлить?",
+        reply_markup=kb_upscale_type(),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+async def cb_upscale_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Выбор типа апскейла: photo | video."""
+    if not await is_allowed(update):
+        return
+    q    = update.callback_query
+    await q.answer()
+    kind = q.data.split(":")[1]   # "photo" | "video"
+    context.user_data["upscale_kind"] = kind
+
+    if kind == "photo":
+        await q.edit_message_text(
+            "📷 <b>Апскейл фото</b>\n\nМетод апскейла?",
+            reply_markup=kb_cutter_method(),
+            parse_mode=ParseMode.HTML,
+        )
+    else:
+        context.user_data["cutter_mode"] = "upscale"
+        await q.edit_message_text(
+            "🎬 <b>Апскейл видео</b>\n\nМетод апскейла?",
+            reply_markup=kb_cutter_method(),
+            parse_mode=ParseMode.HTML,
+        )
+
+
+async def cb_upscale_method(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Выбор метода апскейла фото → выбор разрешения."""
+    if not await is_allowed(update):
+        return
+    q      = update.callback_query
+    await q.answer()
+    method = q.data.split(":")[1]
+    context.user_data["upscale_method"] = method
+    await q.edit_message_text(
+        "🔍 <b>Апскейл фото</b>\n\nЦелевое разрешение?",
+        reply_markup=kb_upscale_resolution(),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+async def cb_upscale_resolution(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Выбор разрешения → запуск photo_upscaler."""
+    if not await is_allowed(update):
+        return
+    q          = update.callback_query
+    await q.answer()
+    resolution = q.data.split(":")[1]
+    method     = context.user_data.get("upscale_method", "lanczos")
+    res_labels = {"1080": "1080p", "2k": "2K", "4k": "4K"}
+    method_labels = {"realesrgan": "Real-ESRGAN", "lanczos": "Lanczos", "bicubic": "Bicubic"}
     progress = await q.edit_message_text(
-        f"⏳ <b>Нарезка + Апскейл</b>\n"
-        f"Метод: {method} → {res_labels.get(resolution, resolution)}\n\n"
+        f"⏳ <b>Апскейл фото...</b>\n"
+        f"Метод: {method_labels.get(method, method)} → {res_labels.get(resolution, resolution)}\n\n"
         f"<pre>запускаю...</pre>",
         parse_mode=ParseMode.HTML,
     )
-    await _run_cutter_agent(progress, mode="cut+upscale", method=method, resolution=resolution)
+    await _run_photo_upscaler(progress, method=method, resolution=resolution)
+
+
+async def cb_editor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """🖥 Открыть редактор — запускает web/editor.py и даёт ссылку."""
+    if not await is_allowed(update):
+        return
+    q = update.callback_query
+    await q.answer()
+
+    import subprocess, sys
+    # Проверяем, запущен ли уже редактор
+    check = subprocess.run(
+        ["py", "-c",
+         "import urllib.request; urllib.request.urlopen('http://localhost:5000', timeout=2)"],
+        capture_output=True,
+    )
+    if check.returncode != 0:
+        # Запускаем редактор в фоне
+        subprocess.Popen(
+            ["py", str(BASE_DIR / "web" / "editor.py")],
+            cwd=str(BASE_DIR),
+            creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0,
+        )
+        msg = "🖥 <b>Редактор запущен!</b>\n\n<a href='http://localhost:5000'>http://localhost:5000</a>"
+    else:
+        msg = "🖥 <b>Редактор уже работает</b>\n\n<a href='http://localhost:5000'>http://localhost:5000</a>"
+
+    await q.edit_message_text(
+        msg,
+        reply_markup=kb_done(),
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True,
+    )
+
+
+async def cb_montage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """🎬 FFmpeg монтаж — выбор: с субтитрами или без."""
+    if not await is_allowed(update):
+        return
+    q = update.callback_query
+    await q.answer()
+    await q.edit_message_text(
+        "🎬 <b>FFmpeg монтаж</b>\n\n"
+        "Выберите режим сборки финального видео:\n"
+        "• <i>Субтитры</i> — word-level SRT через Organetto\n"
+        "• <i>Музыка</i> — фоновый трек из data/music/ (+88с)",
+        reply_markup=kb_montage_subs(),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+def _run_assembler_background(session, chat_id, message_id, bot,
+                               with_subs=True, with_music=True, loop=None):
+    """Запускает assembler.py в фоновом потоке, обновляет TG каждые 3 сек."""
+    def _tg_edit(text: str) -> None:
+        if loop is None:
+            return
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                bot.edit_message_text(
+                    text, chat_id=chat_id, message_id=message_id,
+                    parse_mode=ParseMode.HTML,
+                ),
+                loop,
+            )
+            future.result(timeout=5)
+        except Exception:
+            pass
+
+    cmd = [
+        "py", str(AGENTS_DIR / "assembler" / "assembler.py"),
+    ]
+    if session:
+        cmd += ["--session", session]
+    if not with_subs:
+        cmd += ["--no-subs"]
+    if not with_music:
+        cmd += ["--no-music"]
+
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+    )
+
+    last_update   = time.time()
+    last_line     = ""
+    progress_lines: list[str] = []
+
+    for line in process.stdout:
+        line = line.strip()
+        if not line:
+            continue
+        last_line = line
+        progress_lines.append(line)
+
+        # Обновлять TG каждые 3 сек
+        if time.time() - last_update >= 3:
+            text = "🎬 <b>FFmpeg монтаж (фон)...</b>\n\n"
+            recent = progress_lines[-8:]
+            for pl in recent:
+                if "✅" in pl:
+                    text += f"✅ {pl}\n"
+                elif "⏳" in pl:
+                    text += f"⏳ {pl}\n"
+                elif "⏱️" in pl:
+                    text += f"  {pl}\n"
+                elif "❌" in pl or "✗" in pl:
+                    text += f"❌ {pl}\n"
+                elif "---" in pl or "===" in pl:
+                    text += f"<b>{pl}</b>\n"
+                else:
+                    text += f"  {pl}\n"
+            _tg_edit(text)
+            last_update = time.time()
+
+    # Финальное сообщение
+    rc = process.wait()
+    if rc == 0:
+        final_text = (
+            "🎉 <b>Монтаж завершён!</b>\n\n"
+            f"✅ {last_line}\n"
+            f"📁 data/output/{session}/"
+        )
+    else:
+        final_text = f"❌ <b>Ошибка монтажа!</b>\n<pre>{last_line}</pre>"
+    _tg_edit(final_text)
+
+
+def start_assembler(chat_id, session, with_subs, with_music, bot, loop=None):
+    """Запустить assembler в фоне. Возвращает сразу."""
+    # Отправляем сообщение-прогресс синхронно через event loop
+    msg_id = None
+    if loop:
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                bot.send_message(chat_id, "🎬 Запускаю монтаж в фоне..."),
+                loop,
+            )
+            msg = future.result(timeout=5)
+            msg_id = msg.message_id
+        except Exception:
+            pass
+
+    thread = threading.Thread(
+        target=_run_assembler_background,
+        args=(session, chat_id, msg_id, bot, with_subs, with_music, loop),
+        daemon=True,
+    )
+    thread.start()
+    return "✅ Монтаж запущен в фоне! Бот свободен."
+
+
+async def cb_montage_subs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Запустить assembler.py: subs_music | subs_nomusic | nosubs_music | nosubs_nomusic."""
+    if not await is_allowed(update):
+        return
+    q      = update.callback_query
+    await q.answer()
+    # choice: "subs_music" | "subs_nomusic" | "nosubs_music" | "nosubs_nomusic"
+    choice    = q.data.split(":")[1]
+    with_subs  = "nosubs" not in choice
+    with_music = "nomusic" not in choice
+
+    parts = []
+    if with_subs:  parts.append("субтитры")
+    if with_music: parts.append("музыка")
+    label = " + ".join(parts) if parts else "без всего"
+
+    # Запустить в фоне через threading
+    loop = asyncio.get_event_loop()
+    result_msg = start_assembler(
+        chat_id    = q.message.chat_id,
+        session    = "",
+        with_subs  = with_subs,
+        with_music = with_music,
+        bot        = context.bot,
+        loop       = loop,
+    )
+
+    await q.edit_message_text(
+        f"🎬 <b>Монтаж ({label}) запущен в фоне</b>\n\n"
+        f"✅ {result_msg}\n"
+        f"<i>Прогресс придёт отдельным сообщением</i>",
+        parse_mode=ParseMode.HTML,
+        reply_markup=kb_done(),
+    )
 
 
 async def cb_mplatform(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1753,36 +2620,36 @@ async def cb_mplatform(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )
             return
 
+    # PixelAgent — всегда показываем меню v1/v2 (даже если тип уже предвыбран)
+    if is_api:
+        cfg_env = dotenv_values(ENV_FILE)
+        api_key = cfg_env.get("PIXEL_API_KEY", "").strip()
+        if not api_key:
+            await q.edit_message_text(
+                "⚠️ <b>PIXEL_API_KEY не задан</b>\n\nДобавь ключ в <code>config/.env</code>",
+                reply_markup=kb_done(), parse_mode=ParseMode.HTML,
+            )
+            return
+        ver = cfg_env.get("PIXEL_API_VERSION", "v2").strip()
+        await q.edit_message_text(
+            f"🖼 <b>PixelAgent</b>\n\n⚙️ API версия: <b>{h(ver)}</b>\n\nЧто генерировать?",
+            reply_markup=kb_pixel_menu(ver), parse_mode=ParseMode.HTML,
+        )
+        return
+
     # Если тип уже выбран (кнопка 📷 Фото / 🎬 Видео) — пропускаем шаг выбора
     preselected = context.user_data.get("media_type")
     if preselected:
-        context.user_data["media_type"] = preselected
-        if is_api:
-            cfg_env = dotenv_values(ENV_FILE)
-            api_key = cfg_env.get("PIXEL_API_KEY", "").strip()
-            if not api_key:
-                await q.edit_message_text(
-                    "⚠️ <b>PIXEL_API_KEY не задан</b>\n\nДобавь ключ в <code>config/.env</code>",
-                    reply_markup=kb_done(), parse_mode=ParseMode.HTML,
-                )
-                return
-            type_label = {"photo": "📷 Фото", "video": "🎬 Видео", "both": "📷 Фото"}[preselected]
-            progress   = await q.edit_message_text(
-                f"⏳ <b>Генерирую медиа...</b>\n{type_label} | PixelAgent\n\n<pre>запускаю...</pre>",
-                parse_mode=ParseMode.HTML,
-            )
-            await _run_media_agent(progress, "", num, preselected)
-        else:
-            type_label = {"photo": "📷 Фото", "video": "🎬 Видео", "both": "📷+🎬"}[preselected]
-            progress   = await q.edit_message_text(
-                f"⏳ <b>Генерирую медиа...</b>\n{type_label} | {h(pname)}\n\n<pre>запускаю...</pre>",
-                parse_mode=ParseMode.HTML,
-            )
-            await _run_media_agent(progress, "", num, preselected)
+        type_label = {"photo": "📷 Фото", "video": "🎬 Видео", "both": "📷+🎬"}[preselected]
+        progress   = await q.edit_message_text(
+            f"⏳ <b>Генерирую медиа...</b>\n{type_label} | {h(pname)}\n\n<pre>запускаю...</pre>",
+            parse_mode=ParseMode.HTML,
+        )
+        await _run_media_agent(progress, "", num, preselected)
     else:
         await q.edit_message_text(
             f"🖼 <b>{h(pname)}</b>\n\nЧто генерировать?",
-            reply_markup=kb_media_type(is_api=is_api), parse_mode=ParseMode.HTML,
+            reply_markup=kb_media_type(is_api=False), parse_mode=ParseMode.HTML,
         )
 
 
@@ -1846,6 +2713,224 @@ async def cb_gmodel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await _run_media_agent(progress, "", platform_num, mtype)
 
 
+async def cb_pixelver(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Переключение версии PixelAgent API (v1/v2) — записывает в config/.env."""
+    if not await is_allowed(update):
+        return
+    q   = update.callback_query
+    await q.answer()
+    ver = q.data.split(":")[1]  # "v1" или "v2"
+
+    from dotenv import set_key as _set_key
+    _set_key(str(ENV_FILE), "PIXEL_API_VERSION", ver)
+
+    await q.edit_message_text(
+        f"🖼 <b>PixelAgent</b>\n\n⚙️ API версия: <b>{h(ver)}</b>\n\nЧто генерировать?",
+        reply_markup=kb_pixel_menu(ver), parse_mode=ParseMode.HTML,
+    )
+
+
+# ── BLIP анализ ───────────────────────────────────────────────────────────────
+
+async def cb_blip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not await is_allowed(update):
+        return
+    q = update.callback_query
+    await q.answer()
+    _SESSION_RE_BOT = re.compile(r"^Video_\d{8}_\d{6}$")
+    session = None
+    if MEDIA_DIR.exists():
+        folders = [d for d in MEDIA_DIR.iterdir()
+                   if d.is_dir() and _SESSION_RE_BOT.match(d.name)]
+        if folders:
+            session = max(folders, key=lambda f: f.name).name
+    if not session:
+        await q.edit_message_text(
+            "❌ <b>Нет медиа для анализа</b>\n\nСначала сгенерируй фото или видео.",
+            reply_markup=kb_done(), parse_mode=ParseMode.HTML,
+        )
+        return
+    context.user_data["blip_session"] = session
+    await q.edit_message_text(
+        f"🔍 <b>BLIP анализ</b>\n\n📁 Сессия: <code>{h(session)}</code>\n\nЧто анализировать?",
+        reply_markup=kb_blip_type(), parse_mode=ParseMode.HTML,
+    )
+
+
+async def cb_blip_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not await is_allowed(update):
+        return
+    q        = update.callback_query
+    await q.answer()
+    gen_type = q.data.split(":")[1]
+    session  = context.user_data.get("blip_session", "")
+    type_icons = {"photo": "📸 Фото", "video": "🎬 Видео", "both": "📸🎬 Оба"}
+    progress = await q.edit_message_text(
+        f"🔍 <b>BLIP анализ...</b>\n{type_icons.get(gen_type, gen_type)}\n\n<pre>запускаю...</pre>",
+        parse_mode=ParseMode.HTML,
+    )
+    await _run_blip_agent(progress, gen_type, session=session)
+
+
+async def _run_regen_agent(
+    progress_msg,
+    session: str,
+    with_video: bool = False,
+) -> None:
+    """Запускает regen_agent: перегенерирует промпты + фото для плохих ID из blip_report."""
+    # Читаем имена мастер-промптов из последнего запуска prompt_generator
+    pp = _read_prompt_progress()
+    photo_master = (pp or {}).get("master_photo", "")
+    video_master = (pp or {}).get("master_video", "") if with_video else ""
+
+    if not photo_master:
+        # Fallback: берём первый доступный
+        photo_dir = BASE_DIR / "config" / "master_prompts" / "photo"
+        masters = sorted(f.name for f in photo_dir.glob("*.txt")) if photo_dir.exists() else []
+        photo_master = masters[0] if masters else ""
+
+    if not photo_master:
+        await progress_msg.edit_text(
+            "❌ <b>Не удалось определить мастер-промпт для фото.</b>\n"
+            "Запусти генерацию промптов через меню.",
+            reply_markup=kb_done(), parse_mode=ParseMode.HTML,
+        )
+        return
+
+    try:
+        REGEN_PROGRESS_FILE.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+    cmd = [
+        "py", str(AGENTS_DIR / "regen_agent" / "regen_agent.py"),
+        "--project",      session,
+        "--photo-master", photo_master,
+    ]
+    if video_master:
+        cmd += ["--video-master", video_master]
+
+    task = asyncio.create_task(run_agent(cmd))
+    t0   = time.monotonic()
+
+    phase_labels = {
+        "prompts":       "♻️ Регенерирую фото-промпты...",
+        "video_prompts": "♻️ Регенерирую видео-промпты...",
+        "photos":        "🎨 Генерирую фото (PixelAgent)...",
+    }
+
+    while not task.done():
+        await asyncio.sleep(3.0)
+        p = _read_regen_progress()
+        elapsed = int(time.monotonic() - t0)
+        if p and p.get("total", 0) > 0:
+            phase   = p.get("phase", "prompts")
+            cur     = p.get("current", 0)
+            total   = p["total"]
+            bar     = _prompt_bar(cur, total)
+            pct     = int(cur / total * 100) if total else 0
+            label   = phase_labels.get(phase, "♻️ Регенерация...")
+            bad_n   = len(p.get("bad_ids", []))
+            if phase == "photos":
+                # Читаем pixel_progress для фото-фазы
+                px = _read_pixel_progress()
+                if px and px.get("total", 0) > 0:
+                    px_cur = px.get("current", 0)
+                    px_tot = px["total"]
+                    px_bar = _prompt_bar(px_cur, px_tot)
+                    px_pct = int(px_cur / px_tot * 100) if px_tot else 0
+                    failed_n = len(px.get("failed", []))
+                    text = (
+                        f"🎨 <b>PixelAgent генерирует...</b>\n"
+                        f"━━━━━━━━━━━━━━━━\n"
+                        f"📊 Готово: <b>{px_cur}/{px_tot}</b>\n"
+                        f"<code>{px_bar}</code> {px_pct}%"
+                        + (f"\n❌ Ошибок: {failed_n}" if failed_n else "")
+                    )
+                else:
+                    text = f"🎨 <b>Генерирую фото...</b>\n\n<pre>запускаю PixelAgent... ({elapsed}с)</pre>"
+            else:
+                # cur=0 пока батчи идут параллельно — показываем "батчи запущены"
+                if cur == 0 and total > 0:
+                    text = (
+                        f"{label}\n"
+                        f"━━━━━━━━━━━━━━━━\n"
+                        f"📊 Плохих: <b>{bad_n}</b> | ⏳ Claude генерирует... ({elapsed}с)\n"
+                        f"<i>Батчи запущены параллельно, ждём результата</i>"
+                    )
+                else:
+                    text = (
+                        f"{label}\n"
+                        f"━━━━━━━━━━━━━━━━\n"
+                        f"📊 Промптов: <b>{cur}/{total}</b> (плохих: {bad_n})\n"
+                        f"<code>{bar}</code> {pct}%"
+                    )
+        else:
+            text = f"♻️ <b>Регенерация...</b>\n\n<pre>запускаю... ({elapsed}с)</pre>"
+        try:
+            await progress_msg.edit_text(text, parse_mode=ParseMode.HTML)
+        except Exception:
+            pass
+
+    rc, output = task.result()
+
+    m_sum = re.search(r"REGEN_SUMMARY:\s*(\{.+\})", output)
+    summary: dict = {}
+    if m_sum:
+        try:
+            summary = json.loads(m_sum.group(1))
+        except Exception:
+            pass
+
+    if rc != 0 and not summary:
+        err_tail = "\n".join(output.splitlines()[-10:])
+        await progress_msg.edit_text(
+            f"❌ <b>Регенерация завершилась с ошибкой!</b>\n\n<pre>{h(err_tail)}</pre>",
+            reply_markup=kb_done(), parse_mode=ParseMode.HTML,
+        )
+        return
+
+    regen_n  = summary.get("regenerated", 0)
+    bad_n    = len(summary.get("bad_ids",  []))
+    failed   = summary.get("failed", [])
+    with_vid = summary.get("with_video", False)
+
+    lines = [f"✅ <b>Регенерация завершена!</b>\n"]
+    lines.append(f"🔄 Плохих фото было: <b>{bad_n}</b>")
+    lines.append(f"✅ Перегенерировано: <b>{regen_n}</b>")
+    if failed:
+        lines.append(f"❌ Не удалось: <b>{len(failed)}</b> → {failed[:10]}")
+    if with_vid:
+        lines.append("🎬 Видео-промпты также обновлены")
+    lines.append("\n<i>Рекомендуется повторить BLIP анализ для проверки</i>")
+
+    await progress_msg.edit_text(
+        "\n".join(lines),
+        reply_markup=kb_done_with_blip(), parse_mode=ParseMode.HTML,
+    )
+
+
+async def cb_blip_regen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not await is_allowed(update):
+        return
+    q          = update.callback_query
+    await q.answer()
+    regen_type = q.data.split(":")[1]
+    session    = context.user_data.get("blip_session", "")
+    type_icons = {"photo": "📸 Фото", "video": "🎬 Видео", "both": "📸🎬 Оба"}
+    progress = await q.edit_message_text(
+        f"♻️ <b>Перегенерация ({type_icons.get(regen_type, regen_type)})...</b>\n\n<pre>запускаю...</pre>",
+        parse_mode=ParseMode.HTML,
+    )
+    if regen_type in ("photo", "both"):
+        # Полный цикл: промпты (фото + видео) → фото
+        with_video = regen_type == "both"
+        await _run_regen_agent(progress, session, with_video=with_video)
+    elif regen_type == "video":
+        # Только видео-медиа (без смены промптов)
+        await _run_media_agent(progress, "", "2", "video", session=session)
+
+
 # ── Валидация ─────────────────────────────────────────────────────────────────
 
 async def cb_validation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1898,6 +2983,264 @@ async def cb_validate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await progress.edit_text(
         f"{icon} <b>Результат ({label}):</b>\n\n<pre>{h(report)}</pre>",
         reply_markup=kb_done(), parse_mode=ParseMode.HTML,
+    )
+
+
+# ── Video Validator ───────────────────────────────────────────────────────────
+
+def _read_video_validator_progress() -> dict | None:
+    try:
+        if VIDEO_VALIDATOR_PROGRESS.exists():
+            return json.loads(VIDEO_VALIDATOR_PROGRESS.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return None
+
+
+def _read_norm_progress() -> dict | None:
+    try:
+        if NORM_UPSCALE_PROGRESS.exists():
+            return json.loads(NORM_UPSCALE_PROGRESS.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return None
+
+
+async def cb_video_validator(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Запускает агент валидации видео через Molmo 2."""
+    if not await is_allowed(update):
+        return
+    q = update.callback_query
+    await q.answer()
+
+    session = _current_session()
+    if not session:
+        await q.edit_message_text(
+            "❌ Нет активной сессии. Сначала запусти транскрипцию.",
+            reply_markup=InlineKeyboardMarkup([[BACK_BTN]]),
+        )
+        return
+
+    videos_dir = MEDIA_DIR / session / "videos"
+    total = len(list(videos_dir.glob("video_*.mp4"))) if videos_dir.exists() else 0
+
+    msg = await q.edit_message_text(
+        f"🔍 <b>Валидация видео (Molmo 2)</b>\n\n"
+        f"Сессия: <code>{session}</code>\n"
+        f"Видео:  {total}\n\n"
+        f"⏳ Загружаю модель и запускаю анализ...",
+        parse_mode=ParseMode.HTML,
+    )
+
+    cmd = [
+        "py",
+        str(AGENTS_DIR / "video_validator" / "video_validator.py"),
+        "--session", session,
+    ]
+
+    async def _stream_progress():
+        bar_chars = "█"
+        last_text  = ""
+        while True:
+            await asyncio.sleep(8)
+            p = _read_video_validator_progress()
+            if not p or p.get("session") != session:
+                continue
+
+            cur   = p.get("current", 0)
+            tot   = p.get("total", 1)
+            valid = p.get("valid", 0)
+            rep   = p.get("replaced", 0)
+            fail  = p.get("failed", 0)
+            pct   = int(cur / tot * 16) if tot else 0
+            bar   = bar_chars * pct + "░" * (16 - pct)
+
+            new_text = (
+                f"🔍 <b>Molmo 2 анализирует видео...</b>\n\n"
+                f"<code> {bar} {cur}/{tot}</code>\n\n"
+                f"✅ Хорошие:        {valid}\n"
+                f"🔄 Заменены стоком: {rep}\n"
+                f"❌ Плохие:          {fail}"
+            )
+            if new_text != last_text:
+                try:
+                    await msg.edit_text(new_text, parse_mode=ParseMode.HTML)
+                    last_text = new_text
+                except Exception:
+                    pass
+
+            if p.get("status") == "done":
+                break
+
+    # Запускаем агент и стриминг прогресса параллельно
+    rc, output = await asyncio.gather(
+        run_agent(cmd),
+        _stream_progress(),
+    )
+    rc, output = rc  # run_agent возвращает (rc, output)
+
+    p = _read_video_validator_progress()
+    valid = p.get("valid", 0)   if p else 0
+    rep   = p.get("replaced", 0) if p else 0
+    fail  = p.get("failed", 0)  if p else 0
+
+    # Найти плохие ID для кнопки
+    bad_ids: list[int] = []
+    try:
+        rp = (BASE_DIR / "data" / "transcripts" / session / "video_validation_report.json")
+        if rp.exists():
+            report = json.loads(rp.read_text(encoding="utf-8"))
+            bad_ids = [v["id"] for v in report.get("videos", [])
+                       if not v.get("valid") and not v.get("replaced")]
+    except Exception:
+        pass
+
+    icon = "✅" if rc == 0 else "⚠️"
+    kb_rows = [[BACK_BTN]]
+    if bad_ids:
+        kb_rows.insert(0, [InlineKeyboardButton(
+            "👁 Показать плохие", callback_data="vidval:show_bad",
+        )])
+
+    await msg.edit_text(
+        f"{icon} <b>Валидация завершена!</b>\n\n"
+        f"📊 Всего:    {total}\n"
+        f"✅ Хорошие:  {valid}\n"
+        f"🔄 Заменены: {rep}\n"
+        f"❌ Не заменены: {fail}"
+        + (f"\n\n⚠️ Плохие: #{', #'.join(str(i) for i in bad_ids[:20])}" if bad_ids else ""),
+        reply_markup=InlineKeyboardMarkup(kb_rows),
+        parse_mode=ParseMode.HTML,
+    )
+
+    # ── Автозапуск нормализации + апскейла ───────────────────────────────
+    norm_msg = await q.message.answer(
+        "⏳ <b>Нормализую и апскейлю видео...</b>\n\n"
+        "<code> ░░░░░░░░░░░░░░░░ 0/" + str(total) + "</code>\n\n"
+        "⚡ ~15 сек/видео на RTX 3060",
+        parse_mode=ParseMode.HTML,
+    )
+
+    norm_cmd = [
+        "py",
+        str(AGENTS_DIR / "video_cutter" / "video_cutter.py"),
+        "--mode", "normalize+upscale",
+        "--session", session,
+        "--duration", "10",
+        "--target-resolution", "1920x1080",
+        "--method", "lanczos",
+    ]
+
+    async def _stream_norm_progress():
+        bar_chars = "█"
+        last_text = ""
+        while True:
+            await asyncio.sleep(6)
+            p = _read_norm_progress()
+            if not p or p.get("session") != session:
+                continue
+
+            cur  = p.get("current", 0)
+            tot  = p.get("total", 1)
+            ok   = p.get("ok", 0)
+            fail = p.get("failed", 0)
+            pct  = int(cur / tot * 16) if tot else 0
+            bar  = bar_chars * pct + "░" * (16 - pct)
+
+            new_text = (
+                f"⏳ <b>Нормализую и апскейлю видео...</b>\n\n"
+                f"<code> {bar} {cur}/{tot}</code>\n\n"
+                f"✅ Готово: {ok}\n"
+                f"❌ Ошибки: {fail}\n\n"
+                f"⚡ ~15 сек/видео на RTX 3060"
+            )
+            if new_text != last_text:
+                try:
+                    await norm_msg.edit_text(new_text, parse_mode=ParseMode.HTML)
+                    last_text = new_text
+                except Exception:
+                    pass
+
+            if p.get("status") == "done":
+                break
+
+    norm_rc, _ = await asyncio.gather(
+        run_agent(norm_cmd),
+        _stream_norm_progress(),
+    )
+    norm_rc, _ = norm_rc
+
+    p2 = _read_norm_progress()
+    ok2   = p2.get("ok", 0)   if p2 else 0
+    fail2 = p2.get("failed", 0) if p2 else 0
+
+    icon2 = "✅" if norm_rc == 0 else "⚠️"
+    upscaled_dir = MEDIA_DIR / session / "upscaled"
+    await norm_msg.edit_text(
+        f"{icon2} <b>Нормализация и апскейл завершены!</b>\n\n"
+        f"✅ Обработано: {ok2}/{total}\n"
+        f"❌ Ошибки:     {fail2}\n\n"
+        f"📁 <code>{upscaled_dir}</code>",
+        reply_markup=InlineKeyboardMarkup([[BACK_BTN]]),
+        parse_mode=ParseMode.HTML,
+    )
+
+
+async def cb_vidval_show_bad(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Отправляет скриншоты плохих видео (первые кадры)."""
+    if not await is_allowed(update):
+        return
+    q = update.callback_query
+    await q.answer()
+
+    session = _current_session()
+    if not session:
+        return
+
+    try:
+        rp = BASE_DIR / "data" / "transcripts" / session / "video_validation_report.json"
+        report = json.loads(rp.read_text(encoding="utf-8"))
+        bad = [v for v in report.get("videos", [])
+               if not v.get("valid") and not v.get("replaced")][:10]
+    except Exception:
+        await q.edit_message_text("❌ Отчёт не найден", reply_markup=InlineKeyboardMarkup([[BACK_BTN]]))
+        return
+
+    if not bad:
+        await q.edit_message_text("✅ Плохих видео нет!", reply_markup=InlineKeyboardMarkup([[BACK_BTN]]))
+        return
+
+    await q.edit_message_text(
+        f"👁 Плохие видео ({len(bad)} шт.) — отправляю кадры...",
+        parse_mode=ParseMode.HTML,
+    )
+
+    for v in bad:
+        video_path = MEDIA_DIR / session / "videos" / v["file"]
+        frame_path = BASE_DIR / "temp" / f"bad_frame_{v['id']}.jpg"
+        try:
+            import subprocess
+            subprocess.run([
+                "ffmpeg", "-y", "-ss", "1", "-i", str(video_path),
+                "-vframes", "1", "-q:v", "2", str(frame_path),
+            ], capture_output=True)
+            if frame_path.exists():
+                with open(frame_path, "rb") as f:
+                    await context.bot.send_photo(
+                        chat_id=q.message.chat_id,
+                        photo=f,
+                        caption=f"❌ #{v['id']} — {v['reason']}",
+                    )
+        except Exception as e:
+            await context.bot.send_message(
+                chat_id=q.message.chat_id,
+                text=f"❌ #{v['id']} — {v['reason']} (скрин не удался: {e})",
+            )
+
+    await context.bot.send_message(
+        chat_id=q.message.chat_id,
+        text="👆 Все плохие видео показаны.",
+        reply_markup=InlineKeyboardMarkup([[BACK_BTN]]),
     )
 
 
@@ -1988,14 +3331,30 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(cb_cutter_mode,         pattern=r"^cutter:"))
     app.add_handler(CallbackQueryHandler(cb_cutter_upscale_method, pattern=r"^cupscale:"))
     app.add_handler(CallbackQueryHandler(cb_cutter_resolution,   pattern=r"^cres:"))
+    app.add_handler(CallbackQueryHandler(cb_upscale_menu,        pattern=r"^menu:upscale$"))
+    app.add_handler(CallbackQueryHandler(cb_upscale_type,        pattern=r"^uptype:"))
+    app.add_handler(CallbackQueryHandler(cb_upscale_resolution,  pattern=r"^upres:"))
     app.add_handler(CallbackQueryHandler(cb_pcutter,             pattern=r"^pcutter:"))
+    app.add_handler(CallbackQueryHandler(cb_montage,             pattern=r"^menu:montage$"))
+    app.add_handler(CallbackQueryHandler(cb_editor,              pattern=r"^menu:editor$"))
+    app.add_handler(CallbackQueryHandler(cb_montage_subs,        pattern=r"^montage:"))
     app.add_handler(CallbackQueryHandler(cb_validation,     pattern=r"^menu:validation$"))
+    app.add_handler(CallbackQueryHandler(cb_blip,           pattern=r"^menu:blip$"))
+    app.add_handler(CallbackQueryHandler(cb_blip_type,      pattern=r"^blip:"))
+    app.add_handler(CallbackQueryHandler(cb_blip_regen,     pattern=r"^blip_regen:"))
     app.add_handler(CallbackQueryHandler(cb_cut,            pattern=r"^cut:"))
     app.add_handler(CallbackQueryHandler(cb_platform,       pattern=r"^platform:"))
     app.add_handler(CallbackQueryHandler(cb_mplatform,      pattern=r"^mplatform:"))
     app.add_handler(CallbackQueryHandler(cb_mtype,          pattern=r"^mtype:"))
     app.add_handler(CallbackQueryHandler(cb_gmodel,         pattern=r"^gmodel:"))
+    app.add_handler(CallbackQueryHandler(cb_pixelver,       pattern=r"^pixelver:"))
     app.add_handler(CallbackQueryHandler(cb_validate,       pattern=r"^validate:"))
+    app.add_handler(CallbackQueryHandler(cb_video_validator,   pattern=r"^menu:video_validator$"))
+    app.add_handler(CallbackQueryHandler(cb_vidval_show_bad,   pattern=r"^vidval:show_bad$"))
+
+    # Каналы
+    app.add_handler(CallbackQueryHandler(cb_channels_show, pattern=r"^channels:show$"))
+    app.add_handler(CallbackQueryHandler(cb_channels_set,  pattern=r"^channels:set:"))
 
     # Сообщения
     app.add_handler(MessageHandler(filters.Document.ALL,            handle_document))
