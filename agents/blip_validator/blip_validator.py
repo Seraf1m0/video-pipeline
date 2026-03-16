@@ -30,10 +30,21 @@ if hasattr(sys.stdout, "reconfigure"):
 # ── Пути ──────────────────────────────────────────────────────────────────────
 
 BASE_DIR    = Path(__file__).parent.parent.parent
-MEDIA_DIR   = BASE_DIR / "data" / "media"
-PROMPTS_DIR = BASE_DIR / "data" / "prompts"
 TEMP_DIR    = BASE_DIR / "temp"
 PROGRESS_FILE = TEMP_DIR / "blip_progress.json"
+
+# ── Channel Manager ────────────────────────────────────────────────────────────
+_BOT_DIR = BASE_DIR / "bot"
+if str(_BOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_BOT_DIR))
+try:
+    from channel_manager import get_channel_data_dir as _get_ch_data_dir
+    _CH_DATA = _get_ch_data_dir(BASE_DIR / "data")
+except Exception:
+    _CH_DATA = BASE_DIR / "data"
+
+MEDIA_DIR   = _CH_DATA / "media"
+PROMPTS_DIR = _CH_DATA / "prompts"
 
 # ffmpeg в PATH (winget)
 _FFMPEG_DIR = Path(os.environ.get("LOCALAPPDATA", "")) / (

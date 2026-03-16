@@ -60,6 +60,21 @@ SUBTITLE_SCRIPT = AGENTS_DIR / "assembler" / "subtitle_generator.py"
 from dotenv import load_dotenv
 load_dotenv(BASE_DIR / "config" / ".env")
 
+# ─── Channel Manager ─────────────────────────────────────────────────────────
+
+_BOT_DIR = BASE_DIR / "bot"
+if str(_BOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_BOT_DIR))
+try:
+    from channel_manager import (
+        get_active_channel, get_channel_config, set_active_channel,
+        get_channel_data_dir,
+    )
+    _CHANNEL_MANAGER_OK = True
+except ImportError:
+    _CHANNEL_MANAGER_OK = False
+    def get_channel_data_dir(base): return Path(base)
+
 # ─── Импорт переходов (transitions.py в той же папке) ────────────────────────
 
 _ASSEMBLER_DIR = Path(__file__).resolve().parent
@@ -841,12 +856,49 @@ def main() -> None:
     parser.add_argument("--session",  help="Имя сессии (по умолчанию: последняя)")
     parser.add_argument("--no-subs",  action="store_true", help="Без субтитров")
     parser.add_argument("--no-music", action="store_true", help="Без фоновой музыки")
+    parser.add_argument("--channel",  help="ID канала (напр. channel_001_cosmos_de). "
+                                           "По умолчанию — активный канал из active_channel.json")
     args = parser.parse_args()
 
     t0 = time.time()
     log("=" * 58)
     log("ASSEMBLER — ПОЛНЫЙ МОНТАЖ ВИДЕО")
     log("=" * 58)
+
+    # ─── 0. Канал ─────────────────────────────────────────────────────────────
+    channel_cfg   = None
+    intro_enabled = True
+    if _CHANNEL_MANAGER_OK:
+        if args.channel:
+            set_active_channel(args.channel)
+        channel_cfg = get_active_channel()
+        if channel_cfg:
+            ch_name = f"{channel_cfg.get('emoji', '')} {channel_cfg.get('name', channel_cfg.get('id', '?'))}".strip()
+            ch_lang = channel_cfg.get("language", "?")
+            log(f"Канал:     {ch_name}  [{ch_lang}]")
+            # Переопределить DATA_DIR на папку канала
+            global INPUT_DIR, MEDIA_DIR, TRANSCRIPTS_DIR, OUTPUT_BASE_DIR
+            ch_data = get_channel_data_dir(DATA_DIR)
+            if ch_data != DATA_DIR:
+                INPUT_DIR       = ch_data / "input"
+                MEDIA_DIR       = ch_data / "media"
+                TRANSCRIPTS_DIR = ch_data / "transcripts"
+                OUTPUT_BASE_DIR = ch_data / "output"
+                log(f"Данные:    {ch_data}")
+            asm_cfg = channel_cfg.get("assembler", {})
+            # Переопределить папку с музыкой
+            music_dir_override = asm_cfg.get("music_dir", "").strip()
+            if music_dir_override and Path(music_dir_override).exists():
+                os.environ["MUSIC_DIR"] = music_dir_override
+                log(f"Музыка:    {music_dir_override}  (из конфига канала)")
+            # Интро
+            intro_enabled = asm_cfg.get("intro_enabled", True)
+            if not intro_enabled:
+                log("Интро:     отключено в конфиге канала")
+        else:
+            log("Канал:     не найден (используются дефолты)")
+    else:
+        log("Канал:     channel_manager недоступен")
 
     # ─── 1. Сессия ────────────────────────────────────────────────────────────
     session = args.session or find_latest_session()
@@ -873,7 +925,7 @@ def main() -> None:
     log(f"Озвучка:   {voiceover_path.name}")
 
     # ─── 4. Интро ─────────────────────────────────────────────────────────────
-    intro_path = find_intro(session)
+    intro_path = find_intro(session) if intro_enabled else None
     intro_dur  = 0.0
     if intro_path:
         try:
@@ -909,18 +961,15 @@ def main() -> None:
         if int(seg["id"]) not in missing_ids
     ]
 
-    # Длительность видеоряда = полное аудио минус аудио интро-сегментов
-    # Аудио интро-сегментов ≈ intro_dur (по пропорции слов)
-    # Для точности используем ratio: слова_интро / всего_слов * audio_total_dur
+    # Длительность видеоряда:
+    # Интро занимает ровно intro_dur секунд видео. С учётом глитч-перехода
+    # (xfade overlap = GLITCH_DURATION), клипам нужно покрыть:
+    #   scenes_vo_dur = audio_total_dur - intro_dur + GLITCH_DURATION
+    # Тогда video_with_intro = intro_dur + scenes_vo_dur - GLITCH_DURATION = audio_total_dur ✓
+    # Пропорция слов давала погрешность → стоп-кадр в конце.
     if missing_ids and intro_path and segments_for_montage:
-        def count_words(text: str) -> int:
-            return max(len(re.findall(r"[a-zA-Zа-яА-ЯёЁ0-9']+", text)), 1)
-
-        total_words   = sum(count_words(s.get("text", "")) for s in segments)
-        intro_words   = sum(count_words(s.get("text", "")) for s in segments if int(s["id"]) in missing_ids)
-        intro_vo_dur  = (intro_words / total_words) * audio_total_dur if total_words else 0
-        scenes_vo_dur = audio_total_dur - intro_vo_dur
-        log(f"\nРазбивка по озвучке: интро ~{intro_vo_dur:.1f}s, сцены ~{scenes_vo_dur:.1f}s")
+        scenes_vo_dur = audio_total_dur - intro_dur + GLITCH_DURATION
+        log(f"\nДлительность клипов: {audio_total_dur:.1f}s − {intro_dur:.1f}s + {GLITCH_DURATION:.1f}s = {scenes_vo_dur:.1f}s")
     else:
         scenes_vo_dur = audio_total_dur
 
@@ -934,14 +983,15 @@ def main() -> None:
         trimmed_clips: list[Path] = []
     else:
         N = len(segments_for_montage)
-        # Компенсация переходов:
-        #   глитч (intro→clip0): GLITCH_DURATION  (только если есть интро)
-        #   слайды (clip-clip):  (N-2 если intro, N-1 если нет) × SLIDE_DURATION
-        n_glitch  = 1 if (intro_path and N >= 1) else 0
-        n_slides  = max(N - 1 - n_glitch, 0)
-        trans_loss = n_glitch * GLITCH_DURATION + n_slides * SLIDE_DURATION
+        # Компенсация переходов внутри видеоряда клипов:
+        #   concat_all_with_transitions делает (N-1) xfade-переходов (slide)
+        #   каждый съедает SLIDE_DURATION секунд из суммы клипов
+        #   глитч (intro→clip0) — отдельный xfade, не влияет на clips_total:
+        #   он откусывает от intro, а не от клипов
+        n_slides   = max(N - 1, 0)
+        trans_loss = n_slides * SLIDE_DURATION
         clips_total = scenes_vo_dur + trans_loss
-        log(f"Компенсация: глитч={n_glitch}×{GLITCH_DURATION}s + слайды={n_slides}×{SLIDE_DURATION}s = +{trans_loss:.1f}s → {clips_total:.1f}s")
+        log(f"Компенсация: слайды={n_slides}×{SLIDE_DURATION}s = +{trans_loss:.1f}s → {clips_total:.1f}s")
         log(f"Нарезка {N} клипов ...")
         trimmed_clips = prepare_trimmed_clips(
             segments_for_montage, clips_dir, clip_prefix, clips_total, temp_dir,
@@ -972,6 +1022,7 @@ def main() -> None:
                 str(result_json), str(ass_path),
                 font_name, SUBTITLE_FONT_SIZE,
                 SUBTITLE_FADE_IN_MS, SUBTITLE_FADE_OUT_MS, SUBTITLE_RISE_PX,
+                intro_dur,   # реальная длина интро → субтитры стартуют точно после него
             )
         else:
             future_ass = None
@@ -1105,7 +1156,7 @@ def main() -> None:
     log(f"✓ video_with_intro.mp4: {video_dur:.1f}s ({video_dur / 60:.1f} мин)")
 
     if video_dur < audio_total_dur - 0.3:
-        gap = audio_total_dur - video_dur + 0.5
+        gap = audio_total_dur - video_dur + 0.1
         log(f"⚠ Видео ({video_dur:.1f}s) короче озвучки ({audio_total_dur:.1f}s) — паддинг +{gap:.2f}s (freeze)")
         padded = output_dir / "video_with_intro_padded.mp4"
         pad_cmd = [

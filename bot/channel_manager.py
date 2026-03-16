@@ -62,3 +62,26 @@ def get_channel_config(channel_id: str) -> dict | None:
         with open(config_path, encoding="utf-8") as f:
             return json.load(f)
     return None
+
+
+def get_channel_data_dir(base_data_dir: "Path | str") -> Path:
+    """
+    Вернуть папку с данными для активного канала.
+
+    Если канал имеет 'data_subdir', возвращает base_data_dir / data_subdir.
+    Иначе возвращает base_data_dir как есть (обратная совместимость).
+
+    Пример: base_data_dir = /projects/Video-pipeline/data
+      DE → /projects/Video-pipeline/data/channels/de
+      FR → /projects/Video-pipeline/data/channels/fr
+      нет канала → /projects/Video-pipeline/data
+    """
+    base_data_dir = Path(base_data_dir)
+    channel = get_active_channel()
+    if channel:
+        subdir = channel.get("data_subdir", "").strip()
+        if subdir:
+            ch_dir = base_data_dir / subdir
+            ch_dir.mkdir(parents=True, exist_ok=True)
+            return ch_dir
+    return base_data_dir

@@ -46,17 +46,19 @@ def seconds_to_ass(seconds: float) -> str:
 def generate_ass(
     result_json_path: "Path | str",
     output_ass_path:  "Path | str",
-    font_name:   str = "Organetto",
-    font_size:   int = 32,
-    fade_in_ms:  int = 120,
-    fade_out_ms: int = 120,
-    rise_px:     int = 20,
+    font_name:        str   = "Organetto",
+    font_size:        int   = 32,
+    fade_in_ms:       int   = 120,
+    fade_out_ms:      int   = 120,
+    rise_px:          int   = 20,
+    intro_duration:   float = INTRO_DURATION,
+    max_line_chars:   int   = 28,
 ) -> Path:
     """
     Генерирует ASS файл из word-level данных result.json.
 
     Слова группируются по 3-5 штук в одну строку субтитров.
-    Слова до INTRO_DURATION секунд пропускаются.
+    Слова до intro_duration секунд пропускаются.
 
     Параметры
     ---------
@@ -67,6 +69,9 @@ def generate_ass(
     fade_in_ms       : длительность fade-in в мс (default 120)
     fade_out_ms      : длительность fade-out в мс (default 120)
     rise_px          : подъём текста при появлении (пикселей, default 20)
+    intro_duration   : секунды с начала без субтитров (default INTRO_DURATION=90)
+    max_line_chars   : максимальная длина строки в символах (default 28); если 3 слова
+                       превышают лимит — используется 2 слова (целые слова, без обрезки)
 
     Возвращает Path к созданному .ass файлу.
     """
@@ -88,29 +93,47 @@ def generate_ass(
 
     words_filtered = [
         w for w in words
-        if float(w.get("start", 0)) >= INTRO_DURATION
+        if float(w.get("start", 0)) >= intro_duration
         and str(w.get("word", "")).strip()
     ]
 
+    # Мержим части слитных слов (Whisper разбивает "l'éclat" → "l" + "'éclat")
+    merged: list[dict] = []
+    for w in words_filtered:
+        word_text = str(w.get("word", "")).strip()
+        if word_text.startswith("'") and merged:
+            prev = merged[-1]
+            merged[-1] = {**prev,
+                          "word": str(prev.get("word", "")).rstrip() + word_text,
+                          "end":  w.get("end", prev.get("end", 0))}
+        else:
+            merged.append(w)
+    words_filtered = merged
+
     print(f"  ✅ Слов для ASS: {len(words_filtered)}")
 
-    # Группируем строго по 3 слова
+    # Группируем по 3 слова; если длина превышает max_line_chars — используем 2
+    def _words_text(ws: list) -> str:
+        return " ".join(str(w.get("word", "")).strip().upper() for w in ws
+                        if str(w.get("word", "")).strip())
+
     groups = []
     i = 0
     while i < len(words_filtered):
-        count = 3
-        group = words_filtered[i:i + count]
+        # Пробуем взять 3 слова, если 3 есть и они помещаются — берём 3, иначе 2
+        for count in (3, 2, 1):
+            group = words_filtered[i:i + count]
+            if not group:
+                break
+            if count < 3 or len(_words_text(group)) <= max_line_chars:
+                break
         if group:
             groups.append({
                 "start": float(group[0].get("start", 0)),
                 "end":   float(group[-1].get("end", group[-1].get("start", 0) + 0.3)),
-                "text":  " ".join(
-                    str(w.get("word", "")).strip().upper()
-                    for w in group
-                    if str(w.get("word", "")).strip()
-                )
+                "text":  _words_text(group),
             })
-        i += count
+        i += len(group) if group else 1
 
     header = f"""[Script Info]
 ScriptType: v4.00+

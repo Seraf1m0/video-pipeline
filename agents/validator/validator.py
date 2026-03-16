@@ -32,10 +32,21 @@ if _FFMPEG_DIR.exists():
     os.environ["PATH"] = str(_FFMPEG_DIR) + os.pathsep + os.environ.get("PATH", "")
 
 BASE_DIR        = Path(__file__).parent.parent.parent
-INPUT_DIR       = BASE_DIR / "data" / "input"
-TRANSCRIPTS_DIR = BASE_DIR / "data" / "transcripts"
-PROMPTS_DIR     = BASE_DIR / "data" / "prompts"
-MEDIA_DIR       = BASE_DIR / "data" / "media"
+
+# ── Channel Manager ────────────────────────────────────────────────────────────
+_BOT_DIR = BASE_DIR / "bot"
+if str(_BOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_BOT_DIR))
+try:
+    from channel_manager import get_channel_data_dir as _get_ch_data_dir
+    _CH_DATA = _get_ch_data_dir(BASE_DIR / "data")
+except Exception:
+    _CH_DATA = BASE_DIR / "data"
+
+INPUT_DIR       = _CH_DATA / "input"
+TRANSCRIPTS_DIR = _CH_DATA / "transcripts"
+PROMPTS_DIR     = _CH_DATA / "prompts"
+MEDIA_DIR       = _CH_DATA / "media"
 
 GAP_TOLERANCE      = 0.05   # секунды — допуск разрыва между сегментами
 DURATION_TOLERANCE = 1.0    # секунды — допуск разницы длины MP3 и последнего end
@@ -241,7 +252,10 @@ def check_photo_prompts(session: str) -> dict:
             "message": "❌ Фото промпты: result.json не найден",
         }
 
-    path = PROMPTS_DIR / session / "photo_prompts.json"
+    # поддержка обеих структур: session/photo/ (новая) и session/ (старая)
+    path = PROMPTS_DIR / session / "photo" / "photo_prompts.json"
+    if not path.exists():
+        path = PROMPTS_DIR / session / "photo_prompts.json"
     data = load_json_file(path)
 
     if data is None:
@@ -304,7 +318,10 @@ def check_video_prompts(session: str) -> dict:
             "message": "❌ Видео промпты: result.json не найден",
         }
 
-    path = PROMPTS_DIR / session / "video_prompts.json"
+    # поддержка обеих структур: session/video/ (новая) и session/ (старая)
+    path = PROMPTS_DIR / session / "video" / "video_prompts.json"
+    if not path.exists():
+        path = PROMPTS_DIR / session / "video_prompts.json"
 
     if not path.exists():
         return {

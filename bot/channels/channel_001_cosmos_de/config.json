@@ -1,6 +1,7 @@
 {
   "id": "channel_001_cosmos_de",
   "name": "Cosmos DE",
+  "data_subdir": "channels/de",
   "emoji": "🌌",
   "language": "de",
   "niche": "cosmos",
@@ -12,7 +13,9 @@
   "prompt_generator": {
     "language": "en",
     "source_language": "de",
-    "system_context": "Scientific space documentary in German"
+    "system_context": "Scientific space documentary in German",
+    "photo_master": "photo_master_prompt_de.txt",
+    "video_master": "master_video_grok.txt"
   },
   "assembler": {
     "subtitle_language": "de",

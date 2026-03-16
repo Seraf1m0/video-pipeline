@@ -32,13 +32,24 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 # ── Пути ──────────────────────────────────────────────────────────────────────
 
 BASE_DIR        = Path(__file__).parent.parent.parent
-TRANSCRIPTS_DIR = BASE_DIR / "data" / "transcripts"
-PROMPTS_DIR     = BASE_DIR / "data" / "prompts"
-MEDIA_DIR       = BASE_DIR / "data" / "media"
 PHOTO_MASTERS   = BASE_DIR / "config" / "master_prompts" / "photo"
 VIDEO_MASTERS   = BASE_DIR / "config" / "master_prompts" / "video"
 TEMP_DIR        = BASE_DIR / "temp"
 REGEN_PROGRESS_FILE = TEMP_DIR / "regen_progress.json"
+
+# ── Channel Manager ────────────────────────────────────────────────────────────
+_BOT_DIR = BASE_DIR / "bot"
+if str(_BOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_BOT_DIR))
+try:
+    from channel_manager import get_channel_data_dir as _get_ch_data_dir
+    _CH_DATA = _get_ch_data_dir(BASE_DIR / "data")
+except Exception:
+    _CH_DATA = BASE_DIR / "data"
+
+TRANSCRIPTS_DIR = _CH_DATA / "transcripts"
+PROMPTS_DIR     = _CH_DATA / "prompts"
+MEDIA_DIR       = _CH_DATA / "media"
 
 # Добавляем media_generator в путь (для pixel_agent)
 _MEDIA_GEN_DIR = BASE_DIR / "agents" / "media_generator"

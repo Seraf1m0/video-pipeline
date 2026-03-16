@@ -51,15 +51,28 @@ try:
     _BOT_DIR = BASE_DIR / "bot"
     if str(_BOT_DIR) not in sys.path:
         sys.path.insert(0, str(_BOT_DIR))
-    from channel_manager import get_active_channel as _get_active_channel
+    from channel_manager import get_active_channel as _get_active_channel, get_channel_data_dir
+
+    def _resolve_data_dirs():
+        """Переопределить TRANSCRIPTS_DIR / PROMPTS_DIR под активный канал."""
+        global TRANSCRIPTS_DIR, PROMPTS_DIR
+        ch_data = get_channel_data_dir(BASE_DIR / "data")
+        TRANSCRIPTS_DIR = ch_data / "transcripts"
+        PROMPTS_DIR     = ch_data / "prompts"
+
+    _resolve_data_dirs()
 
     def get_channel_context() -> dict:
         channel = _get_active_channel()
         if channel:
+            pg  = channel.get("prompt_generator", {})
+            val = channel.get("validator", {})
             ctx = {
-                "source_language": channel["prompt_generator"]["source_language"],
-                "system_context":  channel["prompt_generator"]["system_context"],
-                "niche":           channel["validator"]["niche"],
+                "source_language": pg.get("source_language", "de"),
+                "system_context":  pg.get("system_context",  "Scientific space documentary"),
+                "niche":           val.get("niche", "cosmos"),
+                "photo_master":    pg.get("photo_master", ""),
+                "video_master":    pg.get("video_master", ""),
             }
             print(f"  🌐 Канал: {channel['emoji']} {channel['name']} "
                   f"| src={ctx['source_language']} | niche={ctx['niche']}")
@@ -68,6 +81,8 @@ try:
             "source_language": "de",
             "system_context":  "Scientific space documentary",
             "niche":           "cosmos",
+            "photo_master":    "",
+            "video_master":    "",
         }
 except Exception:
     def get_channel_context() -> dict:
@@ -75,6 +90,8 @@ except Exception:
             "source_language": "de",
             "system_context":  "Scientific space documentary",
             "niche":           "cosmos",
+            "photo_master":    "",
+            "video_master":    "",
         }
 
 BATCH_SIZE   = 10
@@ -494,6 +511,19 @@ def run() -> None:
     # ── Мастер-промпты ────────────────────────────────────────────────────
     photo_master_name = args.photo_master
     video_master_name = args.video_master
+
+    # Авто-подстановка из конфига активного канала
+    _ch_ctx = get_channel_context()
+    if not photo_master_name:
+        _ch_photo = _ch_ctx.get("photo_master", "")
+        if _ch_photo and (PHOTO_MASTERS / _ch_photo).exists():
+            photo_master_name = _ch_photo
+            print(f"  📋 Photo master из канала: {photo_master_name}")
+    if not video_master_name:
+        _ch_video = _ch_ctx.get("video_master", "")
+        if _ch_video and (VIDEO_MASTERS / _ch_video).exists():
+            video_master_name = _ch_video
+            print(f"  🎬 Video master из канала: {video_master_name}")
 
     if gen_type in ("photo", "both") and not photo_master_name:
         photo_master_name = ask_master("фото", PHOTO_MASTERS)

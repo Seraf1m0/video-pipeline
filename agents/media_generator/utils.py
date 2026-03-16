@@ -24,10 +24,22 @@ from playwright.sync_api import sync_playwright
 BASE_DIR    = Path(__file__).parent.parent.parent
 ENV_FILE    = BASE_DIR / "config" / ".env"
 CONFIG_DIR  = BASE_DIR / "config"
-PROMPTS_DIR = BASE_DIR / "data" / "prompts"
-MEDIA_DIR   = BASE_DIR / "data" / "media"
 
 load_dotenv(ENV_FILE)
+
+# ── Channel Manager → определяем DATA_DIR под активный канал ──────────────────
+_BOT_DIR = BASE_DIR / "bot"
+import sys as _sys
+if str(_BOT_DIR) not in _sys.path:
+    _sys.path.insert(0, str(_BOT_DIR))
+try:
+    from channel_manager import get_channel_data_dir as _get_ch_data_dir
+    _CH_DATA = _get_ch_data_dir(BASE_DIR / "data")
+except Exception:
+    _CH_DATA = BASE_DIR / "data"
+
+PROMPTS_DIR = _CH_DATA / "prompts"
+MEDIA_DIR   = _CH_DATA / "media"
 
 CHROME_PATH     = os.environ.get("CHROME_PATH", r"C:\Program Files\Google\Chrome\Application\chrome.exe")
 CHROME_CDP_PORT = int(os.environ.get("CHROME_CDP_PORT", "9222"))

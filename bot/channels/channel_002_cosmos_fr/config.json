@@ -1,6 +1,7 @@
 {
   "id": "channel_002_cosmos_fr",
   "name": "Cosmos FR",
+  "data_subdir": "channels/fr",
   "emoji": "🇫🇷",
   "language": "fr",
   "niche": "cosmos",
@@ -12,7 +13,9 @@
   "prompt_generator": {
     "language": "en",
     "source_language": "fr",
-    "system_context": "Scientific space documentary in French"
+    "system_context": "Scientific space documentary in French",
+    "photo_master": "photo_master_prompt_fr.txt",
+    "video_master": "master_video_grok_fr.txt"
   },
   "assembler": {
     "subtitle_language": "fr",
