@@ -249,6 +249,61 @@ def jaccard_similarity(text1: str, text2: str) -> float:
     return len(w1 & w2) / len(w1 | w2)
 
 
+# ─── Контекст видео и глав ────────────────────
+
+def build_video_context(segments: list) -> np.ndarray:
+    """
+    [1] Глобальный топик: объединяем все тексты сценария в один embedding.
+    Возвращает нормализованный вектор темы видео.
+    """
+    all_text = " ".join(
+        seg.get("text", "") for seg in segments
+        if seg.get("text", "").strip()
+    )
+    print(f"🌍 Глобальный топик: {len(all_text)} символов → embedding...", flush=True)
+    vec = encode_query(all_text[:2000])  # e5 max ~512 tokens, обрезаем
+    return vec / (np.linalg.norm(vec) + 1e-9)
+
+
+def build_chapter_embeddings(segments: list, n_chapters: int = 5) -> list[np.ndarray]:
+    """
+    [3] Главы: делим сегменты на N равных по времени глав,
+    вычисляем embedding каждой → смысловой контекст главы.
+    """
+    if not segments:
+        return []
+
+    total_dur   = float(segments[-1].get("end", 0)) or 1.0
+    chapter_dur = total_dur / n_chapters
+    chapters: list[list[str]] = [[] for _ in range(n_chapters)]
+
+    for seg in segments:
+        t   = float(seg.get("start", 0))
+        idx = min(int(t / chapter_dur), n_chapters - 1)
+        txt = seg.get("text", "").strip()
+        if txt:
+            chapters[idx].append(txt)
+
+    embeddings = []
+    for i, texts in enumerate(chapters):
+        combined = " ".join(texts)
+        if combined.strip():
+            vec = encode_query(combined[:1000])
+            vec = vec / (np.linalg.norm(vec) + 1e-9)
+        else:
+            vec = np.zeros(1024, dtype=np.float32)  # dim e5-large
+        embeddings.append(vec)
+        print(f"  📖 Глава {i+1}/{n_chapters}: {len(texts)} сегментов", flush=True)
+
+    return embeddings
+
+
+def get_chapter_idx(seg_start: float, total_dur: float, n_chapters: int = 5) -> int:
+    if total_dur <= 0:
+        return 0
+    return min(int(seg_start / total_dur * n_chapters), n_chapters - 1)
+
+
 # ─── Матчинг сегмента с библиотекой ──────────
 
 def match_segment_to_clip(
@@ -262,18 +317,38 @@ def match_segment_to_clip(
         max_from_prev=20,
         segment_duration=0.0,
         top_n: int = 3,
-        jac_weight: float = 0.3):
+        jac_weight: float = 0.3,
+        context_vec: np.ndarray | None = None,   # [1] глобальный топик видео
+        chapter_vec: np.ndarray | None = None,   # [3] embedding текущей главы
+        window_text: str = ""):                  # [2] текст окна prev+next
     """
     Найти top_n лучших клипов по гибридному скорингу:
       hybrid = (1-jac_weight) × cosine_embedding + jac_weight × jaccard
-    Использует query: префикс для e5 модели.
-    Клип должен быть >= segment_duration.
-    segment_text — на языке оригинала (FR/DE/EN).
-    jac_weight=0.0 для каналов без keywords на языке сегмента (напр. FR без keywords_fr).
-    Возвращает список clip_id (до top_n), или [] если ничего не найдено.
+
+    Query строится как:
+      [2] window_text (prev + current + next сегменты)
+      [1] усиливается глобальным топиком видео (0.25 × topic_vec + 0.75 × seg_vec)
+      [3] усиливается embedding главы           (0.15 × chapter_vec + остаток)
+
+    Итоговые веса: 60% сегмент+окно, 25% топик видео, 15% глава.
     """
-    emb_weight    = 1.0 - jac_weight
-    seg_vec       = encode_query(segment_text)
+    emb_weight = 1.0 - jac_weight
+
+    # [2] Если есть контекстное окно — используем его как основной запрос
+    query_text = window_text if window_text.strip() else segment_text
+    seg_vec    = encode_query(query_text)
+    seg_vec    = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
+
+    # [1] Смешиваем с глобальным топиком видео
+    if context_vec is not None:
+        seg_vec = 0.75 * seg_vec + 0.25 * context_vec
+        seg_vec = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
+
+    # [3] Смешиваем с embedding текущей главы
+    if chapter_vec is not None and np.any(chapter_vec):
+        seg_vec = 0.85 * seg_vec + 0.15 * chapter_vec
+        seg_vec = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
+
     cosine_scores = clip_embeddings @ seg_vec   # (N,) dot product = cosine
     emb_index     = {cid: i for i, cid in enumerate(clip_ids_list)}
 
@@ -305,6 +380,7 @@ def match_segment_to_clip(
         fb = _fallback_match(
             segment_text, keywords_list, video_used, prev_video_clips,
             clip_embeddings, clip_ids_list, jac_weight=jac_weight,
+            precomputed_vec=seg_vec,
         )
         return [fb] if fb else []
 
@@ -325,10 +401,12 @@ def _fallback_match(
         prev_video_clips,
         clip_embeddings,
         clip_ids_list,
-        jac_weight: float = 0.3):
-    """Fallback: лучший по гибридному скору без учёта длины."""
+        jac_weight: float = 0.3,
+        precomputed_vec: np.ndarray | None = None):
+    """Fallback: лучший по гибридному скору без учёта длины.
+    Если передан precomputed_vec (уже обогащённый контекстом) — использует его."""
     emb_weight    = 1.0 - jac_weight
-    seg_vec       = encode_query(segment_text)
+    seg_vec       = precomputed_vec if precomputed_vec is not None else encode_query(segment_text)
     cosine_scores = clip_embeddings @ seg_vec
 
     emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
@@ -444,19 +522,37 @@ def select_clips_for_video(
     if _ch_lang:
         print(f"⚖️  Jaccard weight: {jac_weight} ({'keywords_' + _ch_lang + ' найдены' if _has_lang_kw else 'keywords_' + _ch_lang + ' отсутствуют → pure embedding'})", flush=True)
 
+    # [1] Глобальный топик всего видео
+    video_context_vec = build_video_context(segments)
+
+    # [3] Embedding каждой главы
+    total_dur     = float(segments[-1].get("end", 0)) if segments else 1.0
+    N_CHAPTERS    = 5
+    chapter_vecs  = build_chapter_embeddings(segments, n_chapters=N_CHAPTERS)
+
     video_used         = {}
     intro_clips        = []
     main_clips         = []
     intro_total        = 0.0
     main_total         = 0.0
-    prev_clip_embedding: np.ndarray | None = None
+    prev_clip_embeddings: list[np.ndarray] = []   # [5] diversity window ×5
     emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
 
-    for seg in segments:
+    for i, seg in enumerate(segments):
         seg_id       = seg.get("id", 0)
         seg_text     = seg.get("text", "")
-        seg_duration = float(seg.get("end", 0)) - float(seg.get("start", 0))
+        seg_start    = float(seg.get("start", 0))
+        seg_duration = float(seg.get("end", 0)) - seg_start
         is_intro     = int(seg_id) in intro_seg_ids
+
+        # [2] Скользящее окно: prev + current + next
+        prev_text = segments[i - 1].get("text", "") if i > 0 else ""
+        next_text = segments[i + 1].get("text", "") if i < len(segments) - 1 else ""
+        window_text = " ".join(filter(None, [prev_text, seg_text, next_text]))
+
+        # [3] Embedding главы для текущего сегмента
+        ch_idx      = get_chapter_idx(seg_start, total_dur, N_CHAPTERS)
+        chapter_vec = chapter_vecs[ch_idx] if chapter_vecs else None
 
         section = "INTRO" if is_intro else "MAIN"
         print(f"\n[{seg_id}][{section}] {seg_duration:.1f}s '{seg_text[:60]}'", flush=True)
@@ -473,27 +569,35 @@ def select_clips_for_video(
             segment_duration=seg_duration,
             top_n=3,
             jac_weight=jac_weight,
+            context_vec=video_context_vec,
+            chapter_vec=chapter_vec,
+            window_text=window_text,
         )
 
-        # Diversity penalty: если лучший клип слишком похож на предыдущий — брать второй
+        # [5] Diversity window ×5: если лучший клип похож на любой из 5 предыдущих — брать второй
         clip_id = top_candidates[0] if top_candidates else None
-        if clip_id and prev_clip_embedding is not None:
+        if clip_id and prev_clip_embeddings:
             idx = emb_index.get(clip_id)
             if idx is not None:
-                similarity = float(clip_embeddings[idx] @ prev_clip_embedding)
-                if similarity > 0.92 and len(top_candidates) > 1:
-                    alt = top_candidates[1]
-                    print(
-                        f"  ⚠ Diversity: {clip_id} похож на предыдущий "
-                        f"(sim={similarity:.2f}) → заменяем на {alt}",
-                        flush=True,
-                    )
-                    clip_id = alt
+                for prev_vec in prev_clip_embeddings:
+                    similarity = float(clip_embeddings[idx] @ prev_vec)
+                    if similarity > 0.92 and len(top_candidates) > 1:
+                        alt = top_candidates[1]
+                        print(
+                            f"  ⚠ Diversity: {clip_id} похож на недавний "
+                            f"(sim={similarity:.2f}) → заменяем на {alt}",
+                            flush=True,
+                        )
+                        clip_id = alt
+                        break
 
-        # Запомнить embedding выбранного клипа для следующей итерации
+        # Запомнить embedding выбранного клипа (окно последних 5)
         if clip_id:
             idx = emb_index.get(clip_id)
-            prev_clip_embedding = clip_embeddings[idx].copy() if idx is not None else None
+            if idx is not None:
+                prev_clip_embeddings.append(clip_embeddings[idx].copy())
+                if len(prev_clip_embeddings) > 5:
+                    prev_clip_embeddings.pop(0)
             video_used[clip_id] = video_used.get(clip_id, 0) + 1
 
         entry = (seg_id, clip_id, seg_duration)
