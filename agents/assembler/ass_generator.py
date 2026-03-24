@@ -226,3 +226,92 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ {e}", file=sys.stderr)
         sys.exit(1)
+
+
+# ── Karaoke ASS (FR style) ─────────────────────────────────────────────────────
+
+def generate_karaoke_ass(
+    result_json_path: "Path | str",
+    output_ass_path:  "Path | str",
+    font_name:        str   = "Montserrat ExtraBold",
+    font_size:        int   = 46,
+    fade_ms:          int   = 60,
+    rise_px:          int   = 120,
+    intro_duration:   float = INTRO_DURATION,
+    max_words:        int   = 3,
+    col_active:       str   = "&H00FFFFFF",
+    col_passive:      str   = "&H80AAAAAA",
+) -> Path:
+    """
+    Генерирует karaoke-style ASS для FR канала.
+    max_words слов на строку, word-by-word highlight (\\kf), КАПС, без обводки.
+    Слова до intro_duration — пропускаются.
+    """
+    result_json_path = Path(result_json_path)
+    output_ass_path  = Path(output_ass_path)
+
+    with open(result_json_path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    words = [w for w in data.get("words", []) if w.get("start", 0) >= intro_duration]
+    if not words:
+        raise RuntimeError("Нет word-level данных в result.json или все слова до intro_duration")
+
+    # Мёрджим французские апострофные токены: "l'" + "'obscurité" → "l'obscurité"
+    merged: list[dict] = []
+    for w in words:
+        token = w["word"]
+        if merged and token.startswith("'"):
+            prev = merged[-1]
+            merged[-1] = {
+                "word":  prev["word"].rstrip() + token,
+                "start": prev["start"],
+                "end":   w["end"],
+            }
+        else:
+            merged.append(dict(w))
+    words = merged
+
+    header = (
+        "[Script Info]\n"
+        "ScriptType: v4.00+\n"
+        "PlayResX: 1920\n"
+        "PlayResY: 1080\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, "
+        "Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, "
+        "Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        f"Style: Karaoke,{font_name},{font_size},"
+        f"{col_active},{col_passive},&H00000000,&H00000000,"
+        f"-1,0,0,0,100,100,2,0,1,0,0,2,80,80,{rise_px},1\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+
+    groups = [words[i:i+max_words] for i in range(0, len(words), max_words)]
+    entries = []
+    for group in groups:
+        g_start = group[0]["start"]
+        g_end   = group[-1]["end"]
+
+        kara_parts = []
+        for wi, w in enumerate(group):
+            cs = max(1, int((w["end"] - w["start"]) * 100))
+            if wi < len(group) - 1:
+                gap = group[wi+1]["start"] - w["end"]
+                if gap > 0:
+                    cs += int(gap * 100)
+            kara_parts.append(f"{{\\kf{cs}}}{w['word'].strip().upper()}")
+
+        text = f"{{\\fad({fade_ms},{fade_ms})}}" + " ".join(kara_parts)
+        entries.append(
+            f"Dialogue: 0,{seconds_to_ass(g_start)},{seconds_to_ass(g_end)},"
+            f"Karaoke,,0,0,0,,{text}"
+        )
+
+    output_ass_path.parent.mkdir(parents=True, exist_ok=True)
+    output_ass_path.write_text(header + "\n".join(entries), encoding="utf-8")
+    print(f"Karaoke ASS: {len(entries)} строк → {output_ass_path}")
+    return output_ass_path

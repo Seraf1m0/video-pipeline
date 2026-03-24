@@ -4,7 +4,7 @@ Transcriber Agent
 1. Берёт MP3 из data/input/ (корень, не подпапки)
 2. Создаёт папку data/input/Video_YYYYMMDD_HHMMSS/ и перемещает туда MP3
 3. Транскрибирует весь файл через Whisper "base"
-4. Нарезает на блоки с точными целочисленными границами (grok=10s, random=3–8s)
+4. Нарезает на блоки: до 5 мин — рандом 2–4s, от 5 мин — строго 5s
 5. Верифицирует блоки через ffprobe (покрытие, хвост)
 6. Сохраняет data/transcripts/Video_YYYYMMDD_HHMMSS/result.json
    Формат: {"ffmpeg_verified": ..., "segments": [...]}
@@ -32,7 +32,12 @@ try:
         sys.path.insert(0, str(_BOT_DIR))
     from channel_manager import get_active_channel as _get_active_channel
 
-    def get_transcribe_language() -> str:
+    def get_transcribe_language(channel_id: str = "") -> str:
+        _LANG_MAP = {"channel_001_cosmos_de": "de", "channel_002_cosmos_fr": "fr"}
+        if channel_id and channel_id in _LANG_MAP:
+            lang = _LANG_MAP[channel_id]
+            print(f"  🌐 Язык транскрипции: {lang} (из --channel {channel_id})")
+            return lang
         channel = _get_active_channel()
         if channel:
             lang = channel["transcriber"]["language"]
@@ -40,7 +45,7 @@ try:
             return lang
         return "de"
 except Exception:
-    def get_transcribe_language() -> str:
+    def get_transcribe_language(channel_id: str = "") -> str:
         return "de"
 
 # Windows cp1251 консоль не поддерживает эмодзи — переключаем на UTF-8
@@ -80,6 +85,17 @@ except Exception:
 INPUT_DIR       = _CH_DATA_DIR / "input"
 TRANSCRIPTS_DIR = _CH_DATA_DIR / "transcripts"
 
+# ── paths.py (новая структура) ─────────────────────────────────────────────────
+_UTILS_DIR = BASE_DIR / "agents" / "utils"
+if str(_UTILS_DIR) not in sys.path:
+    sys.path.insert(0, str(_UTILS_DIR))
+try:
+    from paths import get_transcripts_dir as _get_transcripts_dir
+    _PATHS_OK = True
+except ImportError:
+    _PATHS_OK = False
+    def _get_transcripts_dir(ch, sess): return TRANSCRIPTS_DIR / sess
+
 
 def detect_device() -> tuple[str, str, str]:
     """
@@ -92,12 +108,20 @@ def detect_device() -> tuple[str, str, str]:
     return "cpu", "", _CPU_MODEL
 
 
-def find_mp3() -> Path | None:
-    """Ищет первый MP3/WAV прямо в data/input/ (не в подпапках)."""
-    for ext in ("*.mp3", "*.wav"):
-        files = [f for f in INPUT_DIR.glob(ext) if f.parent == INPUT_DIR]
-        if files:
-            return files[0]
+def find_mp3(search_dir: Path | None = None) -> Path | None:
+    """
+    Ищет первый MP3/WAV в указанной директории (не в подпапках).
+    По умолчанию: корень канала (_CH_DATA_DIR), затем fallback на INPUT_DIR.
+    Пропускает папки сессий (Video_*) и служебные папки (input, transcripts и т.д.).
+    """
+    dirs_to_check = [search_dir] if search_dir else [_CH_DATA_DIR, INPUT_DIR]
+    for d in dirs_to_check:
+        if not d.exists():
+            continue
+        for ext in ("*.mp3", "*.wav"):
+            files = [f for f in d.glob(ext) if f.parent == d]
+            if files:
+                return files[0]
     return None
 
 
@@ -105,22 +129,27 @@ def make_session_name() -> str:
     return "Video_" + datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
-def move_to_session(audio_path: Path, session: str) -> Path:
-    """Создаёт data/input/<session>/ и перемещает туда MP3."""
-    dest_dir = INPUT_DIR / session
+def move_to_session(audio_path: Path, session: str, channel_root: Path | None = None) -> Path:
+    """
+    Создаёт {channel_root}/{session}/input/ и перемещает туда MP3.
+    Если channel_root не задан — использует _CH_DATA_DIR.
+    Удаляет исходный файл из корня канала.
+    """
+    root = channel_root or _CH_DATA_DIR
+    dest_dir = root / session / "input"
     dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / audio_path.name
+    dest = dest_dir / f"audio{audio_path.suffix}"  # всегда audio.mp3 / audio.wav
     shutil.move(str(audio_path), dest)
-    print(f"[Agent] Перемещено: {audio_path.name} -> input/{session}/")
+    print(f"[Agent] Перемещено: {audio_path.name} -> {session}/input/audio{audio_path.suffix}")
     return dest
 
 
-def transcribe(model, audio_path: Path, use_gpu: bool = False) -> tuple[list[dict], float, list[dict]]:
+def transcribe(model, audio_path: Path, use_gpu: bool = False, channel_id: str = "") -> tuple[list[dict], float, list[dict]]:
     """Транскрибирует файл, возвращает сегменты, длину и word-level тайминги."""
     print(f"[Whisper] Транскрибирую: {audio_path.name}")
     result = model.transcribe(
         str(audio_path),
-        language=get_transcribe_language(),
+        language=get_transcribe_language(channel_id),
         verbose=False,
         condition_on_previous_text=False,
         fp16=use_gpu,       # fp16 на GPU — быстрее; на CPU — False (не поддерживается)
@@ -146,19 +175,9 @@ def transcribe(model, audio_path: Path, use_gpu: bool = False) -> tuple[list[dic
 
 
 def ask_cut_mode() -> str:
-    """Спрашивает режим нарезки. Возвращает 'random' или 'grok'."""
-    print("\nКак нарезать сегменты?")
-    print("  1. Рандомно от 3 до 8 секунд (для Nano Banana / Flow)")
-    print("  2. Ровно по 10 секунд (для Grok)")
-    while True:
-        choice = input("Номер (1/2): ").strip()
-        if choice == "1":
-            print("  Режим: рандомно 3–8 сек")
-            return "random"
-        if choice == "2":
-            print("  Режим: ровно 10 сек (Grok)")
-            return "grok"
-        print("  Неверный ввод.")
+    """Всегда возвращает 'random' (grok-режим удалён)."""
+    print("  Режим: рандомно 3–6 сек")
+    return "random"
 
 
 def build_segments(whisper_segs: list[dict], mode: str = "random") -> list[dict]:
@@ -224,18 +243,19 @@ def _slice_grok(whisper_segs: list[dict]) -> list[dict]:
     return blocks
 
 
-_RANDOM_MIN = 3   # минимум секунд для блока в random mode
-_RANDOM_MAX = 8   # максимум секунд
+_RANDOM_MIN  = 2    # минимум секунд для блока в random mode (до 5 мин)
+_RANDOM_MAX  = 4    # максимум секунд для блока в random mode (до 5 мин)
+_FIXED_AFTER = 300  # с этой секунды все блоки строго 5 сек
+_FIXED_DUR   = 5    # длина блока после 5-й минуты
 
 
 def _slice_random(whisper_segs: list[dict]) -> list[dict]:
     """
-    Random mode: рандомно 3–8 сек, блок закрывается на границе Whisper-сегмента.
+    Random mode:
+      - до 300s  : рандомно 2–4 сек (целые числа), по границам Whisper-сегментов
+      - от 300s  : строго 5 сек, фиксированные целочисленные границы
 
-    НЕ разрезает сегменты пополам — устраняет overflow (слишком много слов
-    в коротком блоке). Последний блок заканчивается на реальном конце речи.
-    После построения блоков: очень короткие блоки (<3с) мёрджатся со следующим,
-    чтобы гарантировать минимальный размер = _RANDOM_MIN.
+    НЕ разрезает сегменты пополам. Мёрдж коротких хвостов.
     """
     blocks: list[dict] = []
     current_words: list[str] = []
@@ -250,11 +270,17 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
         if current_start is None:
             current_start = int(ws["start"])
 
+        # Определяем режим по позиции текущего блока
+        in_fixed = current_start >= _FIXED_AFTER
+        cur_target = _FIXED_DUR if in_fixed else target
+
         elapsed = ws["end"] - current_start
 
-        if current_words and elapsed > target:
-            # Следующий сегмент переполнил бы блок → закрываем ДО него
+        if current_words and elapsed > cur_target:
             block_end = max(int(round(ws["start"])), current_start + 1)
+            # В фиксированном режиме выравниваем по кратности 5
+            if in_fixed:
+                block_end = current_start + _FIXED_DUR
             blocks.append({
                 "id":    len(blocks) + 1,
                 "start": current_start,
@@ -263,12 +289,13 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
             })
             current_start = block_end
             current_words = []
-            target = random.randint(_RANDOM_MIN, _RANDOM_MAX)
+            # Новый target только в random-зоне
+            if current_start < _FIXED_AFTER:
+                target = random.randint(_RANDOM_MIN, _RANDOM_MAX)
 
-        # Добавляем сегмент целиком (без разрезания)
         current_words.extend(words)
 
-    # Последний блок — до реального конца последнего Whisper-сегмента
+    # Последний блок
     if current_words and current_start is not None:
         last_end = max(int(round(whisper_segs[-1]["end"])), current_start + 1)
         blocks.append({
@@ -278,8 +305,7 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
             "text":  " ".join(current_words).strip(),
         })
 
-    # ── Постобработка 1: мёрдж коротких блоков (<_RANDOM_MIN) ───────────────
-    # Whisper иногда производит сегменты 1–2 сек. Мёрджим со следующим.
+    # ── Постобработка 1: мёрдж коротких блоков (<2с) ─────────────────────────
     merged: list[dict] = []
     i = 0
     while i < len(blocks):
@@ -299,43 +325,43 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
                            "start": b["start"], "end": b["end"], "text": b["text"]})
             i += 1
 
-    # ── Постобработка 2: разрезка длинных блоков (>_RANDOM_MAX) ──────────────
-    # Whisper иногда выдаёт сегменты 9-11+ сек. Разрезаем по word-ratio.
-    # После разрезки возможен небольшой overflow (~110%), но блок гарантированно
-    # в диапазоне [_RANDOM_MIN, _RANDOM_MAX].
+    # ── Постобработка 2: разрезка длинных блоков ─────────────────────────────
     final: list[dict] = []
     for b in merged:
-        dur = b["end"] - b["start"]
-        if dur <= _RANDOM_MAX:
+        dur  = b["end"] - b["start"]
+        # Определяем макс для этого блока
+        in_fixed = b["start"] >= _FIXED_AFTER
+        block_max = _FIXED_DUR if in_fixed else _RANDOM_MAX
+
+        if dur <= block_max:
             final.append({"id": len(final) + 1,
                           "start": b["start"], "end": b["end"], "text": b["text"]})
             continue
 
-        # Делим на минимальное количество частей, чтобы каждая ≤ _RANDOM_MAX
         words = b["text"].split()
         n_words = len(words)
         start = b["start"]
         remaining_dur = dur
 
         while remaining_dur > 0:
-            is_last = (remaining_dur <= _RANDOM_MAX)
+            in_fixed_now = start >= _FIXED_AFTER
+            blk_max = _FIXED_DUR if in_fixed_now else _RANDOM_MAX
+            blk_min = _FIXED_DUR if in_fixed_now else _RANDOM_MIN
+
+            is_last = (remaining_dur <= blk_max)
             if is_last:
                 part_dur = remaining_dur
             else:
-                # Берём рандомный кусок в [_RANDOM_MIN, _RANDOM_MAX],
-                # но оставляем хвосту не меньше _RANDOM_MIN
-                hi = min(_RANDOM_MAX, remaining_dur - _RANDOM_MIN)
-                if hi < _RANDOM_MIN:
-                    hi = remaining_dur   # хвост и так короткий
-                part_dur = random.randint(_RANDOM_MIN, int(hi))
+                hi = min(blk_max, remaining_dur - blk_min)
+                if hi < blk_min:
+                    hi = remaining_dur
+                part_dur = (blk_max if in_fixed_now
+                            else random.randint(blk_min, int(hi)))
 
             part_end = start + part_dur
             ratio    = part_dur / remaining_dur if remaining_dur > 0 else 1.0
 
-            if is_last:
-                take = len(words)   # все оставшиеся слова
-            else:
-                take = max(1, min(int(n_words * ratio), len(words) - 1))
+            take = len(words) if is_last else max(1, min(int(n_words * ratio), len(words) - 1))
 
             final.append({
                 "id":    len(final) + 1,
@@ -344,10 +370,10 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
                 "text":  " ".join(words[:take]).strip(),
             })
 
-            words        = words[take:]
-            n_words      = len(words)
+            words         = words[take:]
+            n_words       = len(words)
             remaining_dur -= part_dur
-            start         = part_end
+            start          = part_end
 
             if not words:
                 break
@@ -532,8 +558,9 @@ def extract_audio_segment_ffmpeg(
 # ---------------------------------------------------------------------------
 
 def save(session: str, segments: list[dict], meta: dict | None = None,
-         words: list[dict] | None = None) -> Path:
-    out_dir = TRANSCRIPTS_DIR / session
+         words: list[dict] | None = None, channel_id: str = "") -> Path:
+    out_dir = (_get_transcripts_dir(channel_id, session) if channel_id
+               else TRANSCRIPTS_DIR / session)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "result.json"
 
@@ -567,8 +594,9 @@ def _vtt_time(seconds: float) -> str:
     return _srt_time(seconds).replace(",", ".")
 
 
-def save_srt(session: str, segments: list[dict]) -> Path:
-    out_dir  = TRANSCRIPTS_DIR / session
+def save_srt(session: str, segments: list[dict], channel_id: str = "") -> Path:
+    out_dir  = (_get_transcripts_dir(channel_id, session) if channel_id
+                else TRANSCRIPTS_DIR / session)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "subtitles.srt"
 
@@ -584,8 +612,9 @@ def save_srt(session: str, segments: list[dict]) -> Path:
     return out_file
 
 
-def save_vtt(session: str, segments: list[dict]) -> Path:
-    out_dir  = TRANSCRIPTS_DIR / session
+def save_vtt(session: str, segments: list[dict], channel_id: str = "") -> Path:
+    out_dir  = (_get_transcripts_dir(channel_id, session) if channel_id
+                else TRANSCRIPTS_DIR / session)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "subtitles.vtt"
 
@@ -601,13 +630,29 @@ def save_vtt(session: str, segments: list[dict]) -> Path:
 
 def run():
     parser = argparse.ArgumentParser(description="Transcriber Agent")
-    parser.add_argument("--mode", choices=["random", "grok"], default=None,
-                        help="Cut mode: random (3-8s by Whisper pauses) or grok (exactly 10s)")
+    parser.add_argument("--mode", choices=["random"], default="random",
+                        help="Cut mode: random (3-6s по паузам Whisper)")
     parser.add_argument("--input", default=None, metavar="PATH",
                         help="Path to MP3/WAV file (skips auto-search)")
     parser.add_argument("--session-name", default=None, metavar="SESSION",
                         help="Override output session name; skips file move (file stays in place)")
+    parser.add_argument("--channel", default=None, metavar="CHANNEL_ID",
+                        help="ID канала (channel_001_cosmos_de / channel_002_cosmos_fr)")
     args = parser.parse_args()
+
+    # ── Определяем корень канала ─────────────────────────────────────────
+    try:
+        import sys as _sys
+        _utils = str(BASE_DIR / "agents" / "utils")
+        if _utils not in _sys.path:
+            _sys.path.insert(0, _utils)
+        from paths import CHANNELS_DIR as _CHANNELS_DIR
+        _LANG_MAP = {"de": "de", "fr": "fr",
+                     "channel_001_cosmos_de": "de", "channel_002_cosmos_fr": "fr"}
+        _ch_lang = _LANG_MAP.get(args.channel or "", "") if args.channel else ""
+        channel_root = (_CHANNELS_DIR / _ch_lang) if _ch_lang else _CH_DATA_DIR
+    except Exception:
+        channel_root = _CH_DATA_DIR
 
     if args.input:
         audio_path = Path(args.input)
@@ -617,10 +662,10 @@ def run():
             print(f"[Agent] Файл не найден: {audio_path}")
             return
     else:
-        audio_path = find_mp3()
+        audio_path = find_mp3(channel_root)
         if not audio_path:
-            print(f"[Agent] Нет MP3/WAV в {INPUT_DIR}")
-            print("        Положи файл прямо в data/input/ и запусти снова.")
+            print(f"[Agent] Нет MP3/WAV в {channel_root}")
+            print("        Положи аудио прямо в папку канала (de/ или fr/) и запусти снова.")
             return
 
     if args.session_name:
@@ -630,7 +675,7 @@ def run():
     else:
         session = make_session_name()
         print(f"[Agent] Сессия: {session}")
-        audio_path = move_to_session(audio_path, session)
+        audio_path = move_to_session(audio_path, session, channel_root)
 
     if args.mode:
         mode = args.mode
@@ -650,13 +695,14 @@ def run():
     model = whisper.load_model(model_size, device=device)
     print(f"[Whisper] Модель загружена.")
 
-    whisper_segs, duration, all_words = transcribe(model, audio_path, use_gpu=(device == "cuda"))
+    whisper_segs, duration, all_words = transcribe(model, audio_path, use_gpu=(device == "cuda"), channel_id=args.channel or "")
     segments = build_segments(whisper_segs, mode)
     segments, ffmpeg_meta = verify_with_ffmpeg(audio_path, segments)
 
-    json_path = save(session, segments, ffmpeg_meta, words=all_words)
-    srt_path  = save_srt(session, segments)
-    vtt_path  = save_vtt(session, segments)
+    channel_id = args.channel or ""
+    json_path = save(session, segments, ffmpeg_meta, words=all_words, channel_id=channel_id)
+    srt_path  = save_srt(session, segments, channel_id=channel_id)
+    vtt_path  = save_vtt(session, segments, channel_id=channel_id)
 
     print(f"[Agent] OK — {len(segments)} сегментов, покрыто {ffmpeg_meta['coverage']:.1f}s")
     print(f"[Agent] Subtitles created:")

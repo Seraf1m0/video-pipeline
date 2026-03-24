@@ -1,0 +1,25 @@
+{
+  "channel_001_cosmos_de": {
+    "name": "Cosmos DE",
+    "intro_transition": "whip_pan",
+    "clip_transition": "crossfade",
+    "clip_transition_duration": 0.50,
+    "sfx_enabled": false,
+    "sfx_whoosh_chance": 0.0,
+    "subtitle_size_offset": 16,
+    "subtitle_rise_extra_px": 30,
+    "color_grade": "warm_cinematic"
+  },
+  "channel_002_cosmos_fr": {
+    "name": "Cosmos FR",
+    "intro_transition": "zoom_blur",
+    "clip_transition": "fadeblack",
+    "clip_transition_duration": 0.60,
+    "sfx_enabled": true,
+    "sfx_whoosh_chance": 0.70,
+    "subtitle_style": "karaoke",
+    "subtitle_size_offset": 0,
+    "subtitle_rise_extra_px": 65,
+    "color_grade": "cool_cinematic"
+  }
+}
