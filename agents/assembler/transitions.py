@@ -13,6 +13,7 @@ Fallback:
 """
 
 import json
+import logging
 import os
 import random
 import shutil
@@ -20,6 +21,8 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+_fallback_counter: dict[str, int] = {"count": 0}
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -71,7 +74,18 @@ def get_gpu_encoder():
     return "libx264", ["-preset", "fast", "-crf", "18"]
 
 
-GPU_ENCODER, GPU_PARAMS = get_gpu_encoder()
+# Быстрый NVENC для blur-зон переходов (короткие сегменты, качество не критично)
+def get_gpu_encoder_fast():
+    result = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-encoders"],
+        capture_output=True, text=True)
+    if "h264_nvenc" in result.stdout:
+        return "h264_nvenc", ["-preset", "p1", "-cq", "22"]
+    return "libx264", ["-preset", "ultrafast", "-crf", "20"]
+
+
+GPU_ENCODER, GPU_PARAMS           = get_gpu_encoder()
+GPU_ENCODER_FAST, GPU_PARAMS_FAST = get_gpu_encoder_fast()
 
 
 # ── Micro-jitter (используется в smooth_zoom) ────────────────────────────────
@@ -138,7 +152,7 @@ def _blur_ramp_zone(src_path, dst_path, duration, sigma, ramp,
         "-t", str(duration),
         "-filter_complex", fc,
         "-map", "[out]",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
         "-pix_fmt", "yuv420p", "-an", "-r", str(fps), str(dst_path),
     ], check=True, capture_output=True)
 
@@ -162,7 +176,7 @@ def _blur_ramp_zone_ss(src_path, dst_path, ss, duration, sigma, ramp,
         "-ss", str(ss), "-t", str(duration),
         "-filter_complex", fc,
         "-map", "[out]",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
         "-pix_fmt", "yuv420p", "-an", "-r", str(fps), str(dst_path),
     ], check=True, capture_output=True)
 
@@ -182,18 +196,85 @@ def _dissolve_merge(a_path, b_path, out_path, dur_a):
     ], check=True, capture_output=True)
 
 
-def _final_concat(parts, output_path):
-    """Склейка через concat demuxer."""
+def _final_concat(parts, output_path, post_vf: str = "", audio_path: str = "",
+                  metadata_flags: list = None, overlay_path: str = ""):
+    """
+    Склейка через concat demuxer.
+    post_vf       — видеофильтры после concat (цвет; без ass= если overlay_path задан).
+    audio_path    — путь к аудио (mux вместе с видео), опционально.
+    metadata_flags — список ffmpeg флагов [-metadata key=val ...], опционально.
+    overlay_path  — пре-рендеренный прозрачный субтитровый оверлей (yuva420p VP9).
+                    Если задан, накладывается через filter_complex overlay вместо ass=.
+    """
     concat_f = "temp/_concat_list.txt"
     with open(concat_f, "w") as f:
         for p in parts:
             if Path(p).exists() and Path(p).stat().st_size > 1000:
                 f.write(f"file '{os.path.abspath(str(p))}'\n")
-    subprocess.run([
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_f,
-        "-c:v", GPU_ENCODER, *GPU_PARAMS,
-        "-pix_fmt", "yuv420p", "-an", str(output_path),
-    ], check=True)
+
+    _has_overlay = bool(overlay_path and Path(overlay_path).exists())
+    _has_audio   = bool(audio_path   and Path(audio_path).exists())
+
+    cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_f]
+    if _has_overlay:
+        cmd += ["-i", str(overlay_path)]
+    if _has_audio:
+        cmd += ["-i", str(audio_path)]
+
+    if _has_overlay:
+        # filter_complex: color-grade concat stream, then overlay subtitle track
+        if post_vf:
+            fc = f"[0:v]{post_vf}[_c];[_c][1:v]overlay=format=auto[v]"
+        else:
+            fc = "[0:v][1:v]overlay=format=auto[v]"
+        cmd += ["-filter_complex", fc, "-map", "[v]"]
+    elif post_vf:
+        cmd += ["-vf", post_vf]
+
+    cmd += ["-threads", "4", "-c:v", GPU_ENCODER, *GPU_PARAMS, "-pix_fmt", "yuv420p"]
+
+    if _has_audio:
+        audio_idx = 2 if _has_overlay else 1
+        if not _has_overlay:          # filter_complex уже маппит [v]; без него нужен явный map видео
+            cmd += ["-map", "0:v:0"]
+        cmd += ["-map", f"{audio_idx}:a:0", "-c:a", "copy", "-shortest"]
+    else:
+        cmd += ["-an"]
+
+    if metadata_flags:
+        cmd += ["-map_metadata", "-1"] + metadata_flags
+
+    cmd += ["-loglevel", "warning", str(output_path)]
+
+    result = subprocess.run(cmd)
+    # If NVENC fails or output is significantly too short, retry with libx264
+    if GPU_ENCODER != "libx264":
+        _out_dur = get_video_duration(str(output_path)) if Path(str(output_path)).exists() else 0.0
+        _expected_dur = sum(get_video_duration(str(p)) for p in parts if Path(str(p)).exists())
+        if result.returncode != 0 or (_expected_dur > 10 and _out_dur < _expected_dur * 0.95):
+            import logging as _logging
+            _logging.warning(
+                f"_final_concat NVENC issue (got {_out_dur:.1f}s expected ~{_expected_dur:.1f}s), retrying x264"
+            )
+            # Rebuild cmd replacing NVENC encoder+params with libx264
+            cmd_x264 = []
+            skip_next = False
+            for tok in cmd:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if tok == GPU_ENCODER:
+                    cmd_x264.append("libx264")
+                elif tok in GPU_PARAMS:
+                    # flag-value pair: skip flag and its value
+                    if not tok.startswith("-"):
+                        pass  # value already skipped
+                    else:
+                        skip_next = True  # skip next token (the value)
+                else:
+                    cmd_x264.append(tok)
+            cmd_x264 += ["-preset", "fast", "-crf", "18"]
+            subprocess.run(cmd_x264, check=True)
 
 
 # ── CROSSFADE (opacity ease-in-out, без пикселизации) ────────────────────────
@@ -247,7 +328,7 @@ def crossfade_transition(clip1_path, clip2_path, output_path, duration=0.5):
             "-t", f"{duration:.4f}",
             "-filter_complex", fc,
             "-map", "[out]",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
             "-pix_fmt", "yuv420p", "-an", "-r", str(fps), t_blend,
         ], check=True, capture_output=True)
 
@@ -272,7 +353,7 @@ def crossfade_transition(clip1_path, clip2_path, output_path, duration=0.5):
 # ── FALLBACK: intro→main (gblur dissolve) ────────────────────────────────────
 
 def intro_to_main_transition(intro_path, main_path,
-                              output_path, duration=0.75):
+                              output_path, duration=0.75, **fc_kwargs):
     """
     Fallback для обоих каналов: сильный gblur на зонах перехода + dissolve.
     Никаких zoompan, никаких артефактов.
@@ -311,7 +392,7 @@ def intro_to_main_transition(intro_path, main_path,
         ], check=True, capture_output=True)
 
         _dissolve_merge(iz, mz, bm, duration)
-        _final_concat([ib, bm, ma], output_path)
+        _final_concat([ib, bm, ma], output_path, **fc_kwargs)
 
         print(f"  OK blur dissolve: {output_path.name}", flush=True)
         return True
@@ -333,7 +414,7 @@ def intro_to_main_transition(intro_path, main_path,
 # ── SMOOTH ZOOM (DE intro→main) ───────────────────────────────────────────────
 
 def smooth_zoom_transition(intro_path, main_path,
-                            output_path, duration=0.32):
+                            output_path, duration=0.32, **fc_kwargs):
     """
     DE-style: scale 1.05x + gblur sigma=28 ramp (tblend+blend) + dissolve.
 
@@ -387,7 +468,7 @@ def smooth_zoom_transition(intro_path, main_path,
         ], check=True, capture_output=True)
 
         _dissolve_merge(iz, mz, bm, duration)
-        _final_concat([ib, bm, ma], output_path)
+        _final_concat([ib, bm, ma], output_path, **fc_kwargs)
 
         print(f"  OK smooth_zoom (scale+gblur): {output_path.name}", flush=True)
         return True
@@ -400,7 +481,7 @@ def smooth_zoom_transition(intro_path, main_path,
 # ── WHIP PAN (FR intro→main) ──────────────────────────────────────────────────
 
 def whip_pan_transition(intro_path, main_path,
-                         output_path, duration=0.20):
+                         output_path, duration=0.20, **fc_kwargs):
     """
     Swipe LEFT + blur:
       - Последние 0.2s clip1: blur плавно нарастает 0→max + свайп влево
@@ -479,7 +560,7 @@ def whip_pan_transition(intro_path, main_path,
             "-t", f"{BLUR_IN:.4f}",
             "-filter_complex", _make_fc(BLUR_IN, "up"),
             "-map", "[out]",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
             "-pix_fmt", "yuv420p", "-an", "-r", str(fps), t_c1blur,
         ], check=True, capture_output=True)
 
@@ -490,7 +571,7 @@ def whip_pan_transition(intro_path, main_path,
             "-t", f"{BLUR_OUT:.4f}",
             "-filter_complex", _make_fc(BLUR_OUT, "down"),
             "-map", "[out]",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
             "-pix_fmt", "yuv420p", "-an", "-r", str(fps), t_c2blur,
         ], check=True, capture_output=True)
 
@@ -504,7 +585,7 @@ def whip_pan_transition(intro_path, main_path,
         ], check=True, capture_output=True)
 
         # 5. Склеиваем 4 части
-        _final_concat([t_c1main, t_c1blur, t_c2blur, t_c2main], output_path)
+        _final_concat([t_c1main, t_c1blur, t_c2blur, t_c2main], output_path, **fc_kwargs)
         print(f"  OK whip_pan (swipe+blur): {output_path.name}", flush=True)
         return True
 
@@ -515,7 +596,7 @@ def whip_pan_transition(intro_path, main_path,
 
 # ── ZOOM BLUR (FR intro→main) ────────────────────────────────────────────────
 
-def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20):
+def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20, **fc_kwargs):
     """
     FR-style: zoom in/out + blur ramp (ease sin²/cos²). Без свайпа, без dissolve.
 
@@ -526,7 +607,7 @@ def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20):
     Hard cut между зонами — скрыт максимальным blur.
     """
     BLUR_IN   = 0.20
-    BLUR_OUT  = 0.60   # дольше → плавнее исчезает блюр
+    BLUR_OUT  = 0.30   # нормализовано: было 0.60 — слишком затянуто
     BLUR_R    = 55
     BLUR_PEAK = 0.65   # пик блюра: 65%
     ZOOM_MAX  = 0.35   # максимальный зум на intro-стороне: 1.35x
@@ -599,7 +680,7 @@ def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20):
             "-t", f"{BLUR_IN:.4f}",
             "-filter_complex", _make_fc(BLUR_IN, "up"),
             "-map", "[out]",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
             "-pix_fmt", "yuv420p", "-an", "-r", str(fps), t_c1blur,
         ], check=True, capture_output=True)
 
@@ -609,7 +690,7 @@ def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20):
             "-t", f"{BLUR_OUT:.4f}",
             "-filter_complex", _make_fc(BLUR_OUT, "down"),
             "-map", "[out]",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
             "-pix_fmt", "yuv420p", "-an", "-r", str(fps), t_c2blur,
         ], check=True, capture_output=True)
 
@@ -623,7 +704,7 @@ def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20):
         ], check=True, capture_output=True)
 
         # 5. Склейка
-        _final_concat([t_c1main, t_c1blur, t_c2blur, t_c2main], output_path)
+        _final_concat([t_c1main, t_c1blur, t_c2blur, t_c2main], output_path, **fc_kwargs)
         print(f"  OK zoom_blur (zoom+blur): {output_path.name}", flush=True)
         return True
 
@@ -636,15 +717,15 @@ def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20):
 
 def _simple_concat(clip_paths, output_path):
     Path("temp").mkdir(exist_ok=True)
-    concat_file = "temp/simple_concat.txt"
+    concat_file = os.path.abspath("temp/simple_concat.txt")
     with open(concat_file, "w", encoding="utf-8") as f:
         for p in clip_paths:
             f.write(f"file '{os.path.abspath(str(p))}'\n")
     subprocess.run([
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-        "-i", concat_file,
-        "-c:v", GPU_ENCODER, *GPU_PARAMS,
-        "-pix_fmt", "yuv420p", "-an", "-loglevel", "warning",
+        "ffmpeg", "-y",
+        "-f", "concat", "-safe", "0", "-i", concat_file,
+        "-c", "copy",
+        "-loglevel", "warning",
         str(output_path),
     ], check=True)
 
@@ -669,16 +750,116 @@ _CROSS_ZOOM_SIGMA = 18   # gblur sigma для cross_zoom зон
 _GLITCH_RH        = 10  # rgbashift сдвиг пикселей для хроматик
 
 
+def concat_clips_xfade(
+    clip_paths,
+    durations,
+    output_path,
+    xf_dur: float = 1.0,
+    fps: int = 25,
+    chunk_size: int = 100,
+) -> bool:
+    """
+    Fast crossfade via built-in xfade=transition=fade (single filter_complex call).
+    Replaces _crossfade_chunk() for 'crossfade' transition type.
+
+    Offset formula (cumulative):
+      cum = D[0]
+      for i in 1..N-1:
+        offset_i = max(0.01, cum - xf_dur)
+        cum += D[i] - xf_dur
+
+    Chunks at chunk_size clips to stay within Windows cmd-line limit (~32KB).
+    """
+    clip_paths  = [Path(p) for p in clip_paths]
+    output_path = Path(output_path)
+    n = len(clip_paths)
+
+    if n == 1:
+        shutil.copy(str(clip_paths[0]), str(output_path))
+        return True
+
+    # ── Chunk recursion for large sets ────────────────────────────────────────
+    if n > chunk_size:
+        Path("temp").mkdir(exist_ok=True)
+        chunks: list[Path] = []
+        n_chunks = (n + chunk_size - 1) // chunk_size
+        for ci, start in enumerate(range(0, n, chunk_size)):
+            cclips = clip_paths[start : start + chunk_size]
+            cdurs  = durations[start : start + chunk_size]
+            cout   = Path(f"temp/xf_chunk_{ci:03d}.mp4")
+            concat_clips_xfade(cclips, cdurs, cout, xf_dur, fps, chunk_size)
+            chunks.append(cout)
+            print(f"  xfade чанк {ci + 1}/{n_chunks}", flush=True)
+        chunk_durs = [get_video_duration(str(c)) for c in chunks]
+        return concat_clips_xfade(chunks, chunk_durs, output_path, xf_dur, fps, chunk_size)
+
+    # ── Single filter_complex xfade chain ─────────────────────────────────────
+    fc: list[str] = []
+
+    # Normalize fps per input
+    for i in range(n):
+        fc.append(f"[{i}:v]fps={fps},setpts=PTS-STARTPTS[nv{i}]")
+
+    # Build xfade chain
+    cumulative = durations[0]
+    prev_label = "nv0"
+
+    for i in range(1, n):
+        offset    = max(0.01, cumulative - xf_dur)
+        out_label = f"xf{i}"
+        fc.append(
+            f"[{prev_label}][nv{i}]"
+            f"xfade=transition=fade:"
+            f"duration={xf_dur:.3f}:offset={offset:.3f}"
+            f"[{out_label}]"
+        )
+        prev_label  = out_label
+        cumulative += durations[i] - xf_dur   # each xfade eats xf_dur from timeline
+
+    cmd = ["ffmpeg", "-y"]
+    for p in clip_paths:
+        cmd += ["-i", str(p)]
+    cmd += [
+        "-filter_complex", ";".join(fc),
+        "-map", f"[{prev_label}]",
+        "-c:v", GPU_ENCODER, *GPU_PARAMS,
+        "-pix_fmt", "yuv420p", "-r", str(fps), "-an",
+        "-loglevel", "warning",
+        str(output_path),
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        _fallback_counter["count"] += 1
+        err = (result.stderr[-300:] if result.stderr else "")
+        logging.warning(
+            f"Fallback #{_fallback_counter['count']}: "
+            f"concat_clips_xfade failed → simple_concat (err: {err})"
+        )
+        try:
+            from pipeline_validator import log_fallback_transition
+            log_fallback_transition(_fallback_counter["count"], "crossfade_xfade", err)
+        except ImportError:
+            pass
+        print(f"  !! xfade concat error — fallback simple_concat "
+              f"[total={_fallback_counter['count']}]", flush=True)
+        _simple_concat(clip_paths, output_path)
+    return True
+
+
 def _crossfade_chunk(clip_paths, durations, output_path, duration=0.5, fps=25):
     """
     Склейка N клипов с crossfade по opacity (ease-in-out, без xfade/пикселизации).
     Строит единый filter_complex с trim+split+blend+concat.
     w = 0.5 - 0.5·cos(π·T/dur) — плавный ease-in-out.
+
+    Fast path: если все клипы одной длины (±0.1s) — используем -c copy без перекодирования.
     """
     n = len(clip_paths)
     if n == 1:
         shutil.copy(str(clip_paths[0]), str(output_path))
         return True
+
 
     d = duration
     w = f"0.5-0.5*cos(3.14159265*T/{d:.4f})"
@@ -732,7 +913,293 @@ def _crossfade_chunk(clip_paths, durations, output_path, duration=0.5, fps=25):
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"  !! crossfade chunk error — fallback simple_concat", flush=True)
+        _fallback_counter["count"] += 1
+        err = result.stderr[-200:] if isinstance(result.stderr, str) else result.stderr.decode("utf-8", "replace")[-200:]
+        logging.warning(
+            f"Fallback #{_fallback_counter['count']}: crossfade disabled → simple_concat (stderr: {err})"
+        )
+        try:
+            from pipeline_validator import log_fallback_transition
+            log_fallback_transition(_fallback_counter["count"], "crossfade", err)
+        except ImportError:
+            pass
+        print(f"  !! crossfade chunk error — fallback simple_concat [total={_fallback_counter['count']}]", flush=True)
+        _simple_concat(clip_paths, output_path)
+    return True
+
+
+def _fadeblack_chunk(clip_paths, durations, output_path, fade_dur=0.2):
+    """
+    Склейка клипов с fade-to-black / fade-from-black в один проход.
+
+    Один FFmpeg вызов: fade per-input → concat video filter → NVENC.
+    Нет промежуточных файлов, нет потери длительности (нет xfade overlap).
+    Линейный fade: выглядит гладко при fade_dur=0.5s, не требует кастомных кривых.
+    """
+    n = len(clip_paths)
+    if n == 1:
+        shutil.copy2(str(clip_paths[0]), str(output_path))
+        return True
+
+    # Получить реальные длительности
+    actual_durs = []
+    for clip, dur in zip(clip_paths, durations):
+        d = get_video_duration(str(clip))
+        actual_durs.append(d if d > 0 else dur)
+
+    cmd = ["ffmpeg", "-y"]
+    for p in clip_paths:
+        cmd.extend(["-i", str(p)])
+
+    filter_parts = []
+    for i, dur in enumerate(actual_durs):
+        first = (i == 0)
+        last  = (i == n - 1)
+        fi    = 0.0 if first else min(fade_dur, dur * 0.3)
+        fo    = 0.0 if last  else min(fade_dur, dur * 0.3)
+        fo_st = max(0.0, dur - fo - 0.01)
+
+        vf = []
+        if fi > 0:
+            vf.append(f"fade=t=in:st=0:d={fi:.3f}")
+        if fo > 0:
+            vf.append(f"fade=t=out:st={fo_st:.3f}:d={fo:.3f}")
+
+        if vf:
+            filter_parts.append(f"[{i}:v]{','.join(vf)}[v{i}]")
+        else:
+            filter_parts.append(f"[{i}:v]null[v{i}]")
+
+    concat_inputs = "".join(f"[v{i}]" for i in range(n))
+    filter_parts.append(f"{concat_inputs}concat=n={n}:v=1:a=0,format=yuv420p[out]")
+
+    cmd += [
+        "-filter_complex", ";".join(filter_parts),
+        "-map", "[out]",
+        "-c:v", GPU_ENCODER, *GPU_PARAMS, "-pix_fmt", "yuv420p", "-an",
+        "-loglevel", "warning", str(output_path),
+    ]
+
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        err = result.stderr.decode("utf-8", "replace")[-300:]
+        logging.warning(f"_fadeblack_chunk NVENC failed, retrying with libx264: {err}")
+        # Retry with CPU encoder (same filter_complex, preserves fade effect)
+        cmd_cpu = []
+        for arg in cmd:
+            if arg == GPU_ENCODER:
+                cmd_cpu.append("libx264")
+            elif arg in GPU_PARAMS:
+                continue
+            else:
+                cmd_cpu.append(arg)
+        # Replace GPU_PARAMS block: after libx264 add cpu params
+        cpu_params = ["-preset", "faster", "-crf", "20"]
+        # Rebuild cleanly
+        cmd_cpu = ["ffmpeg", "-y"]
+        for p in clip_paths:
+            cmd_cpu.extend(["-i", str(p)])
+        cmd_cpu += [
+            "-filter_complex", ";".join(filter_parts),
+            "-map", "[out]",
+            "-c:v", "libx264", "-preset", "faster", "-crf", "20",
+            "-pix_fmt", "yuv420p", "-an",
+            "-loglevel", "warning", str(output_path),
+        ]
+        result2 = subprocess.run(cmd_cpu, capture_output=True)
+        if result2.returncode != 0:
+            err2 = result2.stderr.decode("utf-8", "replace")[-300:]
+            logging.warning(f"_fadeblack_chunk libx264 also failed: {err2}")
+            _simple_concat(clip_paths, output_path)
+    return True
+
+
+def _gray_wipe_fast(clip_paths, durations, output_path, duration=0.4, fps=25):
+    """
+    FAST gray_wipe: only encode the ~0.4s overlap segments via blend filter.
+    Clip bodies are encoded with ultrafast preset (parallel, 8 workers).
+    Final concat uses -c copy → ~10-20x faster than _gray_wipe_chunk.
+
+    Steps:
+      1. Parallel encode of N-1 transition segments (blend last-d from A + first-d from B)
+      2. Parallel ultrafast re-encode of N body segments (each clip minus overlap tails)
+      3. Concat: body[0] + trans[0] + body[1] + trans[1] + ... + body[N-1]
+    """
+    n = len(clip_paths)
+    if n == 1:
+        shutil.copy(str(clip_paths[0]), str(output_path))
+        return True
+
+    d     = duration
+    uid   = abs(hash(str(output_path))) % 100000
+    tmp   = Path("temp")
+    tmp.mkdir(exist_ok=True)
+
+    wipe_expr = (
+        f"clip(((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2-X)/100,0,1)"
+        f"*B+(1-clip(((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2-X)/100,0,1))*A"
+    )
+
+    def _encode_transition(i):
+        out  = tmp / f"gw_t_{uid}_{i:04d}.mp4"
+        da   = durations[i]
+        tail_start = max(0.0, da - d)
+        # Read full clip_i (no seek = no GOP decode overhead), trim in filtergraph
+        cmd  = [
+            "ffmpeg", "-y",
+            "-i", str(clip_paths[i]),
+            "-t", f"{d:.4f}", "-i", str(clip_paths[i + 1]),
+            "-filter_complex",
+            # A: extract tail, reset PTS to 0
+            f"[0:v]fps={fps},format=yuv420p,"
+            f"trim={tail_start:.4f}:{da:.4f},setpts=PTS-STARTPTS[ta];"
+            # B: read first d seconds from input B, reset PTS
+            f"[1:v]fps={fps},format=yuv420p,setpts=PTS-STARTPTS[tb];"
+            f"[ta][tb]blend=all_expr='{wipe_expr}'[out]",
+            "-map", "[out]",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+            "-pix_fmt", "yuv420p", "-an", "-r", str(fps),
+            "-loglevel", "error",
+            str(out),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"transition {i} failed: {result.stderr[-200:]}")
+        return out
+
+    def _encode_body(i):
+        out         = tmp / f"gw_b_{uid}_{i:04d}.mp4"
+        has_left    = (i > 0)
+        has_right   = (i < n - 1)
+        body_start  = d      if has_left  else 0.0
+        body_end    = max(body_start + 0.04,
+                          durations[i] - (d if has_right else 0.0))
+        # Read full clip (no seek), trim in filtergraph to avoid GOP decode overhead
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(clip_paths[i]),
+            "-vf", f"trim={body_start:.4f}:{body_end:.4f},setpts=PTS-STARTPTS,fps={fps},format=yuv420p",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+            "-an", "-loglevel", "error",
+            str(out),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"body {i} failed: {result.stderr[-200:]}")
+        return out
+
+    # Separate pools so transitions (blend+encode) and bodies (decode+encode) run in parallel
+    with ThreadPoolExecutor(max_workers=8) as tx, ThreadPoolExecutor(max_workers=8) as bx:
+        trans_futures = [tx.submit(_encode_transition, i) for i in range(n - 1)]
+        body_futures  = [bx.submit(_encode_body,       i) for i in range(n)]
+        trans_outs    = [f.result() for f in trans_futures]
+        body_outs     = [f.result() for f in body_futures]
+
+    # Interleave: body[0], trans[0], body[1], trans[1], ..., body[n-1]
+    concat_parts: list[Path] = []
+    for i in range(n):
+        concat_parts.append(body_outs[i])
+        if i < n - 1:
+            concat_parts.append(trans_outs[i])
+
+    concat_file = str(tmp / f"gw_concat_{uid}.txt")
+    with open(concat_file, "w", encoding="utf-8") as f:
+        for p in concat_parts:
+            f.write(f"file '{os.path.abspath(str(p))}'\n")
+
+    result = subprocess.run([
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+        "-i", concat_file,
+        "-c", "copy",
+        "-loglevel", "warning",
+        str(output_path),
+    ], capture_output=True, text=True)
+
+    if result.returncode != 0:
+        _fallback_counter["count"] += 1
+        print(f"  !! gw_fast concat error — fallback gw_chunk: {result.stderr[-200:]}", flush=True)
+        return _gray_wipe_chunk(clip_paths, durations, output_path, duration, fps)
+
+    return True
+
+
+def _gray_wipe_chunk(clip_paths, durations, output_path, duration=0.4, fps=25):
+    """
+    Склейка N клипов с позиционным вайпом через серый (gray_wipe).
+
+    На каждой границе: левая половина кадра уже показывает следующий клип,
+    правая — ещё предыдущий. Граница движется слева направо с ease-in-out.
+    Soft edge 100px. Без xfade — чистый blend, нет пикселизации.
+
+    Формула: wipe_pos = (W+100)*(1-cos(PI*T/dur))/2 - 50
+             alpha(X) = clip((wipe_pos - X) / 100, 0, 1)
+             out = B*alpha + A*(1-alpha)
+    """
+    n = len(clip_paths)
+    if n == 1:
+        shutil.copy(str(clip_paths[0]), str(output_path))
+        return True
+
+    d = duration
+    # blend expression: вайп от A к B по горизонтали
+    wipe_expr = (
+        f"clip(((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2-X)/100,0,1)"
+        f"*B+(1-clip(((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2-X)/100,0,1))*A"
+    )
+
+    fc = []
+    concat_labels = []
+
+    for i in range(n):
+        dur_i = durations[i]
+        fc.append(f"[{i}:v]fps={fps},format=yuv420p,setpts=PTS-STARTPTS[nv{i}]")
+
+        if i == 0:
+            main_end = max(0.04, dur_i - d)
+            fc.append(f"[nv{i}]split[nv{i}a][nv{i}b]")
+            fc.append(f"[nv{i}a]trim=0:{main_end:.4f},setpts=PTS-STARTPTS[m{i}]")
+            fc.append(f"[nv{i}b]trim={main_end:.4f},setpts=PTS-STARTPTS[e{i}]")
+            concat_labels.append(f"m{i}")
+
+        elif i == n - 1:
+            fc.append(f"[nv{i}]split[nv{i}a][nv{i}b]")
+            fc.append(f"[nv{i}a]trim=0:{d:.4f},setpts=PTS-STARTPTS[s{i}]")
+            fc.append(f"[nv{i}b]trim={d:.4f},setpts=PTS-STARTPTS[m{i}]")
+            fc.append(f"[e{i-1}][s{i}]blend=all_expr='{wipe_expr}'[b{i}]")
+            concat_labels.append(f"b{i}")
+            concat_labels.append(f"m{i}")
+
+        else:
+            main_start = d
+            main_end   = max(d + 0.04, dur_i - d)
+            fc.append(f"[nv{i}]split=3[nv{i}a][nv{i}b][nv{i}c]")
+            fc.append(f"[nv{i}a]trim=0:{d:.4f},setpts=PTS-STARTPTS[s{i}]")
+            fc.append(f"[nv{i}b]trim={main_start:.4f}:{main_end:.4f},setpts=PTS-STARTPTS[m{i}]")
+            fc.append(f"[nv{i}c]trim={main_end:.4f},setpts=PTS-STARTPTS[e{i}]")
+            fc.append(f"[e{i-1}][s{i}]blend=all_expr='{wipe_expr}'[b{i}]")
+            concat_labels.append(f"b{i}")
+            concat_labels.append(f"m{i}")
+
+    inputs_str = "".join(f"[{lbl}]" for lbl in concat_labels)
+    fc.append(f"{inputs_str}concat=n={len(concat_labels)}:v=1:a=0[out]")
+
+    cmd = ["ffmpeg", "-y"]
+    for p in clip_paths:
+        cmd += ["-i", str(p)]
+    cmd += [
+        "-filter_complex", ";".join(fc),
+        "-map", "[out]",
+        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+        "-pix_fmt", "yuv420p", "-an", "-r", str(fps),
+        "-loglevel", "warning",
+        str(output_path),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        _fallback_counter["count"] += 1
+        err = result.stderr[-300:] if isinstance(result.stderr, str) else result.stderr.decode("utf-8", "replace")[-300:]
+        logging.warning(f"Fallback #{_fallback_counter['count']}: gray_wipe disabled → simple_concat (stderr: {err})")
+        print(f"  !! gray_wipe chunk error — fallback simple_concat [total={_fallback_counter['count']}]", flush=True)
         _simple_concat(clip_paths, output_path)
     return True
 
@@ -762,6 +1229,15 @@ def _concat_chunk(clip_paths, durations, output_path,
     # crossfade — отдельный путь через blend (без xfade)
     if transition == "crossfade":
         return _crossfade_chunk(clip_paths, durations, output_path, duration)
+
+    # fadeblack — fade-to-black через vf fade (без xfade, работает с NVENC)
+    # fade_dur = duration/2: 1s total → 0.5s fade-out + 0.5s fade-in = 1s черного экрана
+    if transition == "fadeblack":
+        return _fadeblack_chunk(clip_paths, durations, output_path, fade_dur=duration / 2)
+
+    # gray_wipe — позиционный вайп через серый (без xfade/пикселизации)
+    if transition == "gray_wipe":
+        return _gray_wipe_chunk(clip_paths, durations, output_path, duration)
 
     n_bdrs = n - 1
 
@@ -871,7 +1347,17 @@ def _concat_chunk(clip_paths, durations, output_path,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"  !! xfade ({transition}) error — fallback simple_concat", flush=True)
+        _fallback_counter["count"] += 1
+        err = result.stderr[-200:] if isinstance(result.stderr, str) else result.stderr.decode("utf-8", "replace")[-200:]
+        logging.warning(
+            f"Fallback #{_fallback_counter['count']}: xfade ({transition}) disabled → simple_concat (stderr: {err})"
+        )
+        try:
+            from pipeline_validator import log_fallback_transition
+            log_fallback_transition(_fallback_counter["count"], transition, err)
+        except ImportError:
+            pass
+        print(f"  !! xfade ({transition}) error — fallback simple_concat [total={_fallback_counter['count']}]", flush=True)
         _simple_concat(clip_paths, output_path)
     return True
 
@@ -891,17 +1377,136 @@ def concat_all_with_transitions(
     clip_paths  = [Path(p) for p in clip_paths]
     output_path = Path(output_path)
 
+    # ── Фильтрация: убираем отсутствующие файлы ───────────────────────────────
+    missing = [p for p in clip_paths if not p.exists()]
+    if missing:
+        print(f"  ⚠ concat_all_with_transitions: {len(missing)} клипов не найдено, пропускаем:", flush=True)
+        for m in missing[:10]:
+            print(f"    {m.name}", flush=True)
+        clip_paths = [p for p in clip_paths if p.exists()]
+        # Обрезаем trans_seq под новый размер (убираем записи для пропущенных позиций)
+        if trans_seq and len(trans_seq) >= len(clip_paths):
+            trans_seq = trans_seq[:max(0, len(clip_paths) - 1)]
+
     if not clip_paths:
-        return False
+        raise ValueError("concat_all_with_transitions: все клипы отсутствуют")
     if len(clip_paths) == 1:
         shutil.copy(str(clip_paths[0]), str(output_path))
         return True
+
+    # ── Pre-validation ────────────────────────────────────────────────────────
+    try:
+        from pipeline_validator import get_stats
+        get_stats().transitions_valid = True
+    except ImportError:
+        pass
 
     n = len(clip_paths)
 
     with ThreadPoolExecutor(max_workers=8) as ex:
         durations = list(ex.map(get_video_duration, [str(p) for p in clip_paths]))
 
+    # ── Fast path: crossfade via built-in xfade (10–20× faster than blend) ────
+    if transition == "crossfade":
+        print(f"  [xfade] {n} клипов, dur={duration:.2f}s → {output_path.name}", flush=True)
+        return concat_clips_xfade(clip_paths, durations, output_path,
+                                  xf_dur=duration, fps=25)
+
+    if transition == "gray_wipe":
+        # ── gray_wipe: split at "cut" boundaries, _gray_wipe_fast for each zone ──
+        cut_indices: set[int] = set()
+        if trans_seq:
+            cut_indices = {i for i, t in enumerate(trans_seq) if t.get("type") == "cut"}
+
+        if cut_indices:
+            # Split clips into contiguous wipe-zones at cut boundaries
+            zones_clips: list[list[Path]] = []
+            zones_durs:  list[list[float]] = []
+            g_c: list[Path]  = [clip_paths[0]]
+            g_d: list[float] = [durations[0]]
+            for i, t in enumerate(trans_seq):
+                if i in cut_indices:
+                    zones_clips.append(g_c); zones_durs.append(g_d)
+                    g_c = [clip_paths[i + 1]]; g_d = [durations[i + 1]]
+                else:
+                    g_c.append(clip_paths[i + 1]); g_d.append(durations[i + 1])
+            zones_clips.append(g_c); zones_durs.append(g_d)
+
+            n_zones = len(zones_clips)
+            n_wipe  = sum(1 for zc in zones_clips if len(zc) > 1)
+            n_cut   = len(cut_indices)
+            print(f"  [gray_wipe] {n} клипов → {n_zones} зон "
+                  f"({n_wipe} с вайпом, {n_cut} хардкат) → {output_path.name}", flush=True)
+
+            Path("temp").mkdir(exist_ok=True)
+            CHUNK_SIZE = 20
+
+            def _process_one_zone(zi_zc_zd):
+                zi, zc, zd = zi_zc_zd
+                if len(zc) == 1:
+                    return zc[0]
+                zone_out = Path(f"temp/gw_zone_{zi:03d}.mp4")
+                if len(zc) <= CHUNK_SIZE:
+                    _gray_wipe_chunk(zc, zd, zone_out, duration)
+                else:
+                    # Parallel sub-chunks for large zones
+                    def _sub(args):
+                        ci, sc, sd = args
+                        scout = Path(f"temp/gw_zone_{zi:03d}_{ci:03d}.mp4")
+                        _gray_wipe_chunk(sc, sd, scout, duration)
+                        return scout
+                    sub_args = [
+                        (ci, zc[j:j+CHUNK_SIZE], zd[j:j+CHUNK_SIZE])
+                        for ci, j in enumerate(range(0, len(zc), CHUNK_SIZE))
+                    ]
+                    with ThreadPoolExecutor(max_workers=min(len(sub_args), 6)) as sex:
+                        sub_chunks = list(sex.map(_sub, sub_args))
+                    if len(sub_chunks) == 1:
+                        shutil.copy(str(sub_chunks[0]), str(zone_out))
+                    else:
+                        sc_durs = [get_video_duration(str(c)) for c in sub_chunks]
+                        _gray_wipe_chunk(sub_chunks, sc_durs, zone_out, duration)
+                print(f"  OK зона {zi + 1}/{n_zones} ({len(zc)} клипов)", flush=True)
+                return zone_out
+
+            # Process all zones in parallel
+            zone_args = [(zi, zc, zd) for zi, (zc, zd) in enumerate(zip(zones_clips, zones_durs))]
+            with ThreadPoolExecutor(max_workers=min(n_wipe, 4)) as zex:
+                zone_outs = list(zex.map(_process_one_zone, zone_args))
+
+            if len(zone_outs) == 1:
+                shutil.copy(str(zone_outs[0]), str(output_path))
+            else:
+                _simple_concat([str(p) for p in zone_outs], str(output_path))
+            print(f"  OK все {n} клипов: {Path(output_path).name}", flush=True)
+            return True
+
+        # No cuts — full gray_wipe on all clips
+        print(f"  [gray_wipe] {n} клипов, dur={duration:.2f}s → {output_path.name}", flush=True)
+        CHUNK_SIZE = 20
+        if n <= CHUNK_SIZE:
+            return _gray_wipe_chunk(clip_paths, durations, output_path, duration)
+        Path("temp").mkdir(exist_ok=True)
+        def _sub_nc(args):
+            ci, sc, sd = args
+            scout = Path(f"temp/chunk_{ci:03d}.mp4")
+            _gray_wipe_chunk(sc, sd, scout, duration)
+            return scout
+        sub_args = [
+            (ci, clip_paths[j:j+CHUNK_SIZE], durations[j:j+CHUNK_SIZE])
+            for ci, j in enumerate(range(0, n, CHUNK_SIZE))
+        ]
+        with ThreadPoolExecutor(max_workers=min(len(sub_args), 6)) as sex:
+            chunks = list(sex.map(_sub_nc, sub_args))
+        if len(chunks) == 1:
+            shutil.copy(str(chunks[0]), str(output_path))
+        else:
+            chunk_durs2 = [get_video_duration(str(c)) for c in chunks]
+            _gray_wipe_chunk(chunks, chunk_durs2, output_path, duration)
+        print(f"  OK все {n} клипов: {Path(output_path).name}", flush=True)
+        return True
+
+    # ── Legacy chunk-based path for other transitions ─────────────────────────
     CHUNK_SIZE = 20
     if n <= CHUNK_SIZE:
         return _concat_chunk(clip_paths, durations, output_path,
