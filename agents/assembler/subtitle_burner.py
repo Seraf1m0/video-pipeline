@@ -328,6 +328,18 @@ def _escape_drawtext(text: str) -> str:
     return text
 
 
+# Scale-pop: 6 ease-out шагов × 0.04s = 0.24s схлопывание
+_SCALE_POP_STEPS = [
+    (0.04, 1.30),
+    (0.04, 1.20),
+    (0.04, 1.11),
+    (0.04, 1.06),
+    (0.04, 1.02),
+    (0.04, 1.00),
+]
+_SCALE_POP_FADE_IN = 0.08   # alpha растёт 0→1 поверх первых двух шагов
+
+
 def generate_drawtext_filter(
     result_json_path: "Path | str",
     font_path:        str,
@@ -338,15 +350,18 @@ def generate_drawtext_filter(
     intro_duration:   float = 90.0,
     max_line_chars:   int   = 28,
     y_base:           int   = 1038,
+    max_words:        int   = 3,
+    animation:        str   = "rise",
+    shadow_opacity:   float = 0.0,
+    shadow_x:         int   = 3,
+    shadow_y:         int   = 4,
 ) -> str:
     """
-    Генерировать цепочку drawtext= фильтров для DE-стиля (rise + fade).
-    Возвращает строку для передачи в vf/post_vf — без отдельного ffmpeg прохода.
+    Генерировать цепочку drawtext= фильтров.
 
-    Анимация:
-      - fade-in: alpha 0→1 за fade_in секунд
-      - rise:    y из y_base+rise_px → y_base за fade_in секунд
-      - fade-out: alpha 1→0 за fade_out секунд до конца
+    animation="rise"      — DE-стиль: fade-in + подъём текста снизу
+    animation="scale_pop" — FR-стиль: 6-шаговый ease-out scale 130→100%
+                            + fade-in поверх первых 2 шагов + тень
     """
     import json as _json
 
@@ -390,15 +405,15 @@ def generate_drawtext_filter(
             merged.append({**w, "word": raw.strip()})
     words = merged
 
-    # Группировка по 3 слова (с fallback на 2 если длиннее max_line_chars)
+    # Группировка: max_words слов на группу (с fallback на меньше если длиннее max_line_chars)
     def _text(ws): return " ".join(str(w.get("word","")).strip().upper() for w in ws if w.get("word","").strip())
 
     groups: list[dict] = []
     i = 0
     while i < len(words):
-        for count in (3, 2, 1):
+        for count in (max_words, max(1, max_words - 1), 1):
             grp = words[i:i + count]
-            if grp and (count < 3 or len(_text(grp)) <= max_line_chars):
+            if grp and (count < max_words or len(_text(grp)) <= max_line_chars):
                 break
         if grp:
             groups.append({
@@ -416,37 +431,62 @@ def generate_drawtext_filter(
     if len(fp) >= 2 and fp[1] == ":":
         fp = fp[0] + "\\:" + fp[2:]
 
+    shad = (f":shadowcolor=black@{shadow_opacity:.2f}"
+            f":shadowx={shadow_x}:shadowy={shadow_y}") if shadow_opacity > 0 else ""
+
     parts = []
     for g in groups:
         ts  = g["start"]
         te  = max(g["end"], ts + 0.2)
         txt = _escape_drawtext(g["text"])
-        fi, fo = fade_in, fade_out
+        fo  = fade_out
 
-        # rise: текст стартует НИЖЕ финальной позиции (h-42+rise_px) и поднимается вверх (h-42)
-        y_expr     = f"h-42+{rise_px}*(1-min(1\\,(t-{ts:.3f})/{fi:.3f}))"
-        alpha_expr = (
-            f"if(lt(t-{ts:.3f}\\,{fi:.3f})"
-            f"\\,(t-{ts:.3f})/{fi:.3f}"
-            f"\\,if(gt(t\\,{te:.3f}-{fo:.3f})"
-            f"\\,({te:.3f}-t)/{fo:.3f}\\,1))"
-        )
+        if animation == "scale_pop":
+            # 6 шагов ease-out 130%→100% за 0.24s
+            # alpha = min(1, (t-ts)/0.08) растёт поверх первых двух шагов
+            # half-open интервалы gte*lt — нет двоения на границах
+            cursor = ts
+            for step_dur, scale in _SCALE_POP_STEPS:
+                t0 = cursor
+                t1 = round(cursor + step_dur, 4)
+                fs = max(1, int(font_size * scale))
+                alpha = f"min(1\\,(t-{ts:.4f})/{_SCALE_POP_FADE_IN:.4f})"
+                en    = f"gte(t\\,{t0:.4f})*lt(t\\,{t1:.4f})"
+                parts.append(
+                    f"drawtext=fontfile='{fp}':text='{txt}':fontsize={fs}"
+                    f":fontcolor=white:alpha='{alpha}'"
+                    f"{shad}:x=(w-text_w)/2:y=h-90"
+                    f":enable='{en}'"
+                )
+                cursor = t1
+            # финальный удерживающий шаг с fade-out
+            alpha_fin = f"if(gt(t\\,{te - fo:.4f})\\,({te:.4f}-t)/{fo:.4f}\\,1)"
+            en_fin    = f"gte(t\\,{cursor:.4f})*lte(t\\,{te:.4f})"
+            parts.append(
+                f"drawtext=fontfile='{fp}':text='{txt}':fontsize={font_size}"
+                f":fontcolor=white:alpha='{alpha_fin}'"
+                f"{shad}:x=(w-text_w)/2:y=h-90"
+                f":enable='{en_fin}'"
+            )
 
-        parts.append(
-            f"drawtext="
-            f"fontfile='{fp}':"
-            f"text='{txt}':"
-            f"fontsize={font_size}:"
-            f"fontcolor=white:"
-            f"borderw=3:"
-            f"bordercolor=black@0.5:"
-            f"x=(w-text_w)/2:"
-            f"y={y_expr}:"
-            f"alpha={alpha_expr}:"
-            f"enable='between(t\\,{ts:.3f}\\,{te:.3f})'"
-        )
+        else:  # "rise" — DE стиль
+            fi = fade_in
+            y_expr     = f"h-42+{rise_px}*(1-min(1\\,(t-{ts:.3f})/{fi:.3f}))"
+            alpha_expr = (
+                f"if(lt(t-{ts:.3f}\\,{fi:.3f})"
+                f"\\,(t-{ts:.3f})/{fi:.3f}"
+                f"\\,if(gt(t\\,{te:.3f}-{fo:.3f})"
+                f"\\,({te:.3f}-t)/{fo:.3f}\\,1))"
+            )
+            parts.append(
+                f"drawtext=fontfile='{fp}':text='{txt}':fontsize={font_size}"
+                f":fontcolor=white:borderw=3:bordercolor=black@0.5"
+                f":x=(w-text_w)/2:y={y_expr}:alpha={alpha_expr}"
+                f":enable='between(t\\,{ts:.3f}\\,{te:.3f})'"
+            )
 
-    print(f"  ✅ drawtext: {len(parts)} групп субтитров")
+    n_groups = sum(1 for g in groups if g)
+    print(f"  ✅ drawtext ({animation}): {n_groups} групп субтитров")
     return ",".join(parts)
 
 

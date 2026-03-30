@@ -752,6 +752,22 @@ def generate_subtitles(
                 style.get("subtitle_max_words", 5),
             )
             return ass_path.exists(), ""
+        elif sub_style == "scale_pop":
+            # FR "scale_pop" → drawtext, 6-шаговый scale ease-out + тень
+            fp = style.get("subtitle_font_path", "C:/Windows/Fonts/arialbd.ttf")
+            dt_filter = generate_drawtext_filter(
+                result_json_path = result_json,
+                font_path        = fp,
+                font_size        = font_size,
+                fade_out         = SUBTITLE_FADE_OUT_MS / 1000.0,
+                intro_duration   = intro_dur,
+                max_words        = style.get("subtitle_max_words", 2),
+                animation        = "scale_pop",
+                shadow_opacity   = 0.60,
+                shadow_x         = 3,
+                shadow_y         = 4,
+            )
+            return False, dt_filter
         else:
             # DE "default" → drawtext (встраивается в filter_complex, без отдельного прохода)
             dt_filter = generate_drawtext_filter(
