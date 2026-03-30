@@ -52,7 +52,7 @@ SFX_RULES_COSMOS = (
 SFX_RULES_RELIGION = (
     "Also decide if a soft sound effect cue should trigger at this segment.\n"
     "Available sfx values: \"riser\", \"downlifter\", null\n"
-    "- riser      → gentle crescendo, moment of spiritual revelation or hope\n"
+    "- riser      → very soft gentle swell, quiet moment of spiritual revelation or hope\n"
     "- downlifter → sorrowful moment, loss, hardship, lament\n"
     "- null       → normal segment, no SFX (most segments should be this)\n"
     "This is a calm spiritual channel — NO boom, NO impact, NO riser+boom.\n"
