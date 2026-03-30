@@ -132,6 +132,36 @@ def get_duration(path: Path) -> float:
     return val
 
 
+def ffprobe_check(path: Path, expected: float, label: str, tolerance: float = 3.0) -> tuple[bool, float]:
+    """
+    ffprobe проверка длительности файла.
+    Возвращает (ok, actual_dur).
+    ok=False если файл отсутствует, нечитаем или короче expected - tolerance.
+    """
+    if not path.exists():
+        log(f"  [ffprobe] {label}: файл не найден: {path.name}")
+        return False, 0.0
+    try:
+        # Не используем кеш — файл мог только что записаться
+        r = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", str(path)],
+            capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            log(f"  [ffprobe] {label}: ffprobe error → {path.name}")
+            return False, 0.0
+        actual = float(json.loads(r.stdout)["format"]["duration"])
+        diff = actual - expected
+        sign = "+" if diff >= 0 else ""
+        ok = actual >= expected - tolerance
+        status = "✅" if ok else "⚠️ TRUNCATED"
+        log(f"  [ffprobe] {label}: {actual:.1f}s (ожидалось {expected:.1f}s, Δ={sign}{diff:.1f}s) {status}")
+        return ok, actual
+    except Exception as e:
+        log(f"  [ffprobe] {label}: ошибка {e}")
+        return False, 0.0
+
+
 def make_metadata_flags() -> list[str]:
     """
     Реалистичные метаданные Adobe Premiere / After Effects.
@@ -978,7 +1008,16 @@ def main() -> None:
 
     output_dir = get_output_dir(channel_id, session)
     output_dir.mkdir(parents=True, exist_ok=True)
-    temp_dir = output_dir / "temp"
+
+    # Выбираем диск для temp: E: если там >10GB больше свободного места чем на C:
+    _c_free = shutil.disk_usage("C:/").free
+    _e_path = Path("E:/")
+    _e_free = shutil.disk_usage("E:/").free if _e_path.exists() else 0
+    if _e_free > _c_free + 10 * 1024 ** 3:
+        temp_dir = Path("E:/Video-pipeline-temp") / channel_id / session
+        log(f"Temp → E: (C: {_c_free//1024**3}GB free, E: {_e_free//1024**3}GB free)")
+    else:
+        temp_dir = output_dir / "temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     # Загрузка данных
@@ -1154,14 +1193,20 @@ def main() -> None:
     ass_path         = get_ass_path(channel_id, session)
     final_output     = get_final_video(channel_id, session)
 
-    # Параллельно: видеоряд + аудио + субтитры
+    # Resume: пропускаем шаги если валидные артефакты уже есть
+    _vt_ok, _vt_dur = ffprobe_check(videotrack_path, clips_total_dur, "videotrack (cached)") \
+        if videotrack_path.exists() else (False, 0.0)
+    _au_ok, _au_dur = ffprobe_check(mixed_audio_path, total_dur, "audio (cached)") \
+        if mixed_audio_path.exists() else (False, 0.0)
+
+    # Параллельно: видеоряд + аудио + субтитры (пропускаем если уже готово)
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
-        fut_video = ex.submit(
+        fut_video = None if _vt_ok else ex.submit(
             render_videotrack,
             trimmed_clips, trans_plan, trans_name, trans_dur, videotrack_path,
-            clips_total_dur,   # ожидаемая длина видеоряда (без интро)
+            clips_total_dur,
         )
-        fut_audio = ex.submit(
+        fut_audio = None if _au_ok else ex.submit(
             build_audio_track,
             voiceover, intro_path, intro_dur, total_dur,
             style, mixed_audio_path, sfx_events, args.no_music,
@@ -1171,31 +1216,82 @@ def main() -> None:
             result_json, ass_path, style, intro_dur, args.no_subs,
         )
 
-        video_ok               = fut_video.result()
-        audio_ok               = fut_audio.result()
+        if _vt_ok:
+            log(f"  Видеоряд: resume ({_vt_dur:.1f}s уже готов)")
+            video_ok = True
+        else:
+            video_ok = fut_video.result()
+
+        if _au_ok:
+            log(f"  Аудио: resume ({_au_dur:.1f}s уже готов)")
+            audio_ok = True
+        else:
+            audio_ok = fut_audio.result()
+
         ass_ok, drawtext_filter = fut_subs.result()
 
     log(f"Видеоряд: {'✓' if video_ok else '✗'}  |  Аудио: {'✓' if audio_ok else '✗'}  |  Субтитры: {'✓' if ass_ok else '✗'}")
     log(f"[⏱] Render (parallel): {time.time()-t_render:.1f}s")
+
+    # ffprobe валидация видеоряда — детектируем truncation, делаем ретрай с x264
+    if video_ok and not _vt_ok:
+        vt_valid, vt_actual = ffprobe_check(videotrack_path, clips_total_dur, "videotrack")
+        if not vt_valid:
+            log("  ⚠️ Videotrack truncated — ретрай с libx264")
+            from transitions import _set_encoder_x264
+            _set_encoder_x264()
+            video_ok = render_videotrack(
+                trimmed_clips, trans_plan, trans_name, trans_dur, videotrack_path,
+                clips_total_dur,
+            )
+            vt_valid2, _ = ffprobe_check(videotrack_path, clips_total_dur, "videotrack (x264)")
+            if not vt_valid2:
+                log("✗ Videotrack truncated даже с x264 — нехватка места на диске?")
+
+    # ffprobe валидация аудио
+    if audio_ok and not _au_ok:
+        au_valid, _ = ffprobe_check(mixed_audio_path, total_dur, "audio")
+        if not au_valid:
+            log("✗ Аудио truncated — проверьте место на диске"); sys.exit(1)
 
     if not video_ok and not intro_path:
         log("✗ Нет ни видеоряда, ни интро"); sys.exit(1)
 
     # Финальный рендер
     render_ok = final_render(
-        intro_path   = intro_path,
-        videotrack       = videotrack_path,
-        audio_path       = mixed_audio_path,
-        ass_path         = ass_path,
-        ass_ok           = ass_ok,
-        drawtext_filter  = drawtext_filter,
-        style            = style,
-        intro_dur    = intro_dur,
-        output       = final_output,
+        intro_path      = intro_path,
+        videotrack      = videotrack_path,
+        audio_path      = mixed_audio_path,
+        ass_path        = ass_path,
+        ass_ok          = ass_ok,
+        drawtext_filter = drawtext_filter,
+        style           = style,
+        intro_dur       = intro_dur,
+        output          = final_output,
     )
 
     if not render_ok:
         log("✗ Финальный рендер не удался"); sys.exit(1)
+
+    # ffprobe валидация финального видео
+    final_valid, final_actual = ffprobe_check(final_output, total_dur, "final video", tolerance=5.0)
+    if not final_valid:
+        log(f"  ⚠️ Final truncated ({final_actual:.1f}s vs {total_dur:.1f}s) — ретрай с libx264")
+        from transitions import _set_encoder_x264
+        _set_encoder_x264()
+        final_output.unlink(missing_ok=True)
+        render_ok = final_render(
+            intro_path      = intro_path,
+            videotrack      = videotrack_path,
+            audio_path      = mixed_audio_path,
+            ass_path        = ass_path,
+            ass_ok          = ass_ok,
+            drawtext_filter = drawtext_filter,
+            style           = style,
+            intro_dur       = intro_dur,
+            output          = final_output,
+        )
+        ffprobe_check(final_output, total_dur, "final video (x264)", tolerance=5.0)
 
     log(f"[⏱] Final render: {time.time()-t_render:.1f}s total")
     audit_final_audio(final_output, voice_path=voiceover)

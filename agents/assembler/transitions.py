@@ -88,6 +88,16 @@ GPU_ENCODER, GPU_PARAMS           = get_gpu_encoder()
 GPU_ENCODER_FAST, GPU_PARAMS_FAST = get_gpu_encoder_fast()
 
 
+def _set_encoder_x264():
+    """Принудительно переключить на libx264 (вызывается при NVENC truncation)."""
+    global GPU_ENCODER, GPU_PARAMS, GPU_ENCODER_FAST, GPU_PARAMS_FAST
+    GPU_ENCODER      = "libx264"
+    GPU_PARAMS       = ["-preset", "fast", "-crf", "18"]
+    GPU_ENCODER_FAST = "libx264"
+    GPU_PARAMS_FAST  = ["-preset", "fast", "-crf", "20"]
+    print("⚠️  Encoder switched to libx264 (NVENC truncation detected)", flush=True)
+
+
 # ── Micro-jitter (используется в smooth_zoom) ────────────────────────────────
 
 def _jitter_xy(frames: int) -> tuple[str, str]:
