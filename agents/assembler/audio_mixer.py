@@ -369,316 +369,226 @@ def _build_vo_emotion_expr(
     return expr
 
 
-# ─── НОВЫЙ ЕДИНЫЙ АУДИО ПАСС ─────────────────────────────────────────────────
+# ─── АУДИО ПАСС (новая архитектура) ─────────────────────────────────────────
+#
+# Архитектура (надёжная, без дедлоков):
+#   Шаг 1: music_for_mix.wav  — тишина(intro_dur) + треки acrossfade, PCM f32le
+#   Шаг 2: sfx_for_mix.wav   — SFX-only amix с adelay, PCM f32le
+#   Шаг 3: intro_audio.wav   — аудио из intro видео, PCM f32le
+#   Шаг 4: bg_for_mix.wav    — amix(music+intro+sfx) с громкостями, PCM f32le
+#   Шаг 5: финальный 2-input amix(voice + bg) → AAC 320k (один encode)
+#
+# Правило: амикс с 2 входами (voice+bg) — никогда не дедлочит.
+# Все задержки запечены в WAV-файлы, никаких adelay в финальном amix.
 
 def build_final_audio(
     voice_path,
     output_path,
     sfx_events=None,
     music_start_sec:      float = 88.0,
-    music_vol_db:         float = -18.0,
+    music_vol_db:         float = -22.0,
     intro_audio_path=None,
     intro_trim_s:         float = 90.0,
-    intro_vol_db:         float = -6.0,
+    intro_vol_db:         float = -20.0,
     video_duration:       float = 0.0,
-    peak_moment_times=None,      # list[float] | None — timestamps for music duck
-    vo_emotion_keyframes=None,   # list[tuple(start_s,end_s,emotion_1_10)] | None
+    peak_moment_times=None,      # сохранён для совместимости API, не используется
+    vo_emotion_keyframes=None,   # сохранён для совместимости API, не используется
 ) -> str:
     """
-    Единый FFmpeg вызов:  voice + music (sidechaincompress) + SFX + intro + loudnorm.
+    Надёжный аудио микс без дедлоков.
 
-    Заменяет цепочку:
-      prepare_voice_track → prepare_music_track → final_mix → inject_sfx
-    Время сборки: ~15–25s вместо ~45–60s (нет промежуточных AAC файлов).
+    Архитектура (5 шагов):
+      1. music_for_mix.wav  — тишина(music_start_sec) + треки acrossfade, PCM f32le
+      2. sfx_for_mix.wav   — SFX-only amix с adelay, PCM f32le (нет дедлока)
+      3. intro_audio.wav   — аудио из intro видео, PCM f32le
+      4. bg_for_mix.wav    — amix(music+intro+sfx) с громкостями, PCM f32le
+      5. финальный 2-input amix(voice + bg) → AAC 320k (один encode, нет дедлока)
 
-    Новые параметры
-    ---------------
-    peak_moment_times     : абсолютные времена пиков (секунды) для duck музыки.
-                            На каждом пике музыка рампируется до 5% за 0.5s,
-                            держится 1s и восстанавливается за 0.5s.
-    vo_emotion_keyframes  : [(start_s, end_s, emotion_1_10), ...] — per-scene emotion.
-                            emotion 1→ -5.2dB, emotion 10→ 0dB (LRA 8-12 LU target).
-
-    Parameters
-    ----------
-    voice_path       : MP3/AAC озвучки (вход)
-    output_path      : итоговый AAC файл
-    sfx_events       : [{time_s, file, gain}] — gain = готовый линейный коэффициент
-    music_start_sec  : задержка старта музыки от начала видео (сек)
-    music_vol_db     : базовая громкость музыки (dB), напр. -18.0
-    intro_audio_path : аудио из intro.mp4 (или None)
-    intro_trim_s     : обрезать интро аудио до этой длины
-    intro_vol_db     : громкость интро аудио (dB), напр. -6.0
-    video_duration   : полная длительность видео (нужна для расчёта длины музыки)
-
-    SFX events format
-    -----------------
-    Каждое событие: {"time_s": float, "file": str|Path, "gain": float}
-    - time_s : абсолютное время в секундах
-    - file   : путь к WAV/MP3
-    - gain   : линейный коэффициент громкости (уже нормализованный, напр. 0.18)
+    Правило надёжности: финальный amix всегда 2-входовой (voice + bg).
+    Все задержки/офсеты запечены в WAV на шагах 1-4, никаких adelay в финале.
     """
     sfx_events = sfx_events or []
-    music_dir = Path(os.getenv("MUSIC_DIR", ""))
+    music_dir  = Path(os.getenv("MUSIC_DIR", ""))
+    temp_dir   = Path(str(output_path)).parent
+    _wavs      : list[Path] = []   # temp files → удалить после микса
+    voice_dur  = get_audio_duration(str(voice_path))
 
-    # ── Собрать список музыкальных треков ─────────────────────────────────────
-    music_tracks: list[Path] = []
-    if music_dir.exists() and video_duration > 0:
+    def _run(cmd, label="ffmpeg"):
+        r = subprocess.run(cmd, capture_output=True)
+        if r.returncode != 0:
+            print(f"  [Audio] {label} failed: {r.stderr.decode(errors='replace')[:300]}",
+                  flush=True)
+        return r.returncode == 0
+
+    # ── Шаг 1: music_for_mix.wav ─────────────────────────────────────────────
+    # тишина(music_start_sec) + треки с acrossfade + trim + fade, полный уровень
+    music_wav = None
+    use_music = music_vol_db > -60 and music_dir.exists() and video_duration > 0
+    if use_music:
         all_tracks = sorted([
             f for f in music_dir.iterdir()
             if f.suffix.lower() in (".mp3", ".wav", ".aac", ".flac")
         ])
         if all_tracks:
             needed_dur = max(0.0, video_duration - music_start_sec + 10.0)
-            total = 0.0
-            idx   = 0
+            total, idx, tracks = 0.0, 0, []
             while total < needed_dur:
-                track = all_tracks[idx % len(all_tracks)]
-                music_tracks.append(track)
-                total += get_audio_duration(str(track))
+                t = all_tracks[idx % len(all_tracks)]
+                tracks.append(t)
+                total += get_audio_duration(str(t))
                 idx   += 1
                 if idx > len(all_tracks) * 3:
-                    break  # safety: never loop more than 3× the library
-            print(f"  🎵 Музыка: {len(music_tracks)} треков, ~{total:.0f}s", flush=True)
+                    break
+            print(f"  [Audio] music: {len(tracks)} tracks ~{total:.0f}s", flush=True)
 
-    # ── Собрать команду ffmpeg ────────────────────────────────────────────────
-    cmd = ["ffmpeg", "-y"]
+            music_wav = temp_dir / "_music_for_mix.wav"
+            _wavs.append(music_wav)
+            n = len(tracks)
 
-    # [0] голос
-    cmd += ["-i", str(voice_path)]
+            cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
+            for t in tracks:
+                cmd += ["-i", str(t)]
 
-    # [1..M] музыкальные треки
-    music_input_start = 1
-    for t in music_tracks:
-        cmd += ["-i", str(t)]
+            fc = [f"[0:a]atrim=0:{music_start_sec:.3f}[sil]"]
+            for j in range(n):
+                fc.append(f"[{j+1}:a]aresample=44100,aformat=channel_layouts=stereo[mt{j}]")
 
-    # [M+1..M+N] SFX файлы
-    sfx_input_start = music_input_start + len(music_tracks)
-    for ev in sfx_events:
-        cmd += ["-i", str(ev["file"])]
+            if n == 1:
+                fc.append("[mt0]anull[mcat]")
+            elif n == 2:
+                fc.append("[mt0][mt1]acrossfade=d=3:c1=tri:c2=tri[mcat]")
+            else:
+                prev = "mt0"
+                for j in range(1, n):
+                    out = "mcat" if j == n - 1 else f"cf{j}"
+                    fc.append(f"[{prev}][mt{j}]acrossfade=d=3:c1=tri:c2=tri[{out}]")
+                    prev = out
 
-    # [M+N+1] интро аудио (опционально)
-    intro_input_idx = None
+            fo = max(0.0, needed_dur - 4.0)
+            fc.append(
+                f"[mcat]atrim=0:{needed_dur:.2f},"
+                f"afade=t=in:st=0:d=2,afade=t=out:st={fo:.2f}:d=4[mtr]"
+            )
+            fc.append("[sil][mtr]concat=n=2:v=0:a=1[out]")
+
+            cmd += ["-filter_complex", ";".join(fc),
+                    "-map", "[out]",
+                    "-t", f"{music_start_sec + needed_dur:.2f}",
+                    "-c:a", "pcm_f32le", "-ar", "44100", str(music_wav)]
+            if not _run(cmd, "music WAV"):
+                music_wav = None
+
+    # ── Шаг 2: sfx_for_mix.wav ───────────────────────────────────────────────
+    # SFX-only amix с adelay — только короткие файлы, дедлока нет
+    sfx_wav = None
+    if sfx_events:
+        sfx_wav = temp_dir / "_sfx_for_mix.wav"
+        _wavs.append(sfx_wav)
+        cmd = ["ffmpeg", "-y"]
+        for ev in sfx_events:
+            cmd += ["-i", str(ev["file"])]
+        fc = []
+        for k, ev in enumerate(sfx_events):
+            delay_ms   = max(0, int(float(ev.get("time_s", ev.get("time", 0))) * 1000))
+            gain       = float(ev.get("gain", ev.get("vol", 0.20)))
+            sfx_dur    = get_audio_duration(str(ev["file"]))
+            fo_d       = min(0.15, sfx_dur * 0.3)
+            fc.append(
+                f"[{k}:a]aresample=44100,aformat=channel_layouts=stereo,"
+                f"afade=t=in:st=0:d=0.04,"
+                f"afade=t=out:st={max(0.0,sfx_dur-fo_d):.3f}:d={fo_d:.3f},"
+                f"adelay={delay_ms}|{delay_ms},volume={gain:.6f}[s{k}]"
+            )
+        ins = "".join(f"[s{k}]" for k in range(len(sfx_events)))
+        fc.append(f"{ins}amix=inputs={len(sfx_events)}:"
+                  f"duration=longest:normalize=0:dropout_transition=0[out]")
+        cmd += ["-filter_complex", ";".join(fc),
+                "-map", "[out]", "-c:a", "pcm_f32le", "-ar", "44100", str(sfx_wav)]
+        if not _run(cmd, "SFX WAV"):
+            sfx_wav = None
+
+    # ── Шаг 3: intro_audio.wav ───────────────────────────────────────────────
+    intro_wav = None
     if intro_audio_path and Path(str(intro_audio_path)).exists():
-        intro_input_idx = sfx_input_start + len(sfx_events)
-        cmd += ["-i", str(intro_audio_path)]
+        intro_wav = temp_dir / "_intro_audio.wav"
+        _wavs.append(intro_wav)
+        if not _run(["ffmpeg", "-y", "-i", str(intro_audio_path),
+                     "-vn", "-t", f"{intro_trim_s:.2f}",
+                     "-c:a", "pcm_f32le", "-ar", "44100", str(intro_wav)],
+                    "intro WAV"):
+            intro_wav = None
 
-    # ── Предварительные вычисления для динамики ──────────────────────────────
-    # VO emotion expression (per-scene volume)
-    _vo_kf_linear = [
-        (float(s), float(e), _vo_volume_for_emotion(float(em)))
-        for s, e, em in (vo_emotion_keyframes or [])
-    ]
-    _vo_expr    = _build_vo_emotion_expr(_vo_kf_linear, default=1.0)
-    _has_vo_dyn = (_vo_expr != "1.000000")
+    # ── Шаг 4: bg_for_mix.wav ────────────────────────────────────────────────
+    # amix всех фоновых дорожек с их громкостями
+    bg_wav = None
+    bg = []   # (path, vol_db)
+    if music_wav:
+        bg.append((music_wav, music_vol_db))
+    if intro_wav:
+        bg.append((intro_wav, intro_vol_db))
+    if sfx_wav:
+        bg.append((sfx_wav, 0.0))   # SFX уже с gain
 
-    # Music peak-moment duck expression
-    _safe_peaks  = [float(t) for t in (peak_moment_times or []) if float(t) > 0]
-    _peak_count  = len(_safe_peaks)
+    if bg:
+        bg_wav = temp_dir / "_bg_for_mix.wav"
+        _wavs.append(bg_wav)
+        if len(bg) == 1:
+            path, db = bg[0]
+            _run(["ffmpeg", "-y", "-i", str(path),
+                  "-af", f"volume={db}dB",
+                  "-c:a", "pcm_f32le", "-ar", "44100", str(bg_wav)], "bg WAV")
+        else:
+            cmd = ["ffmpeg", "-y"]
+            for path, _ in bg:
+                cmd += ["-i", str(path)]
+            fc, lbls = [], []
+            for i, (_, db) in enumerate(bg):
+                vf = f"volume={db}dB" if db != 0.0 else "anull"
+                fc.append(f"[{i}:a]aresample=44100,aformat=channel_layouts=stereo,{vf}[b{i}]")
+                lbls.append(f"[b{i}]")
+            n = len(bg)
+            fc.append(f"{''.join(lbls)}amix=inputs={n}:"
+                      f"duration=longest:normalize=0:dropout_transition=0[out]")
+            cmd += ["-filter_complex", ";".join(fc),
+                    "-map", "[out]", "-c:a", "pcm_f32le", "-ar", "44100", str(bg_wav)]
+            if not _run(cmd, "bg WAV"):
+                bg_wav = None
 
-    # Notify pipeline_validator (for QA checks)
-    if _peak_count > 0:
+    # ── Шаг 5: финальный 2-input amix → AAC 320k ─────────────────────────────
+    print(f"  [Audio] final mix: voice"
+          + (f" + music" if music_wav else "")
+          + (f" + intro" if intro_wav else "")
+          + (f" + {len(sfx_events)}×SFX" if sfx_wav else ""),
+          flush=True)
+
+    if bg_wav and bg_wav.exists():
+        _run([
+            "ffmpeg", "-y",
+            "-i", str(voice_path),
+            "-i", str(bg_wav),
+            "-filter_complex",
+            "[0:a]aresample=44100,aformat=channel_layouts=stereo[v];"
+            "[1:a]aresample=44100,aformat=channel_layouts=stereo[b];"
+            "[v][b]amix=inputs=2:duration=first:normalize=0:dropout_transition=0[out]",
+            "-map", "[out]",
+            "-t", f"{voice_dur:.3f}",
+            "-c:a", "aac", "-b:a", "320k", "-ar", "44100",
+            "-loglevel", "warning",
+            str(output_path),
+        ], "final amix")
+    else:
+        # Нет фоновых дорожек — просто конвертируем голос
+        _run(["ffmpeg", "-y", "-i", str(voice_path),
+              "-c:a", "aac", "-b:a", "320k", "-ar", "44100",
+              "-loglevel", "warning", str(output_path)], "voice-only")
+
+    # Удалить temp WAV файлы
+    for w in _wavs:
         try:
-            from pipeline_validator import _emit as _pv_emit
-            _pv_emit("audio_music_peaks", count=_peak_count,
-                     times=[round(t, 2) for t in _safe_peaks])
+            w.unlink(missing_ok=True)
         except Exception:
             pass
 
-    # ── filter_complex ────────────────────────────────────────────────────────
-    fc: list[str] = []
-
-    # [0] Voice → resample → (optional emotion volume) → split for sidechain
-    if music_tracks:
-        if _has_vo_dyn:
-            # Apply emotion volume BEFORE split so sidechain also has natural level
-            fc.append(
-                f"[0:a]aresample=44100,aformat=channel_layouts=stereo,"
-                f"volume='{_vo_expr}':eval=frame,"
-                f"asplit=2[voice][voice_sc]"
-            )
-        else:
-            fc.append(
-                "[0:a]aresample=44100,aformat=channel_layouts=stereo,"
-                "asplit=2[voice][voice_sc]"
-            )
-    else:
-        if _has_vo_dyn:
-            fc.append(
-                f"[0:a]aresample=44100,aformat=channel_layouts=stereo,"
-                f"volume='{_vo_expr}':eval=frame[voice]"
-            )
-        else:
-            fc.append("[0:a]aresample=44100,aformat=channel_layouts=stereo[voice]")
-
-    # Музыка: resample каждый трек → concat → trim → fade → adelay → volume
-    music_out_label = None
-    if music_tracks:
-        n_mt = len(music_tracks)
-        for j in range(n_mt):
-            idx = music_input_start + j
-            fc.append(
-                f"[{idx}:a]aresample=44100,"
-                f"aformat=channel_layouts=stereo[mt{j}]"
-            )
-
-        if n_mt > 1:
-            mt_inputs = "".join(f"[mt{j}]" for j in range(n_mt))
-            fc.append(f"{mt_inputs}concat=n={n_mt}:v=0:a=1[music_cat]")
-        else:
-            fc.append("[mt0]anull[music_cat]")
-
-        needed_dur = max(0.0, video_duration - music_start_sec + 10.0)
-        fo_start   = max(0.0, needed_dur - 4.0)
-        delay_ms   = int(music_start_sec * 1000)
-        music_lin  = 10 ** (music_vol_db / 20)
-
-        # Dynamic duck expression at PEAK_MOMENT timestamps; flat if no peaks
-        _music_vol_expr = _build_music_duck_expr(_safe_peaks, music_lin)
-        if _music_vol_expr == f"{music_lin:.6f}":
-            # No peaks — flat volume (faster ffmpeg path, avoids eval=frame overhead)
-            _music_vol_filter = f"volume={music_lin:.6f}"
-        else:
-            _music_vol_filter = f"volume='{_music_vol_expr}':eval=frame"
-            print(f"  [Audio] music duck: {_peak_count} peaks → keyframe volume", flush=True)
-
-        fc.append(
-            f"[music_cat]"
-            f"atrim=0:{needed_dur:.2f},"
-            f"afade=t=in:st=0:d=2,"
-            f"afade=t=out:st={fo_start:.2f}:d=4,"
-            f"adelay={delay_ms}|{delay_ms},"
-            f"{_music_vol_filter}"
-            f"[music_base]"
-        )
-
-        # Sidechaincompress: music_base (сигнал) + voice_sc (sidechain) → music_sc
-        # threshold=0.50: срабатывает только на пиках голоса (~-6dBFS и выше)
-        # ratio=1.5: мягкое сжатие (~1dB на пиках) — музыка всегда слышна
-        # attack=50ms/release=1500ms: медленный отклик, не заметен на слух
-        fc.append(
-            "[music_base][voice_sc]"
-            "sidechaincompress="
-            "threshold=0.50:ratio=1.5:attack=50:release=1500:level_sc=0.8"
-            "[music_sc]"
-        )
-        music_out_label = "music_sc"
-
-    # SFX дорожки: adelay + fade in/out + volume
-    sfx_labels: list[str] = []
-    for k, ev in enumerate(sfx_events):
-        delay_ms  = max(0, int(float(ev.get("time_s", ev.get("time", 0))) * 1000))
-        gain      = float(ev.get("gain", ev.get("vol", 0.20)))
-        sfx_file  = Path(str(ev["file"]))
-
-        # Длина SFX для fade_out (быстрый ffprobe — результат кэшируется)
-        try:
-            _r = subprocess.run(
-                ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
-                 "-of", "csv=p=0", str(sfx_file)],
-                capture_output=True, text=True,
-            )
-            sfx_dur = float(_r.stdout.strip() or "1.0")
-        except Exception:
-            sfx_dur = 1.0
-
-        fade_out_d = min(0.15, sfx_dur * 0.3)
-        fo_st      = max(0.0, sfx_dur - fade_out_d)
-        lbl        = f"sfx{k}"
-        sfx_idx    = sfx_input_start + k
-
-        fc.append(
-            f"[{sfx_idx}:a]"
-            f"aresample=44100,aformat=channel_layouts=stereo,"
-            f"afade=t=in:st=0:d=0.04,"
-            f"afade=t=out:st={fo_st:.3f}:d={fade_out_d:.3f},"
-            f"adelay={delay_ms}|{delay_ms},"
-            f"volume={gain:.6f}"
-            f"[{lbl}]"
-        )
-        sfx_labels.append(f"[{lbl}]")
-
-    # Интро аудио
-    intro_label = None
-    if intro_input_idx is not None:
-        intro_lin = 10 ** (intro_vol_db / 20)
-        fc.append(
-            f"[{intro_input_idx}:a]"
-            f"atrim=0:{intro_trim_s:.1f},"
-            f"aresample=44100,aformat=channel_layouts=stereo,"
-            f"volume={intro_lin:.6f}"
-            f"[intro_a]"
-        )
-        intro_label = "intro_a"
-
-    # amix: voice + music_sc + sfx* + intro
-    mix_parts: list[str] = ["[voice]"]
-    if music_out_label:
-        mix_parts.append(f"[{music_out_label}]")
-    mix_parts.extend(sfx_labels)
-    if intro_label:
-        mix_parts.append(f"[{intro_label}]")
-
-    n_mix = len(mix_parts)
-    mix_str = "".join(mix_parts)
-    fc.append(
-        f"{mix_str}"
-        f"amix=inputs={n_mix}:duration=longest:normalize=0:dropout_transition=0,"
-        f"loudnorm=I=-16:TP=-1:LRA=11:linear=false"
-        f"[mix_out]"
-    )
-
-    _voice_dur = get_audio_duration(str(voice_path))
-    _fc_str = ";".join(fc)
-    _fc_file = Path(str(output_path)).parent / "_audio_filter.txt"
-    _fc_file.write_text(_fc_str, encoding="utf-8")
-
-    print(
-        f"  [Audio] mix+loudnorm: voice + {len(music_tracks)}×music + {len(sfx_events)}×SFX"
-        + (" + intro" if intro_label else ""),
-        flush=True,
-    )
-
-    result = subprocess.run(cmd + [
-        "-filter_complex_script", str(_fc_file),
-        "-map", "[mix_out]",
-        "-t", f"{_voice_dur:.3f}",
-        "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
-        "-loglevel", "warning",
-        str(output_path),
-    ])
-    _fc_file.unlink(missing_ok=True)
-
-    _out_dur = get_audio_duration(str(output_path)) if Path(str(output_path)).exists() else 0.0
-    if result.returncode != 0 or _out_dur < _voice_dur * 0.8:
-        print(f"  [Audio] build_final_audio bad output ({_out_dur:.1f}s < {_voice_dur*0.8:.1f}s) — fallback", flush=True)
-        # Graceful fallback: use old pipeline without SFX
-        _v_tmp = Path(str(output_path)).parent / "_voice_tmp.aac"
-        _m_tmp = Path(str(output_path)).parent / "_music_tmp.aac"
-        prepare_voice_track(voice_path, _v_tmp)
-        _m_ok = None
-        if music_tracks and video_duration > 0:
-            _m_ok = prepare_music_track(
-                video_duration=video_duration,
-                output_path=_m_tmp,
-                music_start=int(music_start_sec),
-            )
-        final_mix(
-            voice_path=_v_tmp,
-            music_path=_m_tmp if _m_ok else None,
-            output_path=output_path,
-            music_start=music_start_sec,
-            music_vol=10 ** (music_vol_db / 20),
-            intro_audio_path=str(intro_audio_path) if intro_audio_path else None,
-            intro_vol=10 ** (intro_vol_db / 20),
-        )
-        for tmp in [_v_tmp, _m_tmp]:
-            try:
-                tmp.unlink(missing_ok=True)
-            except Exception:
-                pass
-        return str(output_path)
-
-    dur = get_audio_duration(str(output_path))
-    print(f"✅ build_final_audio: {dur:.1f}s → {output_path}", flush=True)
+    out_dur = get_audio_duration(str(output_path)) if Path(str(output_path)).exists() else 0.0
+    print(f"  [Audio] done: {out_dur:.1f}s → {output_path}", flush=True)
     return str(output_path)
