@@ -36,7 +36,7 @@ BATCH_SIZE   = 20
 MAX_WORKERS  = 4
 RETRY_LIMIT  = 2
 
-SFX_RULES = (
+SFX_RULES_COSMOS = (
     "Also decide if a sound effect cue should trigger at this segment.\n"
     "Available sfx values: \"riser\", \"boom\", \"riser+boom\", \"impact\", \"downlifter\", null\n"
     "- riser      → tension building, anticipation before a reveal\n"
@@ -47,6 +47,17 @@ SFX_RULES = (
     "- null       → normal segment, no SFX\n"
     "Use VERY sparingly — only 3-5 SFX total per entire batch of 20 segments.\n"
     "At least 75% of segments MUST have sfx: null. Reserve for peak dramatic moments only.\n"
+)
+
+SFX_RULES_RELIGION = (
+    "Also decide if a soft sound effect cue should trigger at this segment.\n"
+    "Available sfx values: \"riser\", \"downlifter\", null\n"
+    "- riser      → gentle crescendo, moment of spiritual revelation or hope\n"
+    "- downlifter → sorrowful moment, loss, hardship, lament\n"
+    "- null       → normal segment, no SFX (most segments should be this)\n"
+    "This is a calm spiritual channel — NO boom, NO impact, NO riser+boom.\n"
+    "Use VERY sparingly — only 2-3 SFX total per entire batch of 20 segments.\n"
+    "At least 85% of segments MUST have sfx: null.\n"
 )
 
 NICHE_PROMPTS = {
@@ -62,7 +73,7 @@ NICHE_PROMPTS = {
         "- Segments may be in any language — always respond in English\n"
         "- If segment text is unclear/corrupted → fallback: \"deep space starfield galaxy nebula glowing\"\n"
         "- Optimize for stock footage library search\n\n"
-        + SFX_RULES +
+        + SFX_RULES_COSMOS +
         "\nExamples:\n"
         '"En 1977 nous avons reçu un message" → vq: "radio telescope dish night sky receiving signal", sfx: null\n'
         '"quelque chose fonce vers nous" → vq: "bright comet streaking toward camera deep space", sfx: "riser"\n'
@@ -74,19 +85,22 @@ NICHE_PROMPTS = {
         "You are a visual director and sound designer for a spiritual documentary YouTube channel.\n\n"
         "For each segment return TWO things:\n"
         "  vq  — SHORT English visual description (8-10 words) of what footage should play\n"
-        "  sfx — sound effect cue (or null)\n\n"
+        "  sfx — soft sound effect cue (or null)\n\n"
         "Visual rules:\n"
-        "- Name exact places/objects when mentioned (Vatican, Jerusalem, Bible, cross)\n"
-        "- For abstract concepts → closest visual analogy\n"
-        "- Always positive descriptions\n"
+        "- Name exact places ONLY if explicitly mentioned in segment text\n"
+        "- If unsure about specific place → use generic spiritual visual analogy\n"
+        "- Always positive, warm, uplifting descriptions\n"
+        "- Never use \"not\", \"unlike\", \"without\"\n"
         "- Segments may be in any language — always respond in English\n"
-        "- If segment text is unclear/corrupted → fallback: \"ancient church candles golden light glowing\"\n"
+        "- If segment text is unclear/corrupted → fallback: \"golden sunset ocean horizon peaceful warm light\"\n"
         "- Optimize for stock footage library search\n\n"
-        + SFX_RULES +
+        + SFX_RULES_RELIGION +
         "\nExamples:\n"
-        '"молитва в церкви" → vq: "people praying hands folded inside cathedral", sfx: null\n'
-        '"И тогда Бог явился" → vq: "divine light rays burst through cathedral window", sfx: "riser+boom"\n'
-        '"Иерусалим был разрушен" → vq: "ancient ruins Jerusalem stones fallen", sfx: "impact"\n'
+        '"Dios creó el mundo" → vq: "golden sunrise over mountain peaceful valley light rays", sfx: null\n'
+        '"la fe mueve montañas" → vq: "person praying hands folded warm candlelight church", sfx: null\n'
+        '"catedral de Notre Dame" → vq: "Notre Dame cathedral gothic architecture Paris exterior", sfx: null\n'
+        '"el cielo es eterno" → vq: "dramatic clouds parting golden light rays heavenly sky", sfx: "riser"\n'
+        '"[unclear/corrupted text]" → vq: "golden sunset ocean horizon peaceful warm light", sfx: null\n'
     ),
 }
 
