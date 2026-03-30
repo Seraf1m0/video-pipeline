@@ -414,6 +414,56 @@ def _build_sfx_events(
     return events
 
 
+# ─── Haiku SFX cues → события ────────────────────────────────────────────────
+
+def build_haiku_sfx_events(
+    segments: list[dict],
+    intro_duration: float = 0.0,
+    riser_offset_s: float = 0.8,
+) -> list[dict]:
+    """
+    Конвертирует sfx_cue поля сегментов (от Haiku) в список событий SFX.
+
+    segments: список сегментов из result_visual.json с полем sfx_cue
+    intro_duration: длительность интро — события раньше него игнорируются
+    riser_offset_s: riser ставится за это время ДО начала сегмента
+
+    Возвращает [{time, file, vol}, ...]
+    """
+    events: list[dict] = []
+    sfx_min_t = intro_duration + _SFX_START_BUFFER if intro_duration > 0 else 0.0
+
+    for seg in segments:
+        cue = seg.get("sfx_cue")
+        if not cue:
+            continue
+
+        seg_start = float(seg.get("start", 0))
+        if seg_start < sfx_min_t:
+            continue
+
+        if cue == "riser" or cue == "riser+boom":
+            riser_t = max(sfx_min_t, seg_start - riser_offset_s)
+            if _SFX_RISER:
+                events.append({"time": riser_t, "file": _pick(_SFX_RISER), "vol": _VOL_RISER})
+
+        if cue == "boom" or cue == "riser+boom":
+            if _SFX_BOOM:
+                events.append({"time": seg_start, "file": _pick(_SFX_BOOM), "vol": _VOL_BOOM})
+
+        if cue == "impact":
+            if _SFX_IMPACT:
+                events.append({"time": seg_start, "file": _pick(_SFX_IMPACT), "vol": _VOL_IMPACT})
+
+        if cue == "downlifter":
+            if _SFX_DOWNLIFTER:
+                events.append({"time": seg_start, "file": _pick(_SFX_DOWNLIFTER), "vol": _VOL_DOWNLIFTER})
+
+    events.sort(key=lambda e: e["time"])
+    print(f"[SFX] Haiku cues: {len(events)} событий из {sum(1 for s in segments if s.get('sfx_cue'))} cues", flush=True)
+    return events
+
+
 # ─── Инжект SFX в аудио ──────────────────────────────────────────────────────
 
 def inject_sfx(

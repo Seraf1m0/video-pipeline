@@ -65,7 +65,7 @@ from audio_mixer import build_final_audio
 from ass_generator import generate_ass, generate_karaoke_ass, generate_scripture_ass
 from subtitle_burner import burn_ass, generate_drawtext_filter
 from sfx_mixer import (
-    inject_sfx, compute_transition_times,
+    inject_sfx, compute_transition_times, build_haiku_sfx_events,
     _build_sfx_events, _enforce_sfx_sync, _prune_sfx_by_ratio,
     _sfx_gain,
 )
@@ -1120,7 +1120,7 @@ def main() -> None:
     # Времена переходов для SFX (в абсолютном времени аудио: смещаем на intro_dur)
     trans_times = compute_transition_times(segments_main, intro_dur, trans_dur) if sfx_enabled else []
 
-    # SFX события
+    # SFX события (transition-based)
     sfx_events = _build_sfx_events_for_render(
         trans_plan    = trans_plan,
         trans_times   = trans_times,
@@ -1131,7 +1131,16 @@ def main() -> None:
         sfx_vol_scale = sfx_vol_scale,
         xf_dur        = trans_dur,
     ) if sfx_enabled else []
-    if sfx_events:
+
+    # SFX события от Haiku (narrative-based) — мерж с transition SFX
+    if sfx_enabled and any(s.get("sfx_cue") for s in segments):
+        haiku_events = build_haiku_sfx_events(
+            segments       = segments,
+            intro_duration = intro_dur,
+        )
+        sfx_events = sorted(sfx_events + haiku_events, key=lambda e: e["time"])
+        log(f"SFX: {len(sfx_events)} событий (transition + {len(haiku_events)} Haiku)")
+    elif sfx_events:
         log(f"SFX: {len(sfx_events)} событий")
 
     # ── 4. RENDER ─────────────────────────────────────────────────────────────

@@ -36,40 +36,57 @@ BATCH_SIZE   = 20
 MAX_WORKERS  = 4
 RETRY_LIMIT  = 2
 
+SFX_RULES = (
+    "Also decide if a sound effect cue should trigger at this segment.\n"
+    "Available sfx values: \"riser\", \"boom\", \"riser+boom\", \"impact\", \"downlifter\", null\n"
+    "- riser      → tension building, anticipation before a reveal\n"
+    "- boom       → big reveal, climax, jaw-dropping moment\n"
+    "- riser+boom → full combo: tension → hit (for the most dramatic moments)\n"
+    "- impact     → sudden shock, unexpected fact, surprise\n"
+    "- downlifter → sad news, disappointment, let-down\n"
+    "- null       → normal segment, no SFX\n"
+    "Use VERY sparingly — only 3-5 SFX total per entire batch of 20 segments.\n"
+    "At least 75% of segments MUST have sfx: null. Reserve for peak dramatic moments only.\n"
+)
+
 NICHE_PROMPTS = {
     "cosmos": (
-        "You are a visual director for a space documentary YouTube channel.\n\n"
-        "For each segment, write a SHORT English visual description (8-10 words) "
-        "of what footage should play. Describe VISUALS only — what camera shows.\n\n"
-        "Rules:\n"
+        "You are a visual director and sound designer for a space documentary YouTube channel.\n\n"
+        "For each segment return TWO things:\n"
+        "  vq  — SHORT English visual description (8-10 words) of what footage should play\n"
+        "  sfx — sound effect cue (or null)\n\n"
+        "Visual rules:\n"
         "- Name exact objects ONLY if explicitly mentioned in segment text\n"
         "- If unsure about specific object → use generic visual analogy\n"
         "- Always positive descriptions, never use \"not\", \"unlike\", \"without\"\n"
         "- Segments may be in any language — always respond in English\n"
-        "- If segment text is unclear, corrupted or untranslatable → "
-        "use neutral space fallback: stars, galaxy, nebula, deep space\n"
+        "- If segment text is unclear/corrupted → fallback: \"deep space starfield galaxy nebula glowing\"\n"
         "- Optimize for stock footage library search\n\n"
-        "Examples:\n"
-        '"космический зонд был запущен" → "spacecraft rocket launch trail blue sky"\n'
-        '"тёмная материя невидима" → "deep space dark nebula mysterious cosmic void"\n'
-        '"галактика Андромеда" → "Andromeda galaxy spiral arms stars deep space"\n'
-        '"radio telescope received signal" → "large radio telescope dish night sky rotating"\n'
-        '"[unclear/corrupted text]" → "deep space starfield galaxy nebula glowing"\n'
+        + SFX_RULES +
+        "\nExamples:\n"
+        '"En 1977 nous avons reçu un message" → vq: "radio telescope dish night sky receiving signal", sfx: null\n'
+        '"quelque chose fonce vers nous" → vq: "bright comet streaking toward camera deep space", sfx: "riser"\n'
+        '"Ce signal venait des étoiles" → vq: "stars twinkling vast cosmic void deep space", sfx: "boom"\n'
+        '"des décennies de silence" → vq: "empty dark observatory dust gathering silence", sfx: "downlifter"\n'
+        '"тёмная материя невидима" → vq: "deep space dark nebula mysterious cosmic void", sfx: null\n'
     ),
     "religion": (
-        "You are a visual director for a spiritual documentary YouTube channel.\n\n"
-        "For each segment, write a SHORT English visual description (8-10 words) "
-        "of what footage should play. Describe VISUALS only — what camera shows.\n\n"
-        "Rules:\n"
+        "You are a visual director and sound designer for a spiritual documentary YouTube channel.\n\n"
+        "For each segment return TWO things:\n"
+        "  vq  — SHORT English visual description (8-10 words) of what footage should play\n"
+        "  sfx — sound effect cue (or null)\n\n"
+        "Visual rules:\n"
         "- Name exact places/objects when mentioned (Vatican, Jerusalem, Bible, cross)\n"
-        "- For abstract concepts → closest visual analogy (faith → candles glowing in dark church)\n"
-        "- Always positive descriptions of what to show\n"
+        "- For abstract concepts → closest visual analogy\n"
+        "- Always positive descriptions\n"
         "- Segments may be in any language — always respond in English\n"
+        "- If segment text is unclear/corrupted → fallback: \"ancient church candles golden light glowing\"\n"
         "- Optimize for stock footage library search\n\n"
-        "Examples:\n"
-        '"молитва в церкви" → "people praying hands folded inside cathedral"\n'
-        '"Библия была написана" → "ancient bible open pages golden light"\n'
-        '"Иерусалим" → "Jerusalem old city walls aerial view sunrise"\n'
+        + SFX_RULES +
+        "\nExamples:\n"
+        '"молитва в церкви" → vq: "people praying hands folded inside cathedral", sfx: null\n'
+        '"И тогда Бог явился" → vq: "divine light rays burst through cathedral window", sfx: "riser+boom"\n'
+        '"Иерусалим был разрушен" → vq: "ancient ruins Jerusalem stones fallen", sfx: "impact"\n'
     ),
 }
 
@@ -88,10 +105,13 @@ def _call_claude(prompt: str) -> str:
     return r.stdout.strip()
 
 
-def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, str]:
+_VALID_SFX = {"riser", "boom", "riser+boom", "impact", "downlifter"}
+
+
+def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, dict]:
     """
     batch: [(seg_id, text), ...]
-    Returns: {seg_id: visual_query_en}
+    Returns: {seg_id: {"vq": "...", "sfx": "riser"|null}}
     """
     base_prompt = NICHE_PROMPTS.get(niche, NICHE_PROMPTS["cosmos"])
     lines = "\n".join(f"{i+1}. {text}" for i, (_, text) in enumerate(batch))
@@ -101,7 +121,8 @@ def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, str]:
         f"{base_prompt}"
         f"Segments:\n{lines}\n\n"
         f"Respond ONLY with valid JSON, no markdown:\n"
-        f'{{"1": "visual description", "2": "visual description", ...}}'
+        f'{{"1": {{"vq": "visual description", "sfx": null}}, '
+        f'"2": {{"vq": "visual description", "sfx": "riser"}}, ...}}'
     )
 
     for attempt in range(RETRY_LIMIT + 1):
@@ -116,8 +137,16 @@ def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, str]:
             result = {}
             for i, seg_id in enumerate(seg_ids):
                 key = str(i + 1)
-                if key in data and isinstance(data[key], str):
-                    result[seg_id] = data[key].strip()
+                entry = data.get(key, {})
+                # Поддержка старого формата (строка) и нового (объект)
+                if isinstance(entry, str):
+                    result[seg_id] = {"vq": entry.strip(), "sfx": None}
+                elif isinstance(entry, dict):
+                    vq  = str(entry.get("vq", "")).strip()
+                    sfx = entry.get("sfx")
+                    if sfx not in _VALID_SFX:
+                        sfx = None
+                    result[seg_id] = {"vq": vq, "sfx": sfx}
             return result
         except Exception as e:
             if attempt < RETRY_LIMIT:
@@ -162,7 +191,7 @@ def generate_visual_queries(
     print(f"📦 Батчей: {len(batches)} × {BATCH_SIZE}", flush=True)
 
     # Параллельная генерация
-    visual_map: dict[int, str] = {}
+    result_map: dict[int, dict] = {}
     t0 = time.time()
 
     with ThreadPoolExecutor(max_workers=workers) as exe:
@@ -171,23 +200,51 @@ def generate_visual_queries(
             idx = futures[future]
             try:
                 result = future.result()
-                visual_map.update(result)
-                print(f"  ✓ Батч {idx+1}/{len(batches)}: {len(result)} queries", flush=True)
+                result_map.update(result)
+                sfx_count = sum(1 for v in result.values() if v.get("sfx"))
+                print(f"  ✓ Батч {idx+1}/{len(batches)}: {len(result)} queries, {sfx_count} SFX cues", flush=True)
             except Exception as e:
                 print(f"  ✗ Батч {idx+1} ошибка: {e}", flush=True)
 
     elapsed = time.time() - t0
-    print(f"⏱ Генерация: {elapsed:.1f}s | Получено: {len(visual_map)}/{len(segments)}", flush=True)
+    sfx_total = sum(1 for v in result_map.values() if v.get("sfx"))
+    print(f"⏱ Генерация: {elapsed:.1f}s | Получено: {len(result_map)}/{len(segments)} | SFX cues: {sfx_total}", flush=True)
 
-    # Добавить visual_query в каждый сегмент
+    # Добавить visual_query и sfx_cue в каждый сегмент
     for seg in segments:
         seg_id = seg.get("id")
-        vq = visual_map.get(seg_id)
-        if vq:
-            seg["visual_query"] = vq
-        else:
-            # Fallback: используем оригинальный текст
-            seg["visual_query"] = seg.get("text", "")
+        entry  = result_map.get(seg_id, {})
+        seg["visual_query"] = entry.get("vq") or seg.get("text", "")
+        seg["sfx_cue"]      = entry.get("sfx")  # None или "riser"/"boom"/etc
+
+    # ── Post-processing: ограничить плотность SFX ──────────────────────────────
+    # Цель: ~1 SFX в минуту. Оставляем топ N по приоритету с min расстоянием 30s.
+    total_dur = float(data.get("total_duration", 0)) or float(segments[-1].get("end", 0))
+    sfx_max   = max(5, int(total_dur / 60))  # ~1 в минуту, минимум 5
+    _SFX_PRIORITY = {"riser+boom": 5, "boom": 4, "impact": 3, "riser": 2, "downlifter": 1}
+    _MIN_SFX_GAP  = 30.0  # секунд между SFX cues
+
+    sfx_candidates = sorted(
+        [(s, _SFX_PRIORITY.get(s.get("sfx_cue", ""), 0)) for s in segments if s.get("sfx_cue")],
+        key=lambda x: -x[1],
+    )
+    kept_times: list[float] = []
+    kept_ids:   set         = set()
+    for seg, _ in sfx_candidates:
+        t = float(seg.get("start", 0))
+        if all(abs(t - kt) >= _MIN_SFX_GAP for kt in kept_times):
+            kept_ids.add(seg.get("id"))
+            kept_times.append(t)
+        if len(kept_ids) >= sfx_max:
+            break
+
+    dropped = 0
+    for seg in segments:
+        if seg.get("sfx_cue") and seg.get("id") not in kept_ids:
+            seg["sfx_cue"] = None
+            dropped += 1
+    if dropped:
+        print(f"   SFX filter: убрано {dropped} лишних cues → осталось {len(kept_ids)}", flush=True)
 
     data["segments"] = segments
     data["visual_queries_generated"] = True
@@ -196,9 +253,10 @@ def generate_visual_queries(
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    covered = sum(1 for s in segments if s.get("visual_query") and s["visual_query"] != s.get("text", ""))
+    covered  = sum(1 for s in segments if s.get("visual_query") and s["visual_query"] != s.get("text", ""))
+    sfx_segs = sum(1 for s in segments if s.get("sfx_cue"))
     print(f"💾 result_visual.json сохранён: {out_path}", flush=True)
-    print(f"   Обогащено: {covered}/{len(segments)} сегментов", flush=True)
+    print(f"   Visual queries: {covered}/{len(segments)} | SFX cues: {sfx_segs}", flush=True)
     return out_path
 
 
