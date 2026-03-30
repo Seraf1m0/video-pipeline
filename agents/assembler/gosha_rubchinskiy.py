@@ -946,6 +946,8 @@ def main() -> None:
     parser.add_argument("--no-music", action="store_true", help="Без фоновой музыки")
     parser.add_argument("--skip-intro-clips", action="store_true",
                         help="Не генерировать intro_clips/ (только main-клипы)")
+    parser.add_argument("--skip-visual-queries", action="store_true",
+                        help="Пропустить генерацию visual queries через Claude Haiku")
     parser.add_argument("--intro-duration", type=float, default=90.0,
                         help="Длительность интро в секундах (default: 90)")
     args = parser.parse_args()
@@ -1004,6 +1006,31 @@ def main() -> None:
         log(f"Интро:   {intro_path.name} ({intro_dur:.1f}s)")
     elif intro_enabled:
         log("Интро:   не найдено")
+
+    # ── 1b. VISUAL QUERIES (Haiku) ────────────────────────────────────────────
+    # Обогащаем сегменты визуальными описаниями для лучшего CLIP-матчинга.
+    # Запускаем только если result_visual.json ещё не создан.
+    result_visual_json = get_transcripts_dir(channel_id, session) / "result_visual.json"
+    if not result_visual_json.exists() and not args.skip_visual_queries:
+        try:
+            _vq_dir = BASE_DIR / "agents" / "library"
+            if str(_vq_dir) not in sys.path:
+                sys.path.insert(0, str(_vq_dir))
+            from visual_query_generator import generate_visual_queries
+            from paths import get_niche
+            niche = get_niche(channel_id)
+            log("Генерация visual queries через Claude Haiku...")
+            result_visual_json = generate_visual_queries(result_json, niche=niche)
+            segments, _ = load_segments(result_visual_json)
+            log(f"✅ Visual queries готовы: {result_visual_json.name}")
+        except Exception as _vq_err:
+            log(f"⚠️  Visual queries пропущены: {_vq_err}")
+    elif result_visual_json.exists():
+        log("Visual queries: загружаем result_visual.json")
+        try:
+            segments, _ = load_segments(result_visual_json)
+        except Exception:
+            pass  # оставляем оригинальные segments
 
     # ── 2. CLIPS ──────────────────────────────────────────────────────────────
     t_clips = time.time()

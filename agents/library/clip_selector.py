@@ -395,6 +395,7 @@ def match_segment_to_clip(
         chapter_vec: np.ndarray | None = None,      # [3] embedding текущей главы
         window_text: str = "",                      # [2] текст окна prev+next
         global_usage: dict | None = None,
+        visual_query: str = "",                     # [4] Haiku-сгенерированный визуальный запрос
         clip_last_used_idx: dict | None = None,
         current_video_idx:  int         = 0,
         segment_start:      float       = 0.0,
@@ -429,12 +430,14 @@ def match_segment_to_clip(
     emb_index   = {cid: i for i, cid in enumerate(clip_ids_list)}
 
     # ── Visual score (CLIP ViT-B/32 multilingual) ─────────────────────────────
+    # Используем visual_query (от Haiku) если есть, иначе fallback на segment_text
     vis_scores: dict[str, float] = {}
     if visual_embeddings is not None and visual_ids_list:
         try:
             from visual_embedder import encode_text as _clip_encode_text
-            vis_query = _clip_encode_text(segment_text)          # (512,)
-            raw_vis   = visual_embeddings @ vis_query             # (M,)
+            _clip_text = visual_query if visual_query.strip() else segment_text
+            vis_query_vec = _clip_encode_text(_clip_text)        # (512,)
+            raw_vis   = visual_embeddings @ vis_query_vec         # (M,)
             for cid, sc in zip(visual_ids_list, raw_vis.tolist()):
                 vis_scores[cid] = float(sc)
         except Exception as _ve:
@@ -734,6 +737,7 @@ def select_clips_for_video(
             video_used_at=video_used_at,
             visual_embeddings=visual_embeddings,
             visual_ids_list=visual_ids_list,
+            visual_query=seg.get("visual_query", ""),
         )
 
         # [5] Embedding diversity window (last 5): cosine > 0.92 → берём следующего кандидата
