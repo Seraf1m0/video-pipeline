@@ -252,6 +252,11 @@ def generate_visual_queries(
                 break
         return kept_ids
 
+    # Strip SFX from garbage/short segments before zone filtering
+    for seg in segments:
+        if seg.get("sfx_cue") and len(seg.get("text", "").strip()) < 5:
+            seg["sfx_cue"] = None
+
     sfx_all = sorted(
         [(s, _SFX_PRIORITY.get(s.get("sfx_cue", ""), 0)) for s in segments if s.get("sfx_cue")],
         key=lambda x: -x[1],
