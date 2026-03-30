@@ -264,7 +264,7 @@ def _final_concat(parts, output_path, post_vf: str = "", audio_path: str = "",
     if GPU_ENCODER != "libx264":
         _out_dur = get_video_duration(str(output_path)) if Path(str(output_path)).exists() else 0.0
         _expected_dur = sum(get_video_duration(str(p)) for p in parts if Path(str(p)).exists())
-        if result.returncode != 0 or (_expected_dur > 10 and _out_dur < _expected_dur * 0.95):
+        if result.returncode != 0 or (_expected_dur > 10 and _out_dur < _expected_dur - 3.0):
             import logging as _logging
             _logging.warning(
                 f"_final_concat NVENC issue (got {_out_dur:.1f}s expected ~{_expected_dur:.1f}s), retrying x264"
