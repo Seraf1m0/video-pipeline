@@ -52,7 +52,10 @@ def set_active_channel(channel_id: str) -> None:
     ACTIVE_CHANNEL_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(ACTIVE_CHANNEL_FILE, "w", encoding="utf-8") as f:
         json.dump({"active_channel_id": channel_id}, f, indent=2)
-    print(f"[channel] Active: {channel_id}")
+    try:
+        print(f"[channel] Active: {channel_id}")
+    except Exception:
+        pass
 
 
 def get_channel_config(channel_id: str) -> dict | None:
@@ -62,6 +65,16 @@ def get_channel_config(channel_id: str) -> dict | None:
         with open(config_path, encoding="utf-8") as f:
             return json.load(f)
     return None
+
+
+def get_last_session(channel_id: str) -> "str | None":
+    """Получить последнюю сессию канала (делегирует в agents/utils/paths.py)."""
+    import sys as _sys
+    _utils = Path(__file__).resolve().parent.parent / "agents" / "utils"
+    if str(_utils) not in _sys.path:
+        _sys.path.insert(0, str(_utils))
+    from paths import get_last_session as _get
+    return _get(channel_id)
 
 
 def get_channel_data_dir(base_data_dir: "Path | str") -> Path:

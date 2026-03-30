@@ -22,8 +22,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import torch
-import whisper
+from faster_whisper import WhisperModel
 
 # ── Channel manager (язык из активного канала) ────────────────────────────────
 try:
@@ -33,7 +32,12 @@ try:
     from channel_manager import get_active_channel as _get_active_channel
 
     def get_transcribe_language(channel_id: str = "") -> str:
-        _LANG_MAP = {"channel_001_cosmos_de": "de", "channel_002_cosmos_fr": "fr"}
+        _LANG_MAP = {
+            "de": "de", "fr": "fr", "es": "es",
+            "channel_001_cosmos_de": "de",
+            "channel_002_cosmos_fr": "fr",
+            "channel_003_religion_es": "es",
+        }
         if channel_id and channel_id in _LANG_MAP:
             lang = _LANG_MAP[channel_id]
             print(f"  🌐 Язык транскрипции: {lang} (из --channel {channel_id})")
@@ -46,19 +50,25 @@ try:
         return "de"
 except Exception:
     def get_transcribe_language(channel_id: str = "") -> str:
-        return "de"
+        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es",
+                     "channel_001_cosmos_de": "de",
+                     "channel_002_cosmos_fr": "fr",
+                     "channel_003_religion_es": "es"}
+        return _LANG_MAP.get(channel_id, "de")
 
 # Windows cp1251 консоль не поддерживает эмодзи — переключаем на UTF-8
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+import torch
 print(f"CUDA доступен: {torch.cuda.is_available()}")
 print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A'}")
+del torch
 
 # ── Модели Whisper ────────────────────────────────────────────────────────────
-# GPU (RTX 3060 12GB): large-v2 — высокое качество, ~10x быстрее base на CPU
+# GPU (RTX 3060 12GB): large-v3-turbo — 3-4x быстрее large-v2, лучшее качество FR/DE
 # CPU фолбэк         : base — быстро, достаточное качество
-_GPU_MODEL = "large-v2"
+_GPU_MODEL = "large-v3-turbo"
 _CPU_MODEL = "base"
 
 # ffmpeg в PATH (winget-установка)
@@ -84,6 +94,7 @@ except Exception:
 
 INPUT_DIR       = _CH_DATA_DIR / "input"
 TRANSCRIPTS_DIR = _CH_DATA_DIR / "transcripts"
+CACHE_DIR       = BASE_DIR / "data" / "transcripts_cache"
 
 # ── paths.py (новая структура) ─────────────────────────────────────────────────
 _UTILS_DIR = BASE_DIR / "agents" / "utils"
@@ -97,14 +108,47 @@ except ImportError:
     def _get_transcripts_dir(ch, sess): return TRANSCRIPTS_DIR / sess
 
 
+# ── Whisper кеш ───────────────────────────────────────────────────────────────
+
+def _audio_hash(path: Path) -> str:
+    """MD5 по содержимому аудиофайла."""
+    import hashlib
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _cache_path(audio_path: Path, mode: str) -> Path:
+    return CACHE_DIR / f"{_audio_hash(audio_path)}_{mode}.json"
+
+
+def _load_cache(audio_path: Path, mode: str) -> dict | None:
+    p = _cache_path(audio_path, mode)
+    if p.exists():
+        with open(p, encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+def _save_cache(audio_path: Path, mode: str, data: dict) -> None:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    with open(_cache_path(audio_path, mode), "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
 def detect_device() -> tuple[str, str, str]:
     """
     Определяет устройство, GPU-имя и имя модели Whisper.
     Возвращает: (device, gpu_name, model_size)
     """
-    if torch.cuda.is_available():
-        gpu_name = torch.cuda.get_device_name(0)
-        return "cuda", gpu_name, _GPU_MODEL
+    try:
+        import torch as _torch
+        if _torch.cuda.is_available():
+            return "cuda", _torch.cuda.get_device_name(0), _GPU_MODEL
+    except Exception:
+        pass
     return "cpu", "", _CPU_MODEL
 
 
@@ -144,32 +188,42 @@ def move_to_session(audio_path: Path, session: str, channel_root: Path | None = 
     return dest
 
 
-def transcribe(model, audio_path: Path, use_gpu: bool = False, channel_id: str = "") -> tuple[list[dict], float, list[dict]]:
-    """Транскрибирует файл, возвращает сегменты, длину и word-level тайминги."""
+def transcribe(model: WhisperModel, audio_path: Path, use_gpu: bool = False, channel_id: str = "") -> tuple[list[dict], float, list[dict]]:
+    """Транскрибирует файл через faster-whisper, возвращает сегменты и длину."""
     print(f"[Whisper] Транскрибирую: {audio_path.name}")
-    result = model.transcribe(
+    lang = get_transcribe_language(channel_id)
+
+    fw_segments, info = model.transcribe(
         str(audio_path),
-        language=get_transcribe_language(channel_id),
-        verbose=False,
+        language=lang,
         condition_on_previous_text=False,
-        fp16=use_gpu,       # fp16 на GPU — быстрее; на CPU — False (не поддерживается)
-        word_timestamps=True,  # точные тайминги для каждого слова
+        beam_size=5,
+        vad_filter=True,        # пропускать тишину — ускоряет и убирает галлюцинации
+        word_timestamps=True,   # нужно для каракое-субтитров
     )
-    segments = result["segments"]
-    duration = segments[-1]["end"] if segments else 0.0
 
-    # Собираем word-level тайминги из всех сегментов
-    all_words: list[dict] = []
-    for seg in segments:
-        for w in seg.get("words", []):
-            word_text = w["word"].strip()
-            if word_text:
-                all_words.append({
-                    "word":  word_text,
-                    "start": round(w["start"], 3),
-                    "end":   round(w["end"],   3),
-                })
+    segments = []
+    all_words = []
+    for seg in fw_segments:
+        seg_words = []
+        if seg.words:
+            for w in seg.words:
+                word_dict = {
+                    "word":  w.word,
+                    "start": round(w.start, 3),
+                    "end":   round(w.end,   3),
+                }
+                seg_words.append(word_dict)
+                all_words.append(word_dict)
+        segments.append({
+            "id":    len(segments) + 1,
+            "start": round(seg.start, 3),
+            "end":   round(seg.end,   3),
+            "text":  seg.text.strip(),
+            "words": seg_words,
+        })
 
+    duration = segments[-1]["end"] if segments else info.duration or 0.0
     print(f"[Whisper] Готово — {len(segments)} сегментов, {len(all_words)} слов, {duration:.1f}s")
     return segments, duration, all_words
 
@@ -180,16 +234,18 @@ def ask_cut_mode() -> str:
     return "random"
 
 
-def build_segments(whisper_segs: list[dict], mode: str = "random") -> list[dict]:
+def build_segments(whisper_segs: list[dict], mode: str = "random",
+                   channel_id: str = "") -> list[dict]:
     """
     Нарезает whisper_segments на блоки с точными целочисленными границами.
     mode='grok'   — строго 10 сек (фиксированные границы, исходный алгоритм)
-    mode='random' — рандомно 3–8 сек по границам Whisper-сегментов (без overflow)
+    mode='random' — рандомно 2–4 сек (random-зона) → строго 5 сек (fixed-зона)
+                    граница зависит от канала: DE/FR=300s, ES=180s
     """
     if mode == "grok":
         blocks = _slice_grok(whisper_segs)
     else:
-        blocks = _slice_random(whisper_segs)
+        blocks = _slice_random(whisper_segs, channel_id=channel_id)
     _verify_segments(blocks, mode)
     return blocks
 
@@ -243,20 +299,36 @@ def _slice_grok(whisper_segs: list[dict]) -> list[dict]:
     return blocks
 
 
-_RANDOM_MIN  = 2    # минимум секунд для блока в random mode (до 5 мин)
-_RANDOM_MAX  = 4    # максимум секунд для блока в random mode (до 5 мин)
-_FIXED_AFTER = 300  # с этой секунды все блоки строго 5 сек
-_FIXED_DUR   = 5    # длина блока после 5-й минуты
+_RANDOM_MIN  = 2    # минимум секунд для блока в random mode
+_RANDOM_MAX  = 4    # максимум секунд для блока в random mode
+_FIXED_DUR   = 5    # длина блока в фиксированной зоне
+
+# Граница перехода к фиксированным блокам — зависит от канала:
+#   DE/FR (cosmos)   → 300s (5 мин)
+#   ES (religion)    → 180s (3 мин)
+_FIXED_AFTER_DEFAULT    = 300
+_FIXED_AFTER_BY_CHANNEL = {
+    "channel_003_religion_es": 180,
+    "es": 180,
+}
 
 
-def _slice_random(whisper_segs: list[dict]) -> list[dict]:
+def _get_fixed_after(channel_id: str = "") -> int:
+    return _FIXED_AFTER_BY_CHANNEL.get(channel_id, _FIXED_AFTER_DEFAULT)
+
+
+def _slice_random(whisper_segs: list[dict], channel_id: str = "") -> list[dict]:
     """
     Random mode:
-      - до 300s  : рандомно 2–4 сек (целые числа), по границам Whisper-сегментов
-      - от 300s  : строго 5 сек, фиксированные целочисленные границы
+      - до _fixed_after (канал-зависимо): рандомно 2–4 сек по границам Whisper
+      - после: строго 5 сек, фиксированные целочисленные границы
+
+    DE/FR → fixed_after=300s (5 мин)
+    ES    → fixed_after=180s (3 мин)
 
     НЕ разрезает сегменты пополам. Мёрдж коротких хвостов.
     """
+    fixed_after = _get_fixed_after(channel_id)
     blocks: list[dict] = []
     current_words: list[str] = []
     current_start: int | None = None
@@ -271,7 +343,7 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
             current_start = int(ws["start"])
 
         # Определяем режим по позиции текущего блока
-        in_fixed = current_start >= _FIXED_AFTER
+        in_fixed = current_start >= fixed_after
         cur_target = _FIXED_DUR if in_fixed else target
 
         elapsed = ws["end"] - current_start
@@ -290,7 +362,7 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
             current_start = block_end
             current_words = []
             # Новый target только в random-зоне
-            if current_start < _FIXED_AFTER:
+            if current_start < fixed_after:
                 target = random.randint(_RANDOM_MIN, _RANDOM_MAX)
 
         current_words.extend(words)
@@ -330,7 +402,7 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
     for b in merged:
         dur  = b["end"] - b["start"]
         # Определяем макс для этого блока
-        in_fixed = b["start"] >= _FIXED_AFTER
+        in_fixed = b["start"] >= fixed_after
         block_max = _FIXED_DUR if in_fixed else _RANDOM_MAX
 
         if dur <= block_max:
@@ -344,7 +416,7 @@ def _slice_random(whisper_segs: list[dict]) -> list[dict]:
         remaining_dur = dur
 
         while remaining_dur > 0:
-            in_fixed_now = start >= _FIXED_AFTER
+            in_fixed_now = start >= fixed_after
             blk_max = _FIXED_DUR if in_fixed_now else _RANDOM_MAX
             blk_min = _FIXED_DUR if in_fixed_now else _RANDOM_MIN
 
@@ -487,14 +559,19 @@ def verify_with_ffmpeg(audio_path: Path, blocks: list[dict]) -> tuple[list[dict]
         gap      = real_duration - coverage
 
     if gap > 1:
-        print(f"   [!] Непокрытый хвост: {gap:.1f}s — добавляю последний блок")
+        print(f"   [!] Непокрытый хвост: {gap:.1f}s — нарезаю на 5s блоки")
         last_end = blocks[-1]["end"]
-        blocks.append({
-            "id":    len(blocks) + 1,
-            "start": last_end,
-            "end":   int(real_duration),
-            "text":  "[конец]",
-        })
+        total_end = int(real_duration)
+        t = last_end
+        while t < total_end:
+            blk_end = min(t + 5, total_end)
+            blocks.append({
+                "id":    len(blocks) + 1,
+                "start": t,
+                "end":   blk_end,
+                "text":  "[конец]",
+            })
+            t = blk_end
         coverage = blocks[-1]["end"] - blocks[0]["start"]
         gap      = real_duration - coverage
 
@@ -647,8 +724,10 @@ def run():
         if _utils not in _sys.path:
             _sys.path.insert(0, _utils)
         from paths import CHANNELS_DIR as _CHANNELS_DIR
-        _LANG_MAP = {"de": "de", "fr": "fr",
-                     "channel_001_cosmos_de": "de", "channel_002_cosmos_fr": "fr"}
+        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es",
+                     "channel_001_cosmos_de": "de",
+                     "channel_002_cosmos_fr": "fr",
+                     "channel_003_religion_es": "es"}
         _ch_lang = _LANG_MAP.get(args.channel or "", "") if args.channel else ""
         channel_root = (_CHANNELS_DIR / _ch_lang) if _ch_lang else _CH_DATA_DIR
     except Exception:
@@ -684,25 +763,48 @@ def run():
     else:
         mode = ask_cut_mode()
 
+    channel_id = args.channel or ""
+
+    # ── Кеш транскрипции ─────────────────────────────────────────────────
+    cached = _load_cache(audio_path, mode)
+    if cached:
+        print(f"[Whisper] ✅ Кеш найден — пропускаем транскрипцию ({audio_path.name})")
+        segments   = cached.get("segments", [])
+        all_words  = cached.get("words", [])
+        ffmpeg_meta = {k: v for k, v in cached.items() if k not in ("segments", "words")}
+        json_path = save(session, segments, ffmpeg_meta, words=all_words, channel_id=channel_id)
+        srt_path  = save_srt(session, segments, channel_id=channel_id)
+        vtt_path  = save_vtt(session, segments, channel_id=channel_id)
+        print(f"[Agent] OK — {len(segments)} сегментов (из кеша)")
+        print(f"[Agent] Subtitles created:")
+        print(f"   {srt_path.name}")
+        print(f"   {vtt_path.name}")
+        print(f"   {json_path.name}")
+        return
+
     # ── Определяем устройство ────────────────────────────────────────────
     device, gpu_name, model_size = detect_device()
     if device == "cuda":
         print(f"[Whisper] GPU: {gpu_name}")
+        compute = "float16"
     else:
-        print(f"[Whisper] CPU (CUDA nedostupna)")
-    print(f"[Whisper] Загружаю модель '{model_size}' на {device.upper()}...")
+        print(f"[Whisper] CPU (CUDA недоступна)")
+        compute = "int8"
+    print(f"[Whisper] Загружаю модель '{model_size}' ({compute}) на {device.upper()}...")
 
-    model = whisper.load_model(model_size, device=device)
+    model = WhisperModel(model_size, device=device, compute_type=compute)
     print(f"[Whisper] Модель загружена.")
 
-    whisper_segs, duration, all_words = transcribe(model, audio_path, use_gpu=(device == "cuda"), channel_id=args.channel or "")
-    segments = build_segments(whisper_segs, mode)
+    whisper_segs, duration, all_words = transcribe(model, audio_path, use_gpu=(device == "cuda"), channel_id=channel_id)
+    segments = build_segments(whisper_segs, mode, channel_id=channel_id)
     segments, ffmpeg_meta = verify_with_ffmpeg(audio_path, segments)
 
-    channel_id = args.channel or ""
     json_path = save(session, segments, ffmpeg_meta, words=all_words, channel_id=channel_id)
     srt_path  = save_srt(session, segments, channel_id=channel_id)
     vtt_path  = save_vtt(session, segments, channel_id=channel_id)
+
+    # Сохраняем в кеш для следующего раза
+    _save_cache(audio_path, mode, {**ffmpeg_meta, "segments": segments, "words": all_words})
 
     print(f"[Agent] OK — {len(segments)} сегментов, покрыто {ffmpeg_meta['coverage']:.1f}s")
     print(f"[Agent] Subtitles created:")

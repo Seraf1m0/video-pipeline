@@ -442,18 +442,24 @@ def _grok_verify_state(page, idx: int) -> dict:
 
 
 def _grok_find_video_url(page) -> str | None:
-    """Ищет URL готового видео: <video src> или CDN generated_video.mp4."""
+    """Ищет URL готового видео: только generated_video.mp4 с CDN assets.grok.com."""
     try:
         url = page.evaluate("""() => {
-            const v = document.querySelector('video[src]');
-            if (v && v.src && !v.src.startsWith('data:')) return v.src;
-            const v2 = document.querySelector('video');
-            if (v2 && v2.currentSrc && !v2.currentSrc.startsWith('data:')) return v2.currentSrc;
-            const s = document.querySelector('video source[src]');
-            if (s && s.src) return s.src;
-            const a = Array.from(document.querySelectorAll('a[href]'))
-                .find(l => l.href.includes('.mp4'));
-            if (a) return a.href;
+            // Ищем только сгенерированное видео (generated_video.mp4) — не демо/превью
+            const videos = Array.from(document.querySelectorAll('video[src], video'));
+            for (const v of videos) {
+                const src = v.src || v.currentSrc || '';
+                if (src.includes('generated_video.mp4')) return src;
+            }
+            // Fallback: source elements
+            const sources = Array.from(document.querySelectorAll('video source[src]'));
+            for (const s of sources) {
+                if (s.src && s.src.includes('generated_video.mp4')) return s.src;
+            }
+            // Fallback: any mp4 link from assets CDN
+            const links = Array.from(document.querySelectorAll('a[href]'));
+            const cdn = links.find(l => l.href.includes('generated_video.mp4'));
+            if (cdn) return cdn.href;
             return null;
         }""")
         return url if url else None

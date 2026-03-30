@@ -80,7 +80,7 @@ CONFIG_DIR           = BASE_DIR / "config"
 AGENTS_DIR           = BASE_DIR / "agents"
 PROMPT_PROGRESS_FILE = BASE_DIR / "temp" / "prompt_progress.json"
 PIXEL_PROGRESS_FILE  = BASE_DIR / "temp" / "pixel_progress.json"
-BLIP_PROGRESS_FILE        = BASE_DIR / "temp" / "blip_progress.json"
+VISION_PROGRESS_FILE      = BASE_DIR / "temp" / "vision_progress.json"
 REGEN_PROGRESS_FILE       = BASE_DIR / "temp" / "regen_progress.json"
 GROK_PROGRESS_FILE        = BASE_DIR / "temp" / "grok_progress.json"
 VIDEO_VALIDATOR_PROGRESS  = BASE_DIR / "temp" / "video_validator_progress.json"
@@ -157,8 +157,9 @@ def kb_main() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(_get_channel_btn_label(), callback_data="channels:show")],
         [InlineKeyboardButton("──────────────────",  callback_data="noop")],
-        [InlineKeyboardButton("🚀 Запустить всё",    callback_data="pipeline:start")],
-        [InlineKeyboardButton("──────────────────",  callback_data="noop")],
+        [InlineKeyboardButton("🚀 Запустить всё",          callback_data="pipeline:start")],
+        [InlineKeyboardButton("🚀 Два канала параллельно", callback_data="run_two_channels")],
+        [InlineKeyboardButton("──────────────────",        callback_data="noop")],
         [InlineKeyboardButton("🎙 Транскрипция",     callback_data="menu:transcription")],
         [InlineKeyboardButton("✍️ Промпты",           callback_data="menu:prompts")],
         [
@@ -170,7 +171,7 @@ def kb_main() -> InlineKeyboardMarkup:
         [InlineKeyboardButton("🎬 FFmpeg монтаж",      callback_data="menu:montage")],
         [InlineKeyboardButton("🖥 Редактор",          callback_data="menu:editor")],
         [InlineKeyboardButton("✅ Валидация",          callback_data="menu:validation")],
-        [InlineKeyboardButton("🔍 BLIP анализ",       callback_data="menu:blip")],
+        [InlineKeyboardButton("🔍 Vision анализ",      callback_data="menu:blip")],
         [InlineKeyboardButton("🎬 Валидация видео",   callback_data="menu:video_validator")],
         [InlineKeyboardButton("📊 Статус проекта",    callback_data="menu:status")],
     ])
@@ -300,7 +301,7 @@ def kb_done() -> InlineKeyboardMarkup:
 
 def kb_done_with_blip() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔍 BLIP анализ", callback_data="menu:blip")],
+        [InlineKeyboardButton("🔍 Vision анализ", callback_data="menu:blip")],
         [BACK_BTN],
     ])
 
@@ -518,7 +519,7 @@ async def run_agent(
         stderr=asyncio.subprocess.STDOUT,
         cwd=str(BASE_DIR),
         env=env,
-        limit=10 * 1024 * 1024,  # 10MB буфер (по умолчанию 64KB — мало для BLIP-2)
+        limit=10 * 1024 * 1024,  # 10MB буфер (по умолчанию 64KB — мало для Vision/Qwen)
     )
 
     if stdin_text:
@@ -595,9 +596,9 @@ def _read_pixel_progress() -> dict | None:
         return None
 
 
-def _read_blip_progress() -> dict | None:
+def _read_vision_progress() -> dict | None:
     try:
-        return json.loads(BLIP_PROGRESS_FILE.read_text(encoding="utf-8"))
+        return json.loads(VISION_PROGRESS_FILE.read_text(encoding="utf-8"))
     except Exception:
         return None
 
@@ -1033,13 +1034,13 @@ async def _run_blip_agent(
     threshold: float = 0.15,
 ) -> None:
     try:
-        BLIP_PROGRESS_FILE.unlink(missing_ok=True)
+        VISION_PROGRESS_FILE.unlink(missing_ok=True)
     except Exception:
         pass
 
     type_icons = {"photo": "📸 Фото", "video": "🎬 Видео", "both": "📸🎬 Оба"}
     type_label = type_icons.get(gen_type, gen_type)
-    cmd = ["py", str(AGENTS_DIR / "blip_validator" / "blip_validator.py"),
+    cmd = ["py", str(AGENTS_DIR / "video_validator" / "video_validator.py"),
            "--type", gen_type, "--threshold", str(threshold)]
     if session:
         cmd += ["--project", session]
@@ -1049,7 +1050,7 @@ async def _run_blip_agent(
 
     while not task.done():
         await asyncio.sleep(3.0)
-        p = _read_blip_progress()
+        p = _read_vision_progress()
         if p and p.get("total", 0) > 0:
             cur    = p.get("current", 0)
             total  = p["total"]
@@ -1060,11 +1061,11 @@ async def _run_blip_agent(
             pct    = int(cur / total * 100) if total else 0
             icon   = "📸" if ptype == "photo" else "🎬"
             if status == "loading":
-                text = f"🔍 <b>BLIP анализ...</b>\n{type_label}\n\n<pre>Загружаю модель...</pre>"
+                text = f"🔍 <b>Vision анализ...</b>\n{type_label}\n\n<pre>Загружаю модель...</pre>"
             else:
                 eta_str = f"  ETA ~{int((total-cur)/speed)}с" if speed > 0 and cur < total else ""
                 text = (
-                    f"🔍 <b>BLIP анализирует {icon}...</b>\n{type_label}\n"
+                    f"🔍 <b>Vision (Qwen) анализирует {icon}...</b>\n{type_label}\n"
                     f"━━━━━━━━━━━━━━━━\n"
                     f"📊 Готово: <b>{cur}/{total}</b>\n"
                     f"<code>{bar}</code> {pct}%\n"
@@ -1072,7 +1073,7 @@ async def _run_blip_agent(
                 )
         else:
             elapsed = int(time.monotonic() - t0)
-            text = f"🔍 <b>BLIP анализ...</b>\n{type_label}\n\n<pre>запускаю... ({elapsed}с)</pre>"
+            text = f"🔍 <b>Vision анализ...</b>\n{type_label}\n\n<pre>запускаю... ({elapsed}с)</pre>"
         try:
             await progress_msg.edit_text(text, parse_mode=ParseMode.HTML)
         except Exception:
@@ -1081,7 +1082,7 @@ async def _run_blip_agent(
     rc, output = task.result()
 
     summary: dict = {}
-    m_sum = re.search(r"BLIP_SUMMARY:\s*(\{.+\})", output)
+    m_sum = re.search(r"VISION_SUMMARY:\s*(\{.+\})", output)
     if m_sum:
         try:
             summary = json.loads(m_sum.group(1))
@@ -1091,12 +1092,12 @@ async def _run_blip_agent(
     if rc != 0 and not summary:
         err_tail = "\n".join(output.splitlines()[-10:])
         await progress_msg.edit_text(
-            f"❌ <b>BLIP завершился с ошибкой!</b>\n\n<pre>{h(err_tail)}</pre>",
+            f"❌ <b>Vision анализ завершился с ошибкой!</b>\n\n<pre>{h(err_tail)}</pre>",
             reply_markup=kb_done(), parse_mode=ParseMode.HTML,
         )
         return
 
-    lines = ["🔍 <b>BLIP анализ завершён!</b>\n"]
+    lines = ["🔍 <b>Vision (Qwen) анализ завершён!</b>\n"]
     ph_tot  = summary.get("photos_total", 0)
     ph_ok   = summary.get("photos_ok",    0)
     ph_bad  = summary.get("photos_bad",   0)
@@ -1258,8 +1259,8 @@ async def _run_assembler(
     session:    str  = "",
 ) -> None:
     """
-    Запускает assembler.py и показывает структурированный прогресс в Telegram.
-    Парсит строки [АССЕМБЛЕР] для отображения этапов.
+    Запускает gosha_rubchinskiy.py и показывает структурированный прогресс в Telegram.
+    Парсит строки [ASSEMBLER] для отображения этапов.
     """
     parts = []
     if with_subs:  parts.append("субтитры")
@@ -1331,7 +1332,7 @@ async def _run_assembler(
             except Exception:
                 pass
 
-    cmd = ["py", str(AGENTS_DIR / "assembler" / "assembler.py")]
+    cmd = ["py", str(AGENTS_DIR / "assembler" / "gosha_rubchinskiy.py")]
     if session:
         cmd += ["--session", session]
     if not with_subs:
@@ -1846,7 +1847,7 @@ async def cb_pcutter(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     if choice == "skip":
         await q.edit_message_text(
             "⏭ <b>Нарезка видео пропущена.</b>\n\nПайплайн полностью завершён! 🎉\n\n"
-            "Запустить BLIP анализ медиа?",
+            "Запустить Vision анализ медиа?",
             reply_markup=kb_done_with_blip(),
             parse_mode=ParseMode.HTML,
         )
@@ -1941,6 +1942,126 @@ async def cb_channels_set(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def cb_noop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.callback_query.answer()
+
+
+# ── Два канала параллельно ─────────────────────────────────────────────────────
+
+async def cb_run_two_channels(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not await is_allowed(update):
+        return
+    import threading as _threading
+    import time as _time
+    q = update.callback_query
+    await q.answer()
+
+    # Импортируем утилиты
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agents" / "utils"))
+    from channel_manager import get_all_channels
+    from paths import get_last_session
+
+    channels = get_all_channels()
+    if len(channels) < 2:
+        await q.edit_message_text("❌ Нужно минимум 2 канала в bot/channels/!")
+        return
+
+    ch_de = channels[0]
+    ch_fr = channels[1]
+    s_de  = get_last_session(ch_de["id"])
+    s_fr  = get_last_session(ch_fr["id"])
+
+    if not s_de or not s_fr:
+        await q.edit_message_text(
+            f"❌ Сессии не найдены!\n"
+            f"DE: {s_de or 'нет'}\n"
+            f"FR: {s_fr or 'нет'}"
+        )
+        return
+
+    msg = await q.edit_message_text(
+        f"🚀 Запускаю два канала...\n\n"
+        f"🌌 DE: {s_de}\n"
+        f"🇫🇷 FR: {s_fr}\n\n"
+        f"⏳ Инициализация...",
+    )
+
+    channel_stats: dict = {}
+    last_tg_update: list = [_time.time()]
+
+    def progress_callback(ch_id: str, stats: dict, last_msg: str) -> None:
+        channel_stats[ch_id] = {"stats": stats, "last": last_msg}
+        if _time.time() - last_tg_update[0] < 5:
+            return
+        last_tg_update[0] = _time.time()
+
+        def bar(done: int, total: int, length: int = 8) -> str:
+            if not total:
+                return "░" * length
+            filled = int(done / total * length)
+            return "█" * filled + "░" * (length - filled)
+
+        de_s  = channel_stats.get(ch_de["id"], {}).get("stats", {})
+        fr_s  = channel_stats.get(ch_fr["id"], {}).get("stats", {})
+        de_t  = de_s.get("total", 0)
+        fr_t  = fr_s.get("total", 0)
+        de_ph = de_s.get("photos_done", 0)
+        de_vi = de_s.get("videos_done", 0)
+        fr_ph = fr_s.get("photos_done", 0)
+        fr_vi = fr_s.get("videos_done", 0)
+
+        text = (
+            f"🚀 Параллельная генерация\n\n"
+            f"🌌 Cosmos DE\n"
+            f"🖼️ {bar(de_ph, de_t)} {de_ph}/{de_t}\n"
+            f"🎬 {bar(de_vi, de_t)} {de_vi}/{de_t}\n\n"
+            f"🇫🇷 Cosmos FR\n"
+            f"🖼️ {bar(fr_ph, fr_t)} {fr_ph}/{fr_t}\n"
+            f"🎬 {bar(fr_vi, fr_t)} {fr_vi}/{fr_t}\n\n"
+            f"📡 Pixel: 7 | Grok: 1 слот\n"
+            f"📝 {last_msg[:50]}"
+        )
+        import asyncio as _asyncio
+        try:
+            loop = _asyncio.get_event_loop()
+            if loop.is_running():
+                _asyncio.run_coroutine_threadsafe(
+                    context.bot.edit_message_text(
+                        text,
+                        chat_id=msg.chat_id,
+                        message_id=msg.message_id,
+                    ),
+                    loop,
+                )
+        except Exception:
+            pass
+
+    def run_bg() -> None:
+        _sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agents" / "media_generator"))
+        from multi_channel_runner import run_two_channels_parallel  # noqa: E402
+        run_two_channels_parallel(
+            ch_de["id"], s_de, ch_de,
+            ch_fr["id"], s_fr, ch_fr,
+            progress_callback,
+        )
+        import asyncio as _asyncio
+        try:
+            loop = _asyncio.get_event_loop()
+            if loop.is_running():
+                _asyncio.run_coroutine_threadsafe(
+                    context.bot.edit_message_text(
+                        f"🎉 Оба канала готовы!\n\n"
+                        f"✅ DE: {s_de}\n"
+                        f"✅ FR: {s_fr}\n"
+                        f"📁 Видео в data/channels/*/output/",
+                        chat_id=msg.chat_id,
+                        message_id=msg.message_id,
+                    ),
+                    loop,
+                )
+        except Exception:
+            pass
+
+    _threading.Thread(target=run_bg, daemon=True).start()
 
 
 async def cb_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -2477,7 +2598,7 @@ def _run_assembler_background(session, chat_id, message_id, bot,
             pass
 
     cmd = [
-        "py", str(AGENTS_DIR / "assembler" / "assembler.py"),
+        "py", str(AGENTS_DIR / "assembler" / "gosha_rubchinskiy.py"),
     ]
     if session:
         cmd += ["--session", session]
@@ -2565,7 +2686,7 @@ def start_assembler(chat_id, session, with_subs, with_music, bot, loop=None):
 
 
 async def cb_montage_subs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Запустить assembler.py: subs_music | subs_nomusic | nosubs_music | nosubs_nomusic."""
+    """Запустить gosha_rubchinskiy.py: subs_music | subs_nomusic | nosubs_music | nosubs_nomusic."""
     if not await is_allowed(update):
         return
     q      = update.callback_query
@@ -2730,7 +2851,7 @@ async def cb_pixelver(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     )
 
 
-# ── BLIP анализ ───────────────────────────────────────────────────────────────
+# ── Vision (Qwen) анализ ──────────────────────────────────────────────────────
 
 async def cb_blip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not await is_allowed(update):
@@ -2752,7 +2873,7 @@ async def cb_blip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     context.user_data["blip_session"] = session
     await q.edit_message_text(
-        f"🔍 <b>BLIP анализ</b>\n\n📁 Сессия: <code>{h(session)}</code>\n\nЧто анализировать?",
+        f"🔍 <b>Vision (Qwen) анализ</b>\n\n📁 Сессия: <code>{h(session)}</code>\n\nЧто анализировать?",
         reply_markup=kb_blip_type(), parse_mode=ParseMode.HTML,
     )
 
@@ -2766,7 +2887,7 @@ async def cb_blip_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     session  = context.user_data.get("blip_session", "")
     type_icons = {"photo": "📸 Фото", "video": "🎬 Видео", "both": "📸🎬 Оба"}
     progress = await q.edit_message_text(
-        f"🔍 <b>BLIP анализ...</b>\n{type_icons.get(gen_type, gen_type)}\n\n<pre>запускаю...</pre>",
+        f"🔍 <b>Vision анализ...</b>\n{type_icons.get(gen_type, gen_type)}\n\n<pre>запускаю...</pre>",
         parse_mode=ParseMode.HTML,
     )
     await _run_blip_agent(progress, gen_type, session=session)
@@ -2902,7 +3023,7 @@ async def _run_regen_agent(
         lines.append(f"❌ Не удалось: <b>{len(failed)}</b> → {failed[:10]}")
     if with_vid:
         lines.append("🎬 Видео-промпты также обновлены")
-    lines.append("\n<i>Рекомендуется повторить BLIP анализ для проверки</i>")
+    lines.append("\n<i>Рекомендуется повторить Vision анализ для проверки</i>")
 
     await progress_msg.edit_text(
         "\n".join(lines),
@@ -3007,7 +3128,7 @@ def _read_norm_progress() -> dict | None:
 
 
 async def cb_video_validator(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Запускает агент валидации видео через Molmo 2."""
+    """Запускает агент валидации видео через Vision (Qwen2.5-VL-7B)."""
     if not await is_allowed(update):
         return
     q = update.callback_query
@@ -3025,7 +3146,7 @@ async def cb_video_validator(update: Update, context: ContextTypes.DEFAULT_TYPE)
     total = len(list(videos_dir.glob("video_*.mp4"))) if videos_dir.exists() else 0
 
     msg = await q.edit_message_text(
-        f"🔍 <b>Валидация видео (Molmo 2)</b>\n\n"
+        f"🔍 <b>Валидация видео (Vision / Qwen)</b>\n\n"
         f"Сессия: <code>{session}</code>\n"
         f"Видео:  {total}\n\n"
         f"⏳ Загружаю модель и запускаю анализ...",
@@ -3056,7 +3177,7 @@ async def cb_video_validator(update: Update, context: ContextTypes.DEFAULT_TYPE)
             bar   = bar_chars * pct + "░" * (16 - pct)
 
             new_text = (
-                f"🔍 <b>Molmo 2 анализирует видео...</b>\n\n"
+                f"🔍 <b>Vision (Qwen) анализирует видео...</b>\n\n"
                 f"<code> {bar} {cur}/{tot}</code>\n\n"
                 f"✅ Хорошие:        {valid}\n"
                 f"🔄 Заменены стоком: {rep}\n"
@@ -3310,7 +3431,8 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(cb_back,  pattern=r"^back:"))
 
     # 🚀 Пайплайн
-    app.add_handler(CallbackQueryHandler(cb_pipeline_start, pattern=r"^pipeline:start$"))
+    app.add_handler(CallbackQueryHandler(cb_run_two_channels, pattern=r"^run_two_channels$"))
+    app.add_handler(CallbackQueryHandler(cb_pipeline_start,   pattern=r"^pipeline:start$"))
     app.add_handler(CallbackQueryHandler(cb_pipeline_stop,  pattern=r"^pipeline:stop$"))
     app.add_handler(CallbackQueryHandler(cb_pcut,           pattern=r"^pcut:"))
     app.add_handler(CallbackQueryHandler(cb_ppform,         pattern=r"^ppform:"))

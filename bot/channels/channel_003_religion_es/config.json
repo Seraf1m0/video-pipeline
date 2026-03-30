@@ -1,0 +1,28 @@
+{
+  "id": "channel_003_religion_es",
+  "name": "Religion ES",
+  "data_subdir": "channels/es",
+  "emoji": "✝️",
+  "language": "es",
+  "niche": "religion",
+  "tg_channel": "",
+  "transcriber": {
+    "language": "es",
+    "task": "transcribe"
+  },
+  "prompt_generator": {
+    "language": "en",
+    "source_language": "es",
+    "system_context": "Religious documentary in Spanish"
+  },
+  "assembler": {
+    "subtitle_language": "es",
+    "music_dir": "",
+    "intro_enabled": true
+  },
+  "validator": {
+    "niche": "religion",
+    "stock_query_language": "en"
+  },
+  "library": "C:/library_religion"
+}

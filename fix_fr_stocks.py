@@ -13,7 +13,7 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 BASE     = Path(__file__).resolve().parent
-SESSION  = "Video_20260315_131703"
+SESSION  = "Video_20260316_162629"
 VIDEOS   = BASE / "data/channels/fr/media" / SESSION / "videos"
 PROMPTS  = BASE / "data/channels/fr/prompts" / SESSION / "video"
 REPORT   = BASE / "data/channels/fr/media"   / SESSION / "blip_report.json"

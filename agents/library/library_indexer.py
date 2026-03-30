@@ -34,14 +34,20 @@ try:
 except ImportError:
     _HAS_FILELOCK = False
 
-# ── Пути ───────────────────────────────────────────────────────────────────────
+# ── Пути через paths.py ────────────────────────────────────────────────────────
 
-_BASE_DIR    = Path(__file__).resolve().parent.parent.parent
-_LIB_DIR     = _BASE_DIR / "library"
-_CLIPS_DIR   = _LIB_DIR / "clips"
+_BASE_DIR = Path(__file__).resolve().parent.parent.parent
+_utils_dir = Path(__file__).resolve().parent.parent / "utils"
+if str(_utils_dir) not in sys.path:
+    sys.path.insert(0, str(_utils_dir))
+from paths import get_library_dir, get_clips_dir, get_library_json, get_niche
+
+# Дефолтные пути (channel_001_cosmos_de); переопределяются в main() через --channel
+_LIB_DIR     = get_library_dir("channel_001_cosmos_de")
+_CLIPS_DIR   = get_clips_dir("channel_001_cosmos_de")
 _PHOTOS_DIR  = _LIB_DIR / "photos"
 _TEMP_DIR    = _LIB_DIR / "temp"
-_LIB_JSON    = _LIB_DIR / "library.json"
+_LIB_JSON    = get_library_json("channel_001_cosmos_de")
 
 _VISION_URL  = "http://localhost:8765"
 
@@ -49,7 +55,7 @@ _VISION_URL  = "http://localhost:8765"
 
 MIN_RATIO      = 1.2    # принимаем от 4:3 и шире
 MAX_RATIO      = 2.5    # принимаем ультраwide
-MIN_DURATION   = 6.0    # сек
+MIN_DURATION   = 4.5    # сек
 MIN_WIDTH      = 640
 MIN_HEIGHT     = 360
 SCENE_THRESH   = 0.3    # порог scene detection (ниже = больше сцен)
@@ -347,6 +353,7 @@ def vision_analyze_clip(clip_path: Path) -> dict:
 # Library JSON helpers
 # ══════════════════════════════════════════════════════════════════════════════
 
+# _LIB_LOCK переопределяется в main() после --channel аргумента
 _LIB_LOCK = _LIB_JSON.with_suffix(".lock")
 
 
@@ -396,12 +403,22 @@ def next_clip_id(lib: dict) -> str:
 
 def get_processed_originals(lib: dict) -> set[str]:
     """Набор original_file уже обработанных клипов."""
-    return {clip["original_file"] for clip in lib["clips"].values()}
+    return {clip["original_file"] for clip in lib["clips"].values() if clip.get("original_file")}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Основная обработка одного файла
 # ══════════════════════════════════════════════════════════════════════════════
+
+def _build_fixed_segments(duration: float, seg_dur: float) -> list[tuple[float, float]]:
+    """Нарезать видео на равные куски по seg_dur секунд (без trim с краёв)."""
+    segs = []
+    t = 0.0
+    while t + seg_dur <= duration - 0.1:   # 0.1s tolerance
+        segs.append((t, t + seg_dur))
+        t += seg_dur
+    return segs
+
 
 def process_file(
     src: Path,
@@ -411,6 +428,8 @@ def process_file(
     vision_available: bool,
     idx: int,
     total: int,
+    pool_name: str = "",
+    fixed_duration: float = 0.0,  # >0 → нарезать строго по N секунд
 ) -> dict:
     """
     Обработать один исходный файл.
@@ -464,11 +483,20 @@ def process_file(
         stats["skip_short"] += 1
         return stats
 
-    # ── Нарезка по сценам или целиком ────────────────────────────────────────
-    segments_to_encode: list[tuple[float | None, float | None, float]]
-    # (start_sec, None=нет нарезки, duration_sec)
+    # ── Нарезка по сценам / фиксированным кускам / целиком ───────────────────
+    segments_to_encode: list[tuple[float | None, float | None]]
 
-    if duration > LONG_CLIP:
+    if fixed_duration > 0:
+        # Режим строгой нарезки: каждые N секунд
+        segs = _build_fixed_segments(duration, fixed_duration)
+        if not segs:
+            print(f"{prefix} ⚠️  {duration:.1f}s < {fixed_duration}s → skip  ({src.name})")
+            stats["skip_short"] += 1
+            return stats
+        segments_to_encode = segs
+        cut_mode = True
+        print(f"{prefix} ✂️  fixed {fixed_duration}s × {len(segs)} сегментов  ({src.name})")
+    elif duration > LONG_CLIP:
         scene_times = detect_scenes(src)
         segs = build_segments(duration, scene_times)
         if not segs:
@@ -520,7 +548,7 @@ def process_file(
 
         clip_entry = {
             "file":               f"{clip_id}.mp4",
-            "original_file":      src.name,
+            "original_file":      f"{pool_name}/{src.name}" if pool_name else src.name,
             "duration":           round(real_dur, 3),
             "width":              1920,
             "height":             1080,
@@ -586,15 +614,16 @@ def copy_phase(source: Path) -> list[Path]:
 # Vision-only фаза
 # ══════════════════════════════════════════════════════════════════════════════
 
-def vision_only_phase() -> None:
-    """Параллельная индексация 4 серверами Qwen2.5-VL-3B (round-robin, батчи по 2)."""
+def vision_only_phase(channel_id: str = "channel_001_cosmos_de") -> None:
+    """Параллельная индексация серверами Qwen (round-robin, батчи по 4)."""
     import threading
     from concurrent.futures import ThreadPoolExecutor, as_completed
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from vision.vision_client import get_available_servers, analyze_batch, analyze_video
 
-    lib = load_library()
+    niche = get_niche(channel_id)
+    lib   = load_library()
     if not lib["clips"]:
         print("library.json пустой — сначала запусти индексацию.")
         return
@@ -614,10 +643,10 @@ def vision_only_phase() -> None:
     ]
     print(f"📋 Клипов для индексации: {len(to_process)}\n", flush=True)
 
-    # Разбить на пары
+    # Разбить на батчи по 4
     pairs = []
-    for i in range(0, len(to_process), 2):
-        pairs.append(to_process[i:i + 2])
+    for i in range(0, len(to_process), 4):
+        pairs.append(to_process[i:i + 4])
 
     try:
         from tqdm import tqdm
@@ -631,22 +660,19 @@ def vision_only_phase() -> None:
     total_clips = len(to_process)
 
     def process_pair(pair, server_url):
-        if len(pair) == 2:
-            (id1, e1), (id2, e2) = pair
-            p1 = str(_CLIPS_DIR / e1["file"])
-            p2 = str(_CLIPS_DIR / e2["file"])
-            result = analyze_batch(p1, p2, server_url=server_url)
-            out = []
-            if result:
-                for cid, entry, key in [(id1, e1, "clip1"), (id2, e2, "clip2")]:
-                    out.append((cid, entry, result.get(key, {})))
-            return out
-        else:
-            cid, entry = pair[0]
-            r = analyze_video(str(_CLIPS_DIR / entry["file"]), server_url=server_url)
-            if r:
-                return [(cid, entry, {"valid": r.get("valid", False), "keywords": r.get("keywords", ""), "reason": r.get("reason", "")})]
-            return []
+        paths = [str(_CLIPS_DIR / e["file"]) for _, e in pair]
+        # Дополнить до 4 пустыми строками
+        p1 = paths[0]
+        p2 = paths[1] if len(paths) > 1 else ""
+        p3 = paths[2] if len(paths) > 2 else ""
+        p4 = paths[3] if len(paths) > 3 else ""
+        result = analyze_batch(p1, p2, p3, p4, server_url=server_url, niche=niche)
+        out = []
+        if result:
+            for j, (cid, entry) in enumerate(pair):
+                key = f"clip{j+1}"
+                out.append((cid, entry, result.get(key, {})))
+        return out
 
     assignments = [(pair, available[i % n_servers]) for i, pair in enumerate(pairs)]
 
@@ -917,7 +943,29 @@ def main() -> None:
     parser.add_argument("--fix-durations", action="store_true",
                         dest="fix_durations",
                         help="Добавить duration для клипов у которых его нет в library.json")
+    parser.add_argument("--channel",
+                        default="channel_001_cosmos_de",
+                        help="ID канала для индексации (определяет библиотеку)")
+    parser.add_argument("--fixed-duration", type=float, default=0.0,
+                        dest="fixed_duration",
+                        help="Нарезать строго по N секунд (0 = по сценам, дефолт)")
     args = parser.parse_args()
+
+    # ── Переопределить пути под выбранный канал ─────────────────────────────────
+    global _LIB_DIR, _CLIPS_DIR, _PHOTOS_DIR, _TEMP_DIR, _LIB_JSON, _LIB_LOCK
+    _LIB_DIR    = get_library_dir(args.channel)
+    _CLIPS_DIR  = get_clips_dir(args.channel)
+    _PHOTOS_DIR = _LIB_DIR / "photos"
+    _TEMP_DIR   = _LIB_DIR / "temp"
+    _LIB_JSON   = get_library_json(args.channel)
+    _LIB_LOCK   = _LIB_JSON.with_suffix(".lock")
+    print(
+        f"📚 Индексация библиотеки:\n"
+        f"  Канал: {args.channel}\n"
+        f"  Ниша:  {get_niche(args.channel)}\n"
+        f"  Путь:  {_LIB_DIR}",
+        flush=True,
+    )
 
     # Убедиться что папки существуют
     _CLIPS_DIR.mkdir(parents=True, exist_ok=True)
@@ -930,7 +978,7 @@ def main() -> None:
 
     # ── Vision-only режим ───────────────────────────────────────────────────────
     if args.vision_only:
-        vision_only_phase()
+        vision_only_phase(args.channel)
         return
 
     # ── Photos-only режим ───────────────────────────────────────────────────────
@@ -962,7 +1010,7 @@ def main() -> None:
 
         save_library(lib)
         print("Запускаю vision_only_phase (клипы)...\n")
-        vision_only_phase()
+        vision_only_phase(args.channel)
         print("\nЗапускаю index_photos_phase (фото)...\n")
         index_photos_phase(skip_vision=args.skip_vision)
         return
@@ -989,7 +1037,7 @@ def main() -> None:
         print(f"   Vision:    пропущен (--skip-vision)")
 
     # ── Загрузка / инициализация библиотеки ───────────────────────────────────
-    lib = load_library() if args.resume else {"total": 0, "indexed_at": "", "clips": {}}
+    lib = load_library()  # всегда загружаем существующую библиотеку
     processed_originals = get_processed_originals(lib)
 
     if args.resume and processed_originals:
@@ -1034,6 +1082,8 @@ def main() -> None:
             vision_available=vision_available,
             idx=i,
             total=total,
+            pool_name=source.name,
+            fixed_duration=args.fixed_duration,
         )
         for k in total_stats:
             total_stats[k] += file_stats.get(k, 0)

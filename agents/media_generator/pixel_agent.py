@@ -14,6 +14,7 @@ import io
 import json
 import os
 import sys
+import threading
 from pathlib import Path
 
 import aiohttp
@@ -44,8 +45,12 @@ AUTO_RETRY_ROUNDS = 3       # максимум кругов автоповтор
 AUTO_RETRY_PAUSE  = 60      # пауза между кругами (сек)
 REQUEST_TIMEOUT   = 180     # таймаут одного запроса v1 (сек)
 
-# Версия API: "v1" (синхронный) или "v2" (task-based polling)
+# Версия API: "v1" (синхронный) или "v2" (task-based polling) или "both" (роутер)
 PIXEL_API_VERSION = os.environ.get("PIXEL_API_VERSION", "v2").strip()
+
+# Раздельные семафоры для threading-режима (pipeline_runner)
+PIXEL_V1_SEMAPHORE = threading.Semaphore(int(os.environ.get("PIXEL_V1_MAX_CONCURRENT", "4")))
+PIXEL_V2_SEMAPHORE = threading.Semaphore(int(os.environ.get("PIXEL_V2_MAX_CONCURRENT", "3")))
 
 
 # ---------------------------------------------------------------------------
@@ -590,6 +595,69 @@ def _count_saved(out_dir: Path, total: int) -> int:
         if (out_dir / f"photo_{idx:03d}.png").exists()
         and (out_dir / f"photo_{idx:03d}.png").stat().st_size > 500
     )
+
+
+# ---------------------------------------------------------------------------
+# Sync-обёртки для pipeline_runner (threading-режим, v1=4 потока, v2=3 потока)
+# ---------------------------------------------------------------------------
+
+def generate_photo_v1(prompt: str, output_path: str, seg_id: int) -> bool:
+    """Синхронная v1-генерация (один запрос). Ограничена 4 потоками."""
+    with PIXEL_V1_SEMAPHORE:
+        api_key = os.environ.get("PIXEL_API_KEY", "").strip()
+        headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+
+        async def _run() -> bool:
+            abort    = asyncio.Event()
+            progress = {"done": 0, "failed": [], "status": "running"}
+            sem      = asyncio.Semaphore(1)
+            async with aiohttp.ClientSession(headers=headers) as http:
+                return await _pixel_generate_one(
+                    http, sem, seg_id, prompt, Path(output_path),
+                    seg_id, progress, abort,
+                )
+
+        return bool(asyncio.run(_run()))
+
+
+def generate_photo_v2(prompt: str, output_path: str, seg_id: int) -> bool:
+    """Синхронная v2-генерация (task polling). Ограничена 3 потоками."""
+    with PIXEL_V2_SEMAPHORE:
+        api_key = os.environ.get("PIXEL_API_KEY", "").strip()
+        headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+
+        async def _run() -> bool:
+            abort    = asyncio.Event()
+            progress = {"done": 0, "failed": [], "status": "running"}
+            sem      = asyncio.Semaphore(1)
+            async with aiohttp.ClientSession(headers=headers) as http:
+                return await _pixel_generate_one_v2(
+                    http, sem, seg_id, prompt, Path(output_path),
+                    seg_id, progress, abort,
+                )
+
+        return bool(asyncio.run(_run()))
+
+
+def generate_photo(prompt: str, output_path: str, seg_id: int,
+                   version: str | None = None) -> bool:
+    """
+    Роутер v1/v2:
+    Чётные seg_id  → v1 (4 потока)
+    Нечётные seg_id → v2 (3 потока)
+    Итого 7 одновременных генераций
+    """
+    if version is None:
+        version = os.getenv("PIXEL_API_VERSION", "both")
+    if version == "both":
+        chosen = "v1" if int(seg_id) % 2 == 0 else "v2"
+    else:
+        chosen = version
+    print(f"  🎨 #{seg_id} → Pixel {chosen.upper()}", flush=True)
+    if chosen == "v1":
+        return generate_photo_v1(prompt, output_path, seg_id)
+    else:
+        return generate_photo_v2(prompt, output_path, seg_id)
 
 
 # ---------------------------------------------------------------------------

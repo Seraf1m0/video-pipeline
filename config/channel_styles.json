@@ -3,7 +3,7 @@
     "name": "Cosmos DE",
     "intro_transition": "whip_pan",
     "clip_transition": "crossfade",
-    "clip_transition_duration": 1.0,
+    "clip_transition_duration": 0.6,
     "zone_a_end_s": 300,
     "zone_b_transitions": 35,
     "sfx_enabled": true,

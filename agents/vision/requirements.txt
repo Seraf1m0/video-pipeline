@@ -1,0 +1,9 @@
+transformers>=4.45.0
+torch>=2.0.0
+bitsandbytes>=0.41.0
+qwen-vl-utils
+accelerate>=0.26.0
+fastapi
+uvicorn
+Pillow
+numpy

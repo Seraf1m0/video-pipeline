@@ -12,12 +12,17 @@ __pycache__/
 *.pyo
 .venv/
 
-# Данные
+# Данные сессий (видео, аудио, расшифровки)
+data/channels/
 data/input/
 data/media/
 data/transcripts/
 data/prompts/
 data/output/
+
+# Библиотеки клипов (гигабайты)
+library_cosmos/
+library_religion/
 
 # Логи и временные файлы
 logs/
@@ -27,6 +32,18 @@ nul
 tempconcat_final.txt
 prproj_analysis.txt
 temp_prproj.xml
+*.log
+
+# Временные тест-файлы (аудио/видео)
+test_*.mp4
+test_*.m4a
+test_*.wav
+test_*.png
+test_transitions/
+*_for_mix.wav
+tmp_media_output.txt
+*.rar
+*.zip
 
 # Временные скрипты
 tmp_*.py

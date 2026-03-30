@@ -1,8 +1,8 @@
 """
 Regen Agent
 -----------
-Перегенерирует плохие фото из blip_report.json:
-  1. Читает bad_photos из data/media/{session}/blip_report.json
+Перегенерирует плохие фото из vision_report.json:
+  1. Читает bad_photos из data/media/{session}/vision_report.json
   2. Регенерирует фото-промпты для плохих ID через Claude CLI
   3. Регенерирует видео-промпты из новых фото-промптов (если задан video-master)
   4. Обновляет photo_prompts.json / video_prompts.json (только плохие ID)
@@ -97,9 +97,9 @@ def find_latest_session() -> str | None:
 # ── Загрузка данных ───────────────────────────────────────────────────────────
 
 def load_blip_bad_ids(session: str) -> list[int]:
-    p = MEDIA_DIR / session / "blip_report.json"
+    p = MEDIA_DIR / session / "vision_report.json"
     if not p.exists():
-        raise FileNotFoundError(f"blip_report.json не найден: {p}\nСначала запусти BLIP анализ.")
+        raise FileNotFoundError(f"vision_report.json не найден: {p}\nСначала запусти Vision анализ.")
     with open(p, encoding="utf-8") as f:
         report = json.load(f)
     return sorted(report.get("summary", {}).get("bad_photos", []))
@@ -467,7 +467,7 @@ def run() -> None:
     photo_master_name = args.photo_master or ask_master("фото", PHOTO_MASTERS)
     video_master_name = args.video_master  # None = не регенерировать видео-промпты
 
-    # ── Плохие ID из blip_report.json ─────────────────────────────────────
+    # ── Плохие ID из vision_report.json ───────────────────────────────────
     try:
         bad_ids = load_blip_bad_ids(session)
     except FileNotFoundError as e:
@@ -475,7 +475,7 @@ def run() -> None:
         sys.exit(1)
 
     if not bad_ids:
-        print("[REGEN] Нет плохих фото по данным BLIP — регенерация не нужна!")
+        print("[REGEN] Нет плохих фото по данным Vision — регенерация не нужна!")
         print("REGEN_SUMMARY: {\"regenerated\": 0, \"failed\": []}")
         sys.exit(0)
 
