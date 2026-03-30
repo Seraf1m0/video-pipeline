@@ -221,9 +221,10 @@ def generate_visual_queries(
     # Zone A (первые 5 мин): 2 SFX/мин, gap 30s  — удержание зрителя
     # Zone B (остаток):       1 SFX/мин, gap 60s  — поддержка ритма
     total_dur    = float(data.get("total_duration", 0)) or float(segments[-1].get("end", 0))
-    zone_a_end   = 300.0  # 5 минут
-    zone_a_max   = 10     # ~2/мин × 5 мин
-    zone_b_max   = max(5, int((total_dur - zone_a_end) / 60))  # ~1/мин
+    # Zone A = первые 10% видео, но не меньше 3 мин и не больше 10 мин
+    zone_a_end   = max(180.0, min(600.0, total_dur * 0.10))
+    zone_a_max   = max(6, int(zone_a_end / 30))   # ~2/мин в Zone A
+    zone_b_max   = max(5, int((total_dur - zone_a_end) / 60))  # ~1/мин в Zone B
     _SFX_PRIORITY = {"riser+boom": 5, "boom": 4, "impact": 3, "riser": 2, "downlifter": 1}
 
     def _filter_zone(candidates, max_count, min_gap):
