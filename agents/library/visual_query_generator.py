@@ -218,33 +218,46 @@ def generate_visual_queries(
         seg["sfx_cue"]      = entry.get("sfx")  # None или "riser"/"boom"/etc
 
     # ── Post-processing: ограничить плотность SFX ──────────────────────────────
-    # Цель: ~1 SFX в минуту. Оставляем топ N по приоритету с min расстоянием 30s.
-    total_dur = float(data.get("total_duration", 0)) or float(segments[-1].get("end", 0))
-    sfx_max   = max(5, int(total_dur / 60))  # ~1 в минуту, минимум 5
+    # Zone A (первые 5 мин): 2 SFX/мин, gap 30s  — удержание зрителя
+    # Zone B (остаток):       1 SFX/мин, gap 60s  — поддержка ритма
+    total_dur    = float(data.get("total_duration", 0)) or float(segments[-1].get("end", 0))
+    zone_a_end   = 300.0  # 5 минут
+    zone_a_max   = 10     # ~2/мин × 5 мин
+    zone_b_max   = max(5, int((total_dur - zone_a_end) / 60))  # ~1/мин
     _SFX_PRIORITY = {"riser+boom": 5, "boom": 4, "impact": 3, "riser": 2, "downlifter": 1}
-    _MIN_SFX_GAP  = 30.0  # секунд между SFX cues
 
-    sfx_candidates = sorted(
+    def _filter_zone(candidates, max_count, min_gap):
+        kept_times, kept_ids = [], set()
+        for seg, _ in candidates:
+            t = float(seg.get("start", 0))
+            if all(abs(t - kt) >= min_gap for kt in kept_times):
+                kept_ids.add(seg.get("id"))
+                kept_times.append(t)
+            if len(kept_ids) >= max_count:
+                break
+        return kept_ids
+
+    sfx_all = sorted(
         [(s, _SFX_PRIORITY.get(s.get("sfx_cue", ""), 0)) for s in segments if s.get("sfx_cue")],
         key=lambda x: -x[1],
     )
-    kept_times: list[float] = []
-    kept_ids:   set         = set()
-    for seg, _ in sfx_candidates:
-        t = float(seg.get("start", 0))
-        if all(abs(t - kt) >= _MIN_SFX_GAP for kt in kept_times):
-            kept_ids.add(seg.get("id"))
-            kept_times.append(t)
-        if len(kept_ids) >= sfx_max:
-            break
+    zone_a_cands = [(s, p) for s, p in sfx_all if float(s.get("start", 0)) <= zone_a_end]
+    zone_b_cands = [(s, p) for s, p in sfx_all if float(s.get("start", 0)) >  zone_a_end]
+
+    kept_ids = (
+        _filter_zone(zone_a_cands, zone_a_max, min_gap=30.0) |
+        _filter_zone(zone_b_cands, zone_b_max, min_gap=60.0)
+    )
 
     dropped = 0
     for seg in segments:
         if seg.get("sfx_cue") and seg.get("id") not in kept_ids:
             seg["sfx_cue"] = None
             dropped += 1
+    zone_a_kept = sum(1 for s in segments if s.get("sfx_cue") and float(s.get("start",0)) <= zone_a_end)
+    zone_b_kept = sum(1 for s in segments if s.get("sfx_cue") and float(s.get("start",0)) >  zone_a_end)
     if dropped:
-        print(f"   SFX filter: убрано {dropped} лишних cues → осталось {len(kept_ids)}", flush=True)
+        print(f"   SFX filter: убрано {dropped} → Zone A: {zone_a_kept} | Zone B: {zone_b_kept} | Итого: {len(kept_ids)}", flush=True)
 
     data["segments"] = segments
     data["visual_queries_generated"] = True
