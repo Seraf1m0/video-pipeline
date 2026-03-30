@@ -32,7 +32,7 @@ from paths import (
 )
 
 _EMBED_SERVER    = "http://127.0.0.1:8765"
-VISUAL_WEIGHT    = 0.35   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score
+VISUAL_WEIGHT    = 0.50   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score
 
 # ─── Embedding — сервер или локальная модель ──────────────────────────
 
