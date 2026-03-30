@@ -558,7 +558,7 @@ def build_final_audio(
         fc.append(
             "[music_base][voice_sc]"
             "sidechaincompress="
-            "threshold=0.01:ratio=4:attack=5:release=300:level_sc=1.0"
+            "threshold=0.20:ratio=2:attack=15:release=600:level_sc=0.8"
             "[music_sc]"
         )
         music_out_label = "music_sc"
@@ -622,87 +622,35 @@ def build_final_audio(
     mix_str = "".join(mix_parts)
     fc.append(
         f"{mix_str}"
-        f"amix=inputs={n_mix}:duration=longest:normalize=0:dropout_transition=0"
-        f"[mix_raw]"
+        f"amix=inputs={n_mix}:duration=longest:normalize=0:dropout_transition=0,"
+        f"loudnorm=I=-16:TP=-1:LRA=11:linear=false"
+        f"[mix_out]"
     )
 
-    # Pass 1: mix without loudnorm → temp AAC
-    # Loudnorm applied in pass 2 to avoid single-pass truncation bug
-    # (loudnorm internal analysis window discards ~15-20s of tail with long files)
+    _voice_dur = get_audio_duration(str(voice_path))
     _fc_str = ";".join(fc)
     _fc_file = Path(str(output_path)).parent / "_audio_filter.txt"
     _fc_file.write_text(_fc_str, encoding="utf-8")
 
-    _voice_dur = get_audio_duration(str(voice_path))
-    _tmp_mix = Path(str(output_path)).parent / "_mix_tmp.aac"
+    print(
+        f"  [Audio] mix+loudnorm: voice + {len(music_tracks)}×music + {len(sfx_events)}×SFX"
+        + (" + intro" if intro_label else ""),
+        flush=True,
+    )
 
-    pass1_cmd = cmd + [
-        "-/filter_complex", str(_fc_file),
-        "-map", "[mix_raw]",
+    result = subprocess.run(cmd + [
+        "-filter_complex_script", str(_fc_file),
+        "-map", "[mix_out]",
         "-t", f"{_voice_dur:.3f}",
         "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
         "-loglevel", "warning",
-        str(_tmp_mix),
-    ]
+        str(output_path),
+    ])
+    _fc_file.unlink(missing_ok=True)
 
-    print(f"  [Audio] pass1 mix: "
-          f"voice + {len(music_tracks)}×music + {len(sfx_events)}×SFX"
-          + (" + intro" if intro_label else ""),
-          flush=True)
-
-    _voice_expected = get_audio_duration(str(voice_path))
-    result = subprocess.run(pass1_cmd)
-
-    # Pass 2: two-pass loudnorm on the mix file
-    # measure → apply as linear gain (no DRC truncation)
-    if result.returncode == 0 and _tmp_mix.exists():
-        import json as _json
-        _measure = subprocess.run(
-            ["ffmpeg", "-y", "-i", str(_tmp_mix),
-             "-af", "loudnorm=I=-16:TP=-1:LRA=11:print_format=json",
-             "-f", "null", "/dev/null",
-             "-loglevel", "info"],
-            capture_output=True, text=True,
-        )
-        # parse measured loudness from stderr
-        _meas = {}
-        try:
-            _json_start = _measure.stderr.rfind("{")
-            _json_end   = _measure.stderr.rfind("}") + 1
-            if _json_start >= 0:
-                _meas = _json.loads(_measure.stderr[_json_start:_json_end])
-        except Exception:
-            pass
-
-        if _meas.get("input_i"):
-            _lnorm_filter = (
-                f"loudnorm=I=-16:TP=-1:LRA=11:linear=true"
-                f":measured_I={_meas['input_i']}"
-                f":measured_TP={_meas['input_tp']}"
-                f":measured_LRA={_meas['input_lra']}"
-                f":measured_thresh={_meas['input_thresh']}"
-                f":offset={_meas['target_offset']}"
-            )
-        else:
-            # fallback: simple volume adjust (no truncation)
-            _lnorm_filter = "loudnorm=I=-16:TP=-1:LRA=11:linear=false"
-
-        subprocess.run([
-            "ffmpeg", "-y", "-i", str(_tmp_mix),
-            "-af", _lnorm_filter,
-            "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
-            "-loglevel", "warning",
-            str(output_path),
-        ], check=False)
-        _tmp_mix.unlink(missing_ok=True)
-    else:
-        # pass 1 failed - copy tmp to output if exists
-        if _tmp_mix.exists():
-            import shutil as _shutil
-            _shutil.move(str(_tmp_mix), str(output_path))
     _out_dur = get_audio_duration(str(output_path)) if Path(str(output_path)).exists() else 0.0
-    if result.returncode != 0 or _out_dur < _voice_expected * 0.8:
-        print(f"  [Audio] build_final_audio bad output ({_out_dur:.1f}s < {_voice_expected*0.8:.1f}s) — fallback", flush=True)
+    if result.returncode != 0 or _out_dur < _voice_dur * 0.8:
+        print(f"  [Audio] build_final_audio bad output ({_out_dur:.1f}s < {_voice_dur*0.8:.1f}s) — fallback", flush=True)
         # Graceful fallback: use old pipeline without SFX
         _v_tmp = Path(str(output_path)).parent / "_voice_tmp.aac"
         _m_tmp = Path(str(output_path)).parent / "_music_tmp.aac"

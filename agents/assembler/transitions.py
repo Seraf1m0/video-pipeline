@@ -221,6 +221,9 @@ def _final_concat(parts, output_path, post_vf: str = "", audio_path: str = "",
     if _has_audio:
         cmd += ["-i", str(audio_path)]
 
+    _WIN_CMD_LIMIT = 8000   # Windows CommandLineToArgvW safe limit
+    _using_fc_script = False
+
     if _has_overlay:
         # filter_complex: color-grade concat stream, then overlay subtitle track
         if post_vf:
@@ -229,13 +232,23 @@ def _final_concat(parts, output_path, post_vf: str = "", audio_path: str = "",
             fc = "[0:v][1:v]overlay=format=auto[v]"
         cmd += ["-filter_complex", fc, "-map", "[v]"]
     elif post_vf:
-        cmd += ["-vf", post_vf]
+        if len(post_vf) > _WIN_CMD_LIMIT:
+            # Фильтр слишком длинный для командной строки Windows →
+            # пишем в temp-файл и передаём через -filter_complex_script
+            _fc_file = Path("temp/_post_vf.txt")
+            _fc_file.parent.mkdir(parents=True, exist_ok=True)
+            _fc_file.write_text(f"[0:v]{post_vf}[_vout]", encoding="utf-8")
+            cmd += ["-filter_complex_script", str(_fc_file), "-map", "[_vout]"]
+            _using_fc_script = True
+        else:
+            cmd += ["-vf", post_vf]
 
     cmd += ["-threads", "4", "-c:v", GPU_ENCODER, *GPU_PARAMS, "-pix_fmt", "yuv420p"]
 
     if _has_audio:
         audio_idx = 2 if _has_overlay else 1
-        if not _has_overlay:          # filter_complex уже маппит [v]; без него нужен явный map видео
+        if not _has_overlay and not _using_fc_script:
+            # filter_complex / filter_complex_script уже маппит [v]; без них нужен явный map видео
             cmd += ["-map", "0:v:0"]
         cmd += ["-map", f"{audio_idx}:a:0", "-c:a", "copy", "-shortest"]
     else:
@@ -256,23 +269,26 @@ def _final_concat(parts, output_path, post_vf: str = "", audio_path: str = "",
             _logging.warning(
                 f"_final_concat NVENC issue (got {_out_dur:.1f}s expected ~{_expected_dur:.1f}s), retrying x264"
             )
-            # Rebuild cmd replacing NVENC encoder+params with libx264
-            cmd_x264 = []
-            skip_next = False
-            for tok in cmd:
-                if skip_next:
-                    skip_next = False
-                    continue
-                if tok == GPU_ENCODER:
-                    cmd_x264.append("libx264")
-                elif tok in GPU_PARAMS:
-                    # flag-value pair: skip flag and its value
-                    if not tok.startswith("-"):
-                        pass  # value already skipped
-                    else:
-                        skip_next = True  # skip next token (the value)
-                else:
-                    cmd_x264.append(tok)
+            # Rebuild cmd from scratch with libx264 — не трогаем токен-реконструкцию
+            # (она ломается когда "0" из GPU_PARAMS совпадает с "0" аргументами concat/safe/etc.)
+            cmd_x264 = cmd[:]  # полная копия
+            # Заменяем encoder и его параметры
+            enc_idx = next((i for i, t in enumerate(cmd_x264) if t == GPU_ENCODER), None)
+            if enc_idx is not None:
+                cmd_x264[enc_idx] = "libx264"
+                # Убираем все токены GPU_PARAMS (флаги и их значения)
+                gpu_params_set = set(GPU_PARAMS)
+                result2 = []
+                skip = False
+                for tok in cmd_x264:
+                    if skip:
+                        skip = False
+                        continue
+                    if tok in gpu_params_set and tok.startswith("-"):
+                        skip = True  # пропустить этот флаг и следующий (значение)
+                        continue
+                    result2.append(tok)
+                cmd_x264 = result2
             cmd_x264 += ["-preset", "fast", "-crf", "18"]
             subprocess.run(cmd_x264, check=True)
 
@@ -759,20 +775,27 @@ def concat_clips_xfade(
     chunk_size: int = 100,
 ) -> bool:
     """
-    Fast crossfade via built-in xfade=transition=fade (single filter_complex call).
-    Replaces _crossfade_chunk() for 'crossfade' transition type.
+    Crossfade с tpad clone handles — Premiere Pro архитектура.
 
-    Offset formula (cumulative):
-      cum = D[0]
-      for i in 1..N-1:
-        offset_i = max(0.01, cum - xf_dur)
-        cum += D[i] - xf_dur
+    Каждый клип получает:
+      - первый в run:  tpad tail  = xf_dur/2 (freeze последнего кадра)
+      - последний:     tpad head  = xf_dur/2 (freeze первого кадра)
+      - средние:       tpad head + tail = xf_dur (оба)
 
-    Chunks at chunk_size clips to stay within Windows cmd-line limit (~32KB).
+    Timeline math для двух клипов по 5.0s с xf_dur=1.0:
+      pad = 0.5s
+      A_padded = 5.5s (5.0 + 0.5 tail)
+      B_padded = 5.5s (0.5 head + 5.0)
+      xfade(offset=4.5, duration=1.0) → output = 4.5 + 5.5 = 10.0s ✓
+      Viewer: 0-4.5 чистый А | 4.5-5.0 А тает + Б freeze | 5.0-5.5 Б движение + А исчезает | 5.5-10.0 чистый Б
+
+    Никакой потери контента. Клипы на диске не трогаются.
+    Chunks at chunk_size clips to stay within Windows cmd-line limit.
     """
     clip_paths  = [Path(p) for p in clip_paths]
     output_path = Path(output_path)
     n = len(clip_paths)
+    pad = xf_dur / 2.0  # 0.5s с каждой стороны
 
     if n == 1:
         shutil.copy(str(clip_paths[0]), str(output_path))
@@ -793,15 +816,35 @@ def concat_clips_xfade(
         chunk_durs = [get_video_duration(str(c)) for c in chunks]
         return concat_clips_xfade(chunks, chunk_durs, output_path, xf_dur, fps, chunk_size)
 
-    # ── Single filter_complex xfade chain ─────────────────────────────────────
+    # ── Single filter_complex xfade chain с tpad handles ─────────────────────
     fc: list[str] = []
 
-    # Normalize fps per input
+    # tpad для каждого клипа по позиции в run
+    padded_durs: list[float] = []
     for i in range(n):
-        fc.append(f"[{i}:v]fps={fps},setpts=PTS-STARTPTS[nv{i}]")
+        base = f"[{i}:v]fps={fps},setpts=PTS-STARTPTS"
+        if n == 1:
+            fc.append(f"{base}[nv{i}]")
+            padded_durs.append(durations[i])
+        elif i == 0:
+            # Первый: только tail pad (freeze последнего кадра)
+            fc.append(f"{base},tpad=stop_mode=clone:stop_duration={pad:.3f}[nv{i}]")
+            padded_durs.append(durations[i] + pad)
+        elif i == n - 1:
+            # Последний: только head pad (freeze первого кадра)
+            fc.append(f"{base},tpad=start_mode=clone:start_duration={pad:.3f}[nv{i}]")
+            padded_durs.append(durations[i] + pad)
+        else:
+            # Средние: head + tail pad
+            fc.append(
+                f"{base},"
+                f"tpad=start_mode=clone:start_duration={pad:.3f}"
+                f":stop_mode=clone:stop_duration={pad:.3f}[nv{i}]"
+            )
+            padded_durs.append(durations[i] + 2 * pad)
 
-    # Build xfade chain
-    cumulative = durations[0]
+    # Build xfade chain используя padded_durs для правильного offset
+    cumulative = padded_durs[0]
     prev_label = "nv0"
 
     for i in range(1, n):
@@ -814,7 +857,7 @@ def concat_clips_xfade(
             f"[{out_label}]"
         )
         prev_label  = out_label
-        cumulative += durations[i] - xf_dur   # each xfade eats xf_dur from timeline
+        cumulative += padded_durs[i] - xf_dur
 
     cmd = ["ffmpeg", "-y"]
     for p in clip_paths:
@@ -844,6 +887,85 @@ def concat_clips_xfade(
         print(f"  !! xfade concat error — fallback simple_concat "
               f"[total={_fallback_counter['count']}]", flush=True)
         _simple_concat(clip_paths, output_path)
+    return True
+
+
+def concat_crossfade_respecting_cuts(
+    clip_paths,
+    durations,
+    output_path,
+    xf_dur: float = 0.5,
+    trans_seq: list = None,
+    fps: int = 25,
+) -> bool:
+    """
+    Crossfade с уважением к trans_seq:
+      - Границы с type="cut" → hard cut (не xfade)
+      - Остальные границы → xfade
+
+    Клипы на переходных границах должны иметь handle = xf_dur в хвосте.
+    Разбивает поток клипов на «runs» (группы без cuts), применяет
+    concat_clips_xfade к каждому run, затем склеивает runs через simple_concat.
+
+    Без этой функции concat_clips_xfade применяет xfade ко ВСЕМ границам,
+    включая cut-границы, что съедает xf_dur × n_cuts секунд из таймлайна.
+    """
+    clip_paths  = [Path(p) for p in clip_paths]
+    output_path = Path(output_path)
+    n = len(clip_paths)
+
+    if n == 1:
+        import shutil as _sh
+        _sh.copy(str(clip_paths[0]), str(output_path))
+        return True
+
+    if not trans_seq:
+        return concat_clips_xfade(clip_paths, durations, output_path, xf_dur, fps)
+
+    cut_indices = {i for i, t in enumerate(trans_seq) if t.get("type") == "cut"}
+    if not cut_indices:
+        return concat_clips_xfade(clip_paths, durations, output_path, xf_dur, fps)
+
+    # Split into contiguous runs at cut boundaries
+    runs_clips: list[list[Path]]  = []
+    runs_durs:  list[list[float]] = []
+    gc: list[Path]  = [clip_paths[0]]
+    gd: list[float] = [durations[0]]
+
+    for i, t in enumerate(trans_seq):
+        if i in cut_indices:
+            runs_clips.append(gc); runs_durs.append(gd)
+            gc = [clip_paths[i + 1]]; gd = [durations[i + 1]]
+        else:
+            gc.append(clip_paths[i + 1]); gd.append(durations[i + 1])
+    runs_clips.append(gc)
+    runs_durs.append(gd)
+
+    n_runs = len(runs_clips)
+    n_xf   = sum(len(rc) - 1 for rc in runs_clips)
+    n_cut  = len(cut_indices)
+    print(f"  [xfade+cut] {n} клипов → {n_runs} runs ({n_xf} xfade, {n_cut} cuts)",
+          flush=True)
+
+    if n_runs == 1:
+        return concat_clips_xfade(runs_clips[0], runs_durs[0], output_path, xf_dur, fps)
+
+    Path("temp").mkdir(exist_ok=True)
+    temp_files: list[Path] = []
+    for ri, (rc, rd) in enumerate(zip(runs_clips, runs_durs)):
+        if len(rc) == 1:
+            temp_files.append(rc[0])
+        else:
+            run_out = Path(f"temp/xf_run_{ri:03d}.mp4")
+            concat_clips_xfade(rc, rd, run_out, xf_dur, fps)
+            temp_files.append(run_out)
+
+    _simple_concat(temp_files, output_path)
+
+    for f in temp_files:
+        if f.name.startswith("xf_run_") and f.exists():
+            f.unlink(missing_ok=True)
+
     return True
 
 
@@ -1409,8 +1531,10 @@ def concat_all_with_transitions(
     # ── Fast path: crossfade via built-in xfade (10–20× faster than blend) ────
     if transition == "crossfade":
         print(f"  [xfade] {n} клипов, dur={duration:.2f}s → {output_path.name}", flush=True)
-        return concat_clips_xfade(clip_paths, durations, output_path,
-                                  xf_dur=duration, fps=25)
+        return concat_crossfade_respecting_cuts(
+            clip_paths, durations, output_path,
+            xf_dur=duration, trans_seq=trans_seq, fps=25,
+        )
 
     if transition == "gray_wipe":
         # ── gray_wipe: split at "cut" boundaries, _gray_wipe_fast for each zone ──
