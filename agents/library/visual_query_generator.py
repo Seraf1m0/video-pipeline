@@ -46,7 +46,7 @@ def _call_claude(prompt: str) -> str:
     env = os.environ.copy()
     env.pop("CLAUDECODE", None)
     r = subprocess.run(
-        ["claude", "-p", prompt, "--model", "claude-haiku-4-5-20251001"],
+        ["claude", "-p", prompt, "--model", "claude-3-haiku-20240307"],
         capture_output=True, text=True,
         encoding="utf-8", errors="replace",
         timeout=90, env=env,
