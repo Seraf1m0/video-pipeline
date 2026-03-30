@@ -736,9 +736,10 @@ def generate_subtitles(
 
     try:
         if sub_style == "karaoke":
+            karaoke_font = style.get("subtitle_font", font_name)
             generate_karaoke_ass(
                 str(result_json), str(ass_path),
-                font_name, font_size,
+                karaoke_font, font_size,
                 SUBTITLE_FADE_IN_MS, rise_px,
                 intro_dur, 3, "&H00FFFFFF", "&H00707070", border,
             )

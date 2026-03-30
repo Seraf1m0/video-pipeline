@@ -26,6 +26,7 @@
     "music_vol_db": -22.0,
     "intro_audio_vol_db": -20.0,
     "subtitle_style": "karaoke",
+    "subtitle_font": "Montserrat Bold",
     "subtitle_max_words": 3,
     "subtitle_size_offset": 24,
     "color_grade": "cool_cinematic"
@@ -42,7 +43,7 @@
     "intro_audio_vol_db": -20.0,
     "sfx_vol_scale_db": 3.0,
     "subtitle_style": "scripture",
-    "subtitle_font": "Montserrat Bold",
+    "subtitle_font": "Arial Bold",
     "subtitle_size_offset": 22,
     "subtitle_rise_extra_px": 0,
     "subtitle_max_words": 5,
