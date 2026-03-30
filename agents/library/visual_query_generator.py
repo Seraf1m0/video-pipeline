@@ -36,9 +36,41 @@ BATCH_SIZE   = 20
 MAX_WORKERS  = 4
 RETRY_LIMIT  = 2
 
-NICHE_CONTEXT = {
-    "cosmos":   "space, astronomy, cosmos, universe, stars, galaxies, nebulae, planets",
-    "religion": "religion, spirituality, church, faith, bible, prayer, sacred places",
+NICHE_PROMPTS = {
+    "cosmos": (
+        "You are a visual director for a space documentary YouTube channel.\n\n"
+        "For each segment, write a SHORT English visual description (8-10 words) "
+        "of what footage should play. Describe VISUALS only — what camera shows.\n\n"
+        "Rules:\n"
+        "- Name exact objects ONLY if explicitly mentioned in segment text\n"
+        "- If unsure about specific object → use generic visual analogy\n"
+        "- Always positive descriptions, never use \"not\", \"unlike\", \"without\"\n"
+        "- Segments may be in any language — always respond in English\n"
+        "- If segment text is unclear, corrupted or untranslatable → "
+        "use neutral space fallback: stars, galaxy, nebula, deep space\n"
+        "- Optimize for stock footage library search\n\n"
+        "Examples:\n"
+        '"космический зонд был запущен" → "spacecraft rocket launch trail blue sky"\n'
+        '"тёмная материя невидима" → "deep space dark nebula mysterious cosmic void"\n'
+        '"галактика Андромеда" → "Andromeda galaxy spiral arms stars deep space"\n'
+        '"radio telescope received signal" → "large radio telescope dish night sky rotating"\n'
+        '"[unclear/corrupted text]" → "deep space starfield galaxy nebula glowing"\n'
+    ),
+    "religion": (
+        "You are a visual director for a spiritual documentary YouTube channel.\n\n"
+        "For each segment, write a SHORT English visual description (8-10 words) "
+        "of what footage should play. Describe VISUALS only — what camera shows.\n\n"
+        "Rules:\n"
+        "- Name exact places/objects when mentioned (Vatican, Jerusalem, Bible, cross)\n"
+        "- For abstract concepts → closest visual analogy (faith → candles glowing in dark church)\n"
+        "- Always positive descriptions of what to show\n"
+        "- Segments may be in any language — always respond in English\n"
+        "- Optimize for stock footage library search\n\n"
+        "Examples:\n"
+        '"молитва в церкви" → "people praying hands folded inside cathedral"\n'
+        '"Библия была написана" → "ancient bible open pages golden light"\n'
+        '"Иерусалим" → "Jerusalem old city walls aerial view sunrise"\n'
+    ),
 }
 
 
@@ -61,19 +93,14 @@ def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, str]:
     batch: [(seg_id, text), ...]
     Returns: {seg_id: visual_query_en}
     """
-    context = NICHE_CONTEXT.get(niche, "documentary footage")
+    base_prompt = NICHE_PROMPTS.get(niche, NICHE_PROMPTS["cosmos"])
     lines = "\n".join(f"{i+1}. {text}" for i, (_, text) in enumerate(batch))
     seg_ids = [seg_id for seg_id, _ in batch]
 
     prompt = (
-        f"You are a visual director for a {niche} YouTube channel.\n"
-        f"Theme context: {context}\n\n"
-        f"For each numbered segment below, write a SHORT English visual description "
-        f"(5-12 words) of what stock footage should play on screen. "
-        f"Describe VISUALS only — what the camera shows, not what is said. "
-        f"Optimize for stock footage search.\n\n"
+        f"{base_prompt}"
         f"Segments:\n{lines}\n\n"
-        f"Respond ONLY with valid JSON object, no markdown:\n"
+        f"Respond ONLY with valid JSON, no markdown:\n"
         f'{{"1": "visual description", "2": "visual description", ...}}'
     )
 
