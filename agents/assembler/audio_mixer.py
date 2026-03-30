@@ -553,12 +553,13 @@ def build_final_audio(
         )
 
         # Sidechaincompress: music_base (сигнал) + voice_sc (sidechain) → music_sc
-        # threshold=0.01 (~-40dBFS), ratio=4:1, attack=5ms, release=300ms
-        # Voice sidechain has emotion volume applied → quieter scenes = less ducking
+        # threshold=0.50: срабатывает только на пиках голоса (~-6dBFS и выше)
+        # ratio=1.5: мягкое сжатие (~1dB на пиках) — музыка всегда слышна
+        # attack=50ms/release=1500ms: медленный отклик, не заметен на слух
         fc.append(
             "[music_base][voice_sc]"
             "sidechaincompress="
-            "threshold=0.20:ratio=2:attack=15:release=600:level_sc=0.8"
+            "threshold=0.50:ratio=1.5:attack=50:release=1500:level_sc=0.8"
             "[music_sc]"
         )
         music_out_label = "music_sc"

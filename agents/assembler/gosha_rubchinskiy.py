@@ -416,9 +416,12 @@ def compute_timings(
         seg_end   = float(seg.get("end",   0.0))
         seg_id    = int(seg.get("id", i + 1))
 
-        # Всегда берём длительность из Whisper
-        dur  = max(seg_end - seg_start, 0.5)
         zone = "A" if seg_start < zone_a_end_s else "B"
+        # Zone B клипы строго 5.0s → тайминг тоже строго 5.0s (устраняет дрейф ~4-7s)
+        if zone == "B":
+            dur = 5.0
+        else:
+            dur = max(seg_end - seg_start, 0.5)
 
         timings.append({
             "seg_id":   seg_id,
@@ -579,6 +582,8 @@ def render_videotrack(
         diff   = actual - expected_dur
         sign   = "+" if diff >= 0 else ""
         log(f"  ✅ videotrack: {actual:.1f}s (ожидалось {expected_dur:.1f}s, Δ={sign}{diff:.1f}s)")
+
+
     return bool(ok) and output.exists()
 
 
@@ -967,7 +972,14 @@ def main() -> None:
     voiceover = get_audio_path(channel_id, session)
     if not voiceover:
         log(f"✗ Озвучка не найдена"); sys.exit(1)
-    log(f"Озвучка: {voiceover.name}")
+
+    # Реальная длина голоса — источник истины. result.json может ошибаться
+    # (Whisper иногда выдаёт total_duration с паузами в конце или округлением).
+    voice_actual_dur = get_duration(voiceover)
+    if abs(voice_actual_dur - total_dur) > 1.0:
+        log(f"⚠️  result.json: {total_dur:.1f}s | голос: {voice_actual_dur:.1f}s → используем голос")
+        total_dur = voice_actual_dur
+    log(f"Озвучка: {voiceover.name}  ({total_dur:.1f}s)")
 
     intro_path = find_intro(channel_id, session) if intro_enabled else None
     intro_dur  = 0.0
@@ -1027,13 +1039,16 @@ def main() -> None:
     # Тайминги — граница зон авто-определяется из Whisper
     timings = compute_timings(segments_main)
 
-    # Safety: если сумма таймингов не совпадает с целью — масштабируем
-    actual_sum = sum(t["duration"] for t in timings)
-    if abs(actual_sum - clips_total_dur) > 0.5:
-        scale = clips_total_dur / actual_sum
-        for t in timings:
+    # Safety: Zone B зафиксированы на 5.0s — масштабируем только Zone A
+    zone_a_timings = [t for t in timings if t["zone"] == "A"]
+    zone_b_sum     = sum(t["duration"] for t in timings if t["zone"] == "B")  # ровно N × 5.0s
+    zone_a_sum     = sum(t["duration"] for t in zone_a_timings)
+    zone_a_target  = clips_total_dur - zone_b_sum
+    if zone_a_sum > 0 and abs(zone_a_sum - zone_a_target) > 0.5:
+        scale = zone_a_target / zone_a_sum
+        for t in zone_a_timings:
             t["duration"] *= scale
-        log(f"Тайминги скалированы: {actual_sum:.1f}s -> {clips_total_dur:.1f}s (x{scale:.4f})")
+        log(f"Zone A тайминги скалированы: {zone_a_sum:.1f}s -> {zone_a_target:.1f}s (x{scale:.4f})")
 
     zone_a_segs = sum(1 for t in timings if t["zone"] == "A")
     zone_b_segs = sum(1 for t in timings if t["zone"] == "B")
@@ -1081,7 +1096,7 @@ def main() -> None:
     log("\n--- RENDER ---")
 
     videotrack_path  = temp_dir / "videotrack.mp4"
-    mixed_audio_path = temp_dir / "audio.aac"
+    mixed_audio_path = temp_dir / "audio.m4a"  # M4A = MP4+AAC: точный заголовок длины (не raw .aac)
     ass_path         = get_ass_path(channel_id, session)
     final_output     = get_final_video(channel_id, session)
 

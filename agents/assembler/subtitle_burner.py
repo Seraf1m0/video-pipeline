@@ -316,6 +316,140 @@ def burn_ass(
         return False
 
 
+# ── drawtext: DE rise+fade (встраивается в filter_complex) ───────────────────
+
+def _escape_drawtext(text: str) -> str:
+    """Экранировать текст для FFmpeg drawtext filter."""
+    text = text.replace("\\", "\\\\")
+    text = text.replace("%",  "%%")       # drawtext интерпретирует % как format specifier
+    text = text.replace("'",  "\u2019")   # заменяем апостроф на типографский (безопасно)
+    text = text.replace(":",  "\\:")
+    text = text.replace(",",  "\\,")
+    return text
+
+
+def generate_drawtext_filter(
+    result_json_path: "Path | str",
+    font_path:        str,
+    font_size:        int   = 32,
+    fade_in:          float = 0.12,
+    fade_out:         float = 0.12,
+    rise_px:          int   = 20,
+    intro_duration:   float = 90.0,
+    max_line_chars:   int   = 28,
+    y_base:           int   = 1038,
+) -> str:
+    """
+    Генерировать цепочку drawtext= фильтров для DE-стиля (rise + fade).
+    Возвращает строку для передачи в vf/post_vf — без отдельного ffmpeg прохода.
+
+    Анимация:
+      - fade-in: alpha 0→1 за fade_in секунд
+      - rise:    y из y_base+rise_px → y_base за fade_in секунд
+      - fade-out: alpha 1→0 за fade_out секунд до конца
+    """
+    import json as _json
+
+    result_json_path = Path(result_json_path)
+    with open(result_json_path, encoding="utf-8") as f:
+        data = _json.load(f)
+
+    # Собираем слова (аналогично ass_generator.generate_ass)
+    words = data.get("words", [])
+    if not words:
+        for seg in data.get("segments", []):
+            words.extend(seg.get("words", []))
+    if not words:
+        for seg in data.get("segments", []):
+            s, e = float(seg.get("start", 0)), float(seg.get("end", 0))
+            tokens = str(seg.get("text", "")).strip().split()
+            if not tokens:
+                continue
+            dur = (e - s) / len(tokens)
+            for i, tok in enumerate(tokens):
+                words.append({"word": tok,
+                              "start": round(s + i * dur, 3),
+                              "end":   round(s + (i + 1) * dur, 3)})
+
+    # Сортировать перед фильтрацией — fallback-слова могут быть добавлены в конец
+    words.sort(key=lambda w: float(w.get("start", 0)))
+
+    words = [w for w in words
+             if float(w.get("start", 0)) >= intro_duration
+             and str(w.get("word", "")).strip()]
+
+    # Мёрдж BPE-токенов
+    merged: list[dict] = []
+    for w in words:
+        raw = str(w.get("word", ""))
+        if not raw.startswith(" ") and merged:
+            merged[-1] = {**merged[-1],
+                          "word": merged[-1]["word"].rstrip() + raw.strip(),
+                          "end":  w.get("end", merged[-1]["end"])}
+        else:
+            merged.append({**w, "word": raw.strip()})
+    words = merged
+
+    # Группировка по 3 слова (с fallback на 2 если длиннее max_line_chars)
+    def _text(ws): return " ".join(str(w.get("word","")).strip().upper() for w in ws if w.get("word","").strip())
+
+    groups: list[dict] = []
+    i = 0
+    while i < len(words):
+        for count in (3, 2, 1):
+            grp = words[i:i + count]
+            if grp and (count < 3 or len(_text(grp)) <= max_line_chars):
+                break
+        if grp:
+            groups.append({
+                "start": float(grp[0].get("start", 0)),
+                "end":   float(grp[-1].get("end", grp[-1].get("start", 0) + 0.3)),
+                "text":  _text(grp),
+            })
+        i += len(grp) if grp else 1
+
+    if not groups:
+        return ""
+
+    # Путь к шрифту для FFmpeg (Windows: C\:/path/...)
+    fp = Path(font_path).as_posix()
+    if len(fp) >= 2 and fp[1] == ":":
+        fp = fp[0] + "\\:" + fp[2:]
+
+    parts = []
+    for g in groups:
+        ts  = g["start"]
+        te  = max(g["end"], ts + 0.2)
+        txt = _escape_drawtext(g["text"])
+        fi, fo = fade_in, fade_out
+
+        # rise: текст стартует НИЖЕ финальной позиции (h-42+rise_px) и поднимается вверх (h-42)
+        y_expr     = f"h-42+{rise_px}*(1-min(1\\,(t-{ts:.3f})/{fi:.3f}))"
+        alpha_expr = (
+            f"if(lt(t-{ts:.3f}\\,{fi:.3f})"
+            f"\\,(t-{ts:.3f})/{fi:.3f}"
+            f"\\,if(gt(t\\,{te:.3f}-{fo:.3f})"
+            f"\\,({te:.3f}-t)/{fo:.3f}\\,1))"
+        )
+
+        parts.append(
+            f"drawtext="
+            f"fontfile='{fp}':"
+            f"text='{txt}':"
+            f"fontsize={font_size}:"
+            f"fontcolor=white:"
+            f"borderw=3:"
+            f"bordercolor=black@0.5:"
+            f"x=(w-text_w)/2:"
+            f"y={y_expr}:"
+            f"alpha={alpha_expr}:"
+            f"enable='between(t\\,{ts:.3f}\\,{te:.3f})'"
+        )
+
+    print(f"  ✅ drawtext: {len(parts)} групп субтитров")
+    return ",".join(parts)
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
