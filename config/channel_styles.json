@@ -25,9 +25,8 @@
     "sfx_enabled": true,
     "music_vol_db": -22.0,
     "intro_audio_vol_db": -20.0,
-    "subtitle_style": "scale_pop",
-    "subtitle_font_path": "C:/Windows/Fonts/arialbd.ttf",
-    "subtitle_max_words": 2,
+    "subtitle_style": "karaoke",
+    "subtitle_max_words": 3,
     "subtitle_size_offset": 24,
     "color_grade": "cool_cinematic"
   },

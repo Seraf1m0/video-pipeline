@@ -723,8 +723,7 @@ def generate_subtitles(
     """
     Генерация субтитров по стилю канала.
     Возвращает: (ass_ok, drawtext_filter)
-      - DE "default": drawtext_filter=<строка>, ass_ok=False
-      - FR "karaoke" / ES "scripture": ass_ok=True, drawtext_filter=""
+      - DE "default" / FR "karaoke" / ES "scripture": ass_ok=True, drawtext_filter=""
     """
     if no_subs or not result_json.exists():
         return False, ""
@@ -769,17 +768,19 @@ def generate_subtitles(
             )
             return False, dt_filter
         else:
-            # DE "default" → drawtext (встраивается в filter_complex, без отдельного прохода)
-            dt_filter = generate_drawtext_filter(
+            # DE "default" → ASS (fade + rise)
+            generate_ass(
                 result_json_path = result_json,
-                font_path        = ORGANETTO_FONT_PATH,
+                output_ass_path  = ass_path,
+                font_name        = font_name,
                 font_size        = font_size,
-                fade_in          = SUBTITLE_FADE_IN_MS / 1000.0,
-                fade_out         = SUBTITLE_FADE_OUT_MS / 1000.0,
+                fade_in_ms       = SUBTITLE_FADE_IN_MS,
+                fade_out_ms      = SUBTITLE_FADE_OUT_MS,
                 rise_px          = rise_px,
                 intro_duration   = intro_dur,
+                border_style     = border,
             )
-            return False, dt_filter
+            return ass_path.exists(), ""
     except Exception as e:
         log(f"[SUBS] ошибка: {e}")
         return False, ""
