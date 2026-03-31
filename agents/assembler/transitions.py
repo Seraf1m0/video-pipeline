@@ -1280,6 +1280,10 @@ def _gray_wipe_chunk(clip_paths, durations, output_path, duration=0.4, fps=25):
     правая — ещё предыдущий. Граница движется слева направо с ease-in-out.
     Soft edge 100px. Без xfade — чистый blend, нет пикселизации.
 
+    FREEZE FRAME PAD: хвост каждого клипа (d секунд) генерируется как заморозка
+    последнего кадра через tpad. Реальный контент клипа не обрезается — тело
+    показывает полное содержимое от head_d до конца. Длина видео = sum(durations).
+
     Формула: wipe_pos = (W+100)*(1-cos(PI*T/dur))/2 - 50
              alpha(X) = clip((wipe_pos - X) / 100, 0, 1)
              out = B*alpha + A*(1-alpha)
@@ -1289,7 +1293,8 @@ def _gray_wipe_chunk(clip_paths, durations, output_path, duration=0.4, fps=25):
         shutil.copy(str(clip_paths[0]), str(output_path))
         return True
 
-    d = duration
+    d   = duration
+    fpf = 1.0 / fps  # длительность одного кадра
     # blend expression: вайп от A к B по горизонтали
     wipe_expr = (
         f"clip(((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2-X)/100,0,1)"
@@ -1300,45 +1305,61 @@ def _gray_wipe_chunk(clip_paths, durations, output_path, duration=0.4, fps=25):
     concat_labels = []
 
     for i in range(n):
-        dur_i = durations[i]
+        dur_i  = durations[i]
+        # head_d — сколько секунд "головы" клипа идёт в предыдущий переход (B-сторона)
+        # Ограничиваем: не больше 45% длины клипа, минимум 0.04s
+        head_d = min(d, max(0.04, dur_i * 0.45)) if i > 0 else 0.0
+        # Позиция последнего кадра для freeze tail (2 кадра до конца)
+        last_t = max(head_d, dur_i - 2 * fpf)
+
         fc.append(f"[{i}:v]fps={fps},format=yuv420p,setpts=PTS-STARTPTS[nv{i}]")
 
         if i == 0:
-            main_end = max(0.04, dur_i - d)
+            # Первый клип: полное тело + freeze tail для следующего перехода
             fc.append(f"[nv{i}]split[nv{i}a][nv{i}b]")
-            fc.append(f"[nv{i}a]trim=0:{main_end:.4f},setpts=PTS-STARTPTS[m{i}]")
-            fc.append(f"[nv{i}b]trim={main_end:.4f},setpts=PTS-STARTPTS[e{i}]")
+            fc.append(f"[nv{i}a]trim=0:{dur_i:.4f},setpts=PTS-STARTPTS[m{i}]")
+            fc.append(
+                f"[nv{i}b]trim={last_t:.4f}:{dur_i:.4f},setpts=PTS-STARTPTS,"
+                f"tpad=stop=-1:stop_mode=clone:stop_duration={d:.4f},"
+                f"trim=0:{d:.4f},setpts=PTS-STARTPTS[e{i}]"
+            )
             concat_labels.append(f"m{i}")
 
         elif i == n - 1:
+            # Последний клип: голова идёт в предыдущий переход, тело = всё остальное
             fc.append(f"[nv{i}]split[nv{i}a][nv{i}b]")
-            fc.append(f"[nv{i}a]trim=0:{d:.4f},setpts=PTS-STARTPTS[s{i}]")
-            fc.append(f"[nv{i}b]trim={d:.4f},setpts=PTS-STARTPTS[m{i}]")
+            fc.append(f"[nv{i}a]trim=0:{head_d:.4f},setpts=PTS-STARTPTS[s{i}]")
+            fc.append(f"[nv{i}b]trim={head_d:.4f},setpts=PTS-STARTPTS[m{i}]")
             fc.append(f"[e{i-1}][s{i}]blend=all_expr='{wipe_expr}'[b{i}]")
-            concat_labels.append(f"b{i}")
-            concat_labels.append(f"m{i}")
+            concat_labels += [f"b{i}", f"m{i}"]
 
         else:
-            main_start = d
-            main_end   = max(d + 0.04, dur_i - d)
+            # Средний клип: голова → предыдущий переход, тело = полный контент от head_d до конца,
+            # freeze tail → следующий переход
+            body_end = max(head_d + 0.04, dur_i)
             fc.append(f"[nv{i}]split=3[nv{i}a][nv{i}b][nv{i}c]")
-            fc.append(f"[nv{i}a]trim=0:{d:.4f},setpts=PTS-STARTPTS[s{i}]")
-            fc.append(f"[nv{i}b]trim={main_start:.4f}:{main_end:.4f},setpts=PTS-STARTPTS[m{i}]")
-            fc.append(f"[nv{i}c]trim={main_end:.4f},setpts=PTS-STARTPTS[e{i}]")
+            fc.append(f"[nv{i}a]trim=0:{head_d:.4f},setpts=PTS-STARTPTS[s{i}]")
+            fc.append(f"[nv{i}b]trim={head_d:.4f}:{body_end:.4f},setpts=PTS-STARTPTS[m{i}]")
+            fc.append(
+                f"[nv{i}c]trim={last_t:.4f}:{dur_i:.4f},setpts=PTS-STARTPTS,"
+                f"tpad=stop=-1:stop_mode=clone:stop_duration={d:.4f},"
+                f"trim=0:{d:.4f},setpts=PTS-STARTPTS[e{i}]"
+            )
             fc.append(f"[e{i-1}][s{i}]blend=all_expr='{wipe_expr}'[b{i}]")
-            concat_labels.append(f"b{i}")
-            concat_labels.append(f"m{i}")
+            concat_labels += [f"b{i}", f"m{i}"]
 
     inputs_str = "".join(f"[{lbl}]" for lbl in concat_labels)
     fc.append(f"{inputs_str}concat=n={len(concat_labels)}:v=1:a=0[out]")
 
     cmd = ["ffmpeg", "-y"]
     for p in clip_paths:
+        if GPU_ENCODER_FAST == "h264_nvenc":
+            cmd += ["-hwaccel", "auto"]
         cmd += ["-i", str(p)]
     cmd += [
         "-filter_complex", ";".join(fc),
         "-map", "[out]",
-        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+        "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
         "-pix_fmt", "yuv420p", "-an", "-r", str(fps),
         "-loglevel", "warning",
         str(output_path),

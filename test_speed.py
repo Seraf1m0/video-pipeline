@@ -116,7 +116,8 @@ def main():
     print(f"      подобрано: {len(main_clips)} клипов")
 
     # ── 3. Trim клипов ────────────────────────────────────────────
-    print(f"\n[3] Trim клипов (E: → C:):")
+    clips_src_drive = get_clips_dir(channel_id).drive
+    print(f"\n[3] Trim клипов ({clips_src_drive} → {temp_dir.drive}):")
     clips_dir = get_clips_dir(channel_id)
     trim_dir  = temp_dir / "trimmed"
     trim_dir.mkdir(parents=True, exist_ok=True)
