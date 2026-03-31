@@ -33,10 +33,19 @@ import sys as _sys
 if str(_BOT_DIR) not in _sys.path:
     _sys.path.insert(0, str(_BOT_DIR))
 try:
-    from channel_manager import get_channel_data_dir as _get_ch_data_dir
-    _CH_DATA = _get_ch_data_dir(BASE_DIR / "data")
+    import sys as _sys2
+    _utils_dir = str(BASE_DIR / "agents" / "utils")
+    if _utils_dir not in _sys2.path:
+        _sys2.path.insert(0, _utils_dir)
+    from paths import DATA_ROOT as _DATA_ROOT
 except Exception:
-    _CH_DATA = BASE_DIR / "data"
+    _DATA_ROOT = BASE_DIR / "data"
+
+try:
+    from channel_manager import get_channel_data_dir as _get_ch_data_dir
+    _CH_DATA = _get_ch_data_dir(_DATA_ROOT)
+except Exception:
+    _CH_DATA = _DATA_ROOT
 
 PROMPTS_DIR = _CH_DATA / "prompts"
 MEDIA_DIR   = _CH_DATA / "media"

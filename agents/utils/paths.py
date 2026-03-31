@@ -15,14 +15,16 @@ paths.py — централизованное управление путями 
 
 from pathlib import Path
 
-BASE_DIR     = Path("C:/Projects/Video-pipeline")
-CHANNELS_DIR = BASE_DIR / "data" / "channels"
+BASE_DIR     = Path("C:/Projects/Video-pipeline")   # код — остаётся на C:
+DATA_ROOT    = Path("D:/Video-pipeline-data")        # данные — на D: SSD
+CHANNELS_DIR = DATA_ROOT / "channels"
+TEMP_ROOT    = Path("D:/Video-pipeline-temp")        # temp рендер — на D: SSD
 
 # ── Библиотеки по нишам ───────────────────────────────────────────────────────
 
 LIBRARY_MAP = {
-    "cosmos":   Path("E:/Video-pipeline-library/library_cosmos"),
-    "religion": Path("E:/Video-pipeline-library/library_religion"),
+    "cosmos":   Path("D:/Video-pipeline-library/library_cosmos"),
+    "religion": Path("D:/Video-pipeline-library/library_religion"),
 }
 
 # ── Привязка каналов к нишам ──────────────────────────────────────────────────

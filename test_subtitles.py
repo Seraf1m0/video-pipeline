@@ -66,8 +66,8 @@ CHANNELS = [
         "out": OUT_DIR / "test_es.mp4",
         "generator": lambda r, a: generate_scripture_ass(
             str(r), str(a),
-            font_name      = "Arial Bold",
-            font_size      = 62,
+            font_name      = "Arial Black",
+            font_size      = 66,
             fade_in_ms     = 350,
             fade_out_ms    = 200,
             intro_duration = 0.0,

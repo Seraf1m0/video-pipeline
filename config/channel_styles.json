@@ -43,8 +43,8 @@
     "intro_audio_vol_db": -20.0,
     "sfx_vol_scale_db": 3.0,
     "subtitle_style": "scripture",
-    "subtitle_font": "Arial Bold",
-    "subtitle_size_offset": 22,
+    "subtitle_font": "Arial Black",
+    "subtitle_size_offset": 26,
     "subtitle_rise_extra_px": 0,
     "subtitle_max_words": 5,
     "color_grade": "gold_dramatic"

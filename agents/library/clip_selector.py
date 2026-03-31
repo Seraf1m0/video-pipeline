@@ -821,11 +821,11 @@ def select_clips_for_video(
     try:
         import json as _json
         from pathlib import Path as _Path
-        cs_dir = _Path("data") / "channels" / channel_id.replace("channel_001_cosmos_", "").replace("channel_002_cosmos_", "") / session
+        from paths import CHANNELS_DIR as _CHANNELS_DIR, get_lang as _get_lang
+        cs_dir = _CHANNELS_DIR / _get_lang(channel_id) / session
         if not cs_dir.exists():
-            # попробовать найти папку сессии
-            for _ch in ("de", "fr", "en"):
-                _p = _Path("data") / "channels" / _ch / session
+            for _ch in ("de", "fr", "en", "es"):
+                _p = _CHANNELS_DIR / _ch / session
                 if _p.exists():
                     cs_dir = _p
                     break

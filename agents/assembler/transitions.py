@@ -24,6 +24,15 @@ from pathlib import Path
 
 _fallback_counter: dict[str, int] = {"count": 0}
 
+# Глобальная temp-директория — устанавливается из gosha_rubchinskiy через set_temp_dir()
+_TEMP_DIR = Path("temp")
+
+def set_temp_dir(path):
+    """Установить корневую temp-директорию для всех переходов (D: SSD)."""
+    global _TEMP_DIR
+    _TEMP_DIR = Path(path)
+    _TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -216,7 +225,7 @@ def _final_concat(parts, output_path, post_vf: str = "", audio_path: str = "",
     overlay_path  — пре-рендеренный прозрачный субтитровый оверлей (yuva420p VP9).
                     Если задан, накладывается через filter_complex overlay вместо ass=.
     """
-    concat_f = "temp/_concat_list.txt"
+    concat_f = str(_TEMP_DIR / "_concat_list.txt")
     with open(concat_f, "w") as f:
         for p in parts:
             if Path(p).exists() and Path(p).stat().st_size > 1000:
@@ -245,7 +254,7 @@ def _final_concat(parts, output_path, post_vf: str = "", audio_path: str = "",
         if len(post_vf) > _WIN_CMD_LIMIT:
             # Фильтр слишком длинный для командной строки Windows →
             # пишем в temp-файл и передаём через -filter_complex_script
-            _fc_file = Path("temp/_post_vf.txt")
+            _fc_file = _TEMP_DIR / "_post_vf.txt"
             _fc_file.parent.mkdir(parents=True, exist_ok=True)
             _fc_file.write_text(f"[0:v]{post_vf}[_vout]", encoding="utf-8")
             cmd += ["-filter_complex_script", str(_fc_file), "-map", "[_vout]"]
@@ -273,7 +282,9 @@ def _final_concat(parts, output_path, post_vf: str = "", audio_path: str = "",
     # If NVENC fails or output is significantly too short, retry with libx264
     if GPU_ENCODER != "libx264":
         _out_dur = get_video_duration(str(output_path)) if Path(str(output_path)).exists() else 0.0
-        _expected_dur = sum(get_video_duration(str(p)) for p in parts if Path(str(p)).exists())
+        _video_dur = sum(get_video_duration(str(p)) for p in parts if Path(str(p)).exists())
+        _audio_dur = get_audio_duration(str(audio_path)) if audio_path and Path(str(audio_path)).exists() else None
+        _expected_dur = min(_video_dur, _audio_dur) if _audio_dur else _video_dur
         if result.returncode != 0 or (_expected_dur > 10 and _out_dur < _expected_dur - 3.0):
             import logging as _logging
             _logging.warning(
@@ -318,15 +329,15 @@ def crossfade_transition(clip1_path, clip2_path, output_path, duration=0.5):
     clip2_path  = Path(clip2_path)
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    Path("temp").mkdir(exist_ok=True)
+    _TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     fps       = 25
     clip1_dur = get_video_duration(str(clip1_path))
     c1_main   = max(0.04, clip1_dur - duration)
 
-    t_c1main = "temp/cf_c1main.mp4"
-    t_blend  = "temp/cf_blend.mp4"
-    t_c2main = "temp/cf_c2main.mp4"
+    t_c1main = str(_TEMP_DIR / "cf_c1main.mp4")
+    t_blend  = str(_TEMP_DIR / "cf_blend.mp4")
+    t_c2main = str(_TEMP_DIR / "cf_c2main.mp4")
 
     # ease-in-out: w плавно идёт 0→1 через cosine
     w  = f"0.5-0.5*cos(3.14159265*T/{duration:.4f})"
@@ -388,18 +399,18 @@ def intro_to_main_transition(intro_path, main_path,
     main_path   = Path(main_path)
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    Path("temp").mkdir(exist_ok=True)
+    _TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     intro_dur = get_video_duration(str(intro_path))
     offset    = max(0.1, intro_dur - duration)
     fps       = 25
     SIGMA     = 30
 
-    ib = "temp/it_ib.mp4"
-    iz = "temp/it_iz.mp4"
-    mz = "temp/it_mz.mp4"
-    ma = "temp/it_ma.mp4"
-    bm = "temp/it_bm.mp4"
+    ib = str(_TEMP_DIR / "it_ib.mp4")
+    iz = str(_TEMP_DIR / "it_iz.mp4")
+    mz = str(_TEMP_DIR / "it_mz.mp4")
+    ma = str(_TEMP_DIR / "it_ma.mp4")
+    bm = str(_TEMP_DIR / "it_bm.mp4")
 
     try:
         subprocess.run([
@@ -425,7 +436,7 @@ def intro_to_main_transition(intro_path, main_path,
 
     except subprocess.CalledProcessError as e:
         print(f"  !! intro_to_main fallback concat: {e}", flush=True)
-        concat_f = "temp/it_raw.txt"
+        concat_f = str(_TEMP_DIR / "it_raw.txt")
         with open(concat_f, "w") as f:
             f.write(f"file '{os.path.abspath(str(intro_path))}'\n")
             f.write(f"file '{os.path.abspath(str(main_path))}'\n")
@@ -454,7 +465,7 @@ def smooth_zoom_transition(intro_path, main_path,
     main_path   = Path(main_path)
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    Path("temp").mkdir(exist_ok=True)
+    _TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     fps       = 25
     intro_dur = get_video_duration(str(intro_path))
@@ -466,11 +477,11 @@ def smooth_zoom_transition(intro_path, main_path,
     CX, CY = (SW - 1920) // 2, (SH - 1080) // 2   # 48 x 27
     scale_f = f"scale={SW}:{SH},crop=1920:1080:{CX}:{CY}"
 
-    ib = "temp/sz_ib.mp4"
-    iz = "temp/sz_iz.mp4"
-    mz = "temp/sz_mz.mp4"
-    ma = "temp/sz_ma.mp4"
-    bm = "temp/sz_bm.mp4"
+    ib = str(_TEMP_DIR / "sz_ib.mp4")
+    iz = str(_TEMP_DIR / "sz_iz.mp4")
+    mz = str(_TEMP_DIR / "sz_mz.mp4")
+    ma = str(_TEMP_DIR / "sz_ma.mp4")
+    bm = str(_TEMP_DIR / "sz_bm.mp4")
 
     try:
         subprocess.run([
@@ -523,15 +534,15 @@ def whip_pan_transition(intro_path, main_path,
     main_path   = Path(main_path)
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    Path("temp").mkdir(exist_ok=True)
+    _TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     fps       = 25
     intro_dur = get_video_duration(str(intro_path))
 
-    t_c1main = "temp/wp_c1main.mp4"
-    t_c1blur = "temp/wp_c1blur.mp4"
-    t_c2blur = "temp/wp_c2blur.mp4"
-    t_c2main = "temp/wp_c2main.mp4"
+    t_c1main = str(_TEMP_DIR / "wp_c1main.mp4")
+    t_c1blur = str(_TEMP_DIR / "wp_c1blur.mp4")
+    t_c2blur = str(_TEMP_DIR / "wp_c2blur.mp4")
+    t_c2main = str(_TEMP_DIR / "wp_c2main.mp4")
 
     # filter_complex: scale up → crop с движением → blur рампа через blend
     def _make_fc(dur: float, ramp: str) -> str:
@@ -642,15 +653,15 @@ def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20, **fc
     main_path   = Path(main_path)
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    Path("temp").mkdir(exist_ok=True)
+    _TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     fps       = 25
     intro_dur = get_video_duration(str(intro_path))
 
-    t_c1main = "temp/zb_c1main.mp4"
-    t_c1blur = "temp/zb_c1blur.mp4"
-    t_c2blur = "temp/zb_c2blur.mp4"
-    t_c2main = "temp/zb_c2main.mp4"
+    t_c1main = str(_TEMP_DIR / "zb_c1main.mp4")
+    t_c1blur = str(_TEMP_DIR / "zb_c1blur.mp4")
+    t_c2blur = str(_TEMP_DIR / "zb_c2blur.mp4")
+    t_c2main = str(_TEMP_DIR / "zb_c2main.mp4")
 
     def _make_fc(dur: float, ramp: str) -> str:
         N      = max(1, int(round(dur * fps)))
@@ -742,8 +753,8 @@ def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20, **fc
 # ── CHUNK CONCAT ─────────────────────────────────────────────────────────────
 
 def _simple_concat(clip_paths, output_path):
-    _tmp = Path(output_path).parent / "temp"
-    _tmp.mkdir(exist_ok=True)
+    _tmp = _TEMP_DIR
+    _tmp.mkdir(parents=True, exist_ok=True)
     uid = abs(hash(str(output_path))) % 10_000_000
     concat_file = str(_tmp / f"simple_concat_{uid}.txt")
     with open(concat_file, "w", encoding="utf-8") as f:
@@ -819,13 +830,13 @@ def concat_clips_xfade(
 
     # ── Chunk recursion for large sets ────────────────────────────────────────
     if n > chunk_size:
-        Path("temp").mkdir(exist_ok=True)
+        _TEMP_DIR.mkdir(parents=True, exist_ok=True)
         chunks: list[Path] = []
         n_chunks = (n + chunk_size - 1) // chunk_size
         for ci, start in enumerate(range(0, n, chunk_size)):
             cclips = clip_paths[start : start + chunk_size]
             cdurs  = durations[start : start + chunk_size]
-            cout   = Path(f"temp/xf_chunk_{ci:03d}.mp4")
+            cout   = _TEMP_DIR / f"xf_chunk_{ci:03d}.mp4"
             concat_clips_xfade(cclips, cdurs, cout, xf_dur, fps, chunk_size)
             chunks.append(cout)
             print(f"  xfade чанк {ci + 1}/{n_chunks}", flush=True)
@@ -966,13 +977,13 @@ def concat_crossfade_respecting_cuts(
     if n_runs == 1:
         return concat_clips_xfade(runs_clips[0], runs_durs[0], output_path, xf_dur, fps)
 
-    Path("temp").mkdir(exist_ok=True)
+    _TEMP_DIR.mkdir(parents=True, exist_ok=True)
     temp_files: list[Path] = []
     for ri, (rc, rd) in enumerate(zip(runs_clips, runs_durs)):
         if len(rc) == 1:
             temp_files.append(rc[0])
         else:
-            run_out = Path(f"temp/xf_run_{ri:03d}.mp4")
+            run_out = _TEMP_DIR / f"xf_run_{ri:03d}.mp4"
             concat_clips_xfade(rc, rd, run_out, xf_dur, fps)
             temp_files.append(run_out)
 
@@ -1170,8 +1181,8 @@ def _gray_wipe_fast(clip_paths, durations, output_path, duration=0.4, fps=25):
 
     d     = duration
     uid   = abs(hash(str(output_path))) % 100000
-    tmp   = Path("temp")
-    tmp.mkdir(exist_ok=True)
+    tmp   = _TEMP_DIR
+    tmp.mkdir(parents=True, exist_ok=True)
 
     wipe_expr = (
         f"clip(((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2-X)/100,0,1)"
@@ -1578,8 +1589,8 @@ def concat_all_with_transitions(
             print(f"  [gray_wipe] {n} клипов → {n_zones} зон "
                   f"({n_wipe} с вайпом, {n_cut} хардкат) → {output_path.name}", flush=True)
 
-            _gw_tmp = Path(output_path).parent / "temp"
-            _gw_tmp.mkdir(exist_ok=True)
+            _gw_tmp = _TEMP_DIR
+            _gw_tmp.mkdir(parents=True, exist_ok=True)
             CHUNK_SIZE = 20
 
             def _process_one_zone(zi_zc_zd):
@@ -1629,10 +1640,10 @@ def concat_all_with_transitions(
         CHUNK_SIZE = 20
         if n <= CHUNK_SIZE:
             return _gray_wipe_chunk(clip_paths, durations, output_path, duration)
-        Path("temp").mkdir(exist_ok=True)
+        _TEMP_DIR.mkdir(parents=True, exist_ok=True)
         def _sub_nc(args):
             ci, sc, sd = args
-            scout = Path(f"temp/chunk_{ci:03d}.mp4")
+            scout = _TEMP_DIR / f"chunk_{ci:03d}.mp4"
             _gray_wipe_chunk(sc, sd, scout, duration)
             return scout
         sub_args = [
@@ -1655,13 +1666,13 @@ def concat_all_with_transitions(
         return _concat_chunk(clip_paths, durations, output_path,
                              transition, duration, trans_seq)
 
-    Path("temp").mkdir(exist_ok=True)
+    _TEMP_DIR.mkdir(parents=True, exist_ok=True)
     chunks: list[Path] = []
     n_chunks = (n + CHUNK_SIZE - 1) // CHUNK_SIZE
     for ci, i in enumerate(range(0, n, CHUNK_SIZE)):
         chunk_clips = clip_paths[i : i + CHUNK_SIZE]
         chunk_durs  = durations[i : i + CHUNK_SIZE]
-        chunk_out   = Path(f"temp/chunk_{ci:03d}.mp4")
+        chunk_out   = _TEMP_DIR / f"chunk_{ci:03d}.mp4"
         chunk_seq   = trans_seq[i : i + len(chunk_clips) - 1] if trans_seq else None
         _concat_chunk(chunk_clips, chunk_durs, chunk_out,
                       transition, duration, chunk_seq)

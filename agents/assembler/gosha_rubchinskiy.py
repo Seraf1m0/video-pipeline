@@ -57,10 +57,10 @@ from paths import (
     get_input_dir, get_transcripts_dir, get_output_dir,
     get_intro_clips_dir, get_intro_path, get_audio_path,
     get_result_json, get_ass_path, get_final_video,
-    get_clips_dir, ensure_session_dirs,
+    get_clips_dir, ensure_session_dirs, TEMP_ROOT,
 )
 from style_engine import get_channel_style, get_intro_transition_fn
-from transitions import concat_all_with_transitions, _final_concat, intro_to_main_transition
+from transitions import concat_all_with_transitions, _final_concat, intro_to_main_transition, set_temp_dir
 from audio_mixer import build_final_audio
 from ass_generator import generate_ass, generate_karaoke_ass, generate_scripture_ass
 from subtitle_burner import burn_ass, generate_drawtext_filter
@@ -486,6 +486,7 @@ def trim_clips(
 
     all_order: list[Path] = []
     tasks: list[tuple[Path, Path, float, int]] = []  # (src, dst, dur, seg_id)
+    copy_tasks: list[tuple[Path, Path]] = []          # Zone B: (src, dst) прямая копия
 
     for idx, (seg, timing) in enumerate(zip(segments, timings)):
         seg_id = timing["seg_id"]
@@ -503,16 +504,14 @@ def trim_clips(
             # Zone A: нужна обрезка до точной длины сегмента
             tasks.append((src, dst, dur, seg_id))
         else:
-            # Zone B без handle → прямой symlink (клип уже 5.0s)
-            if dst.exists():
-                dst.unlink()
-            try:
-                dst.symlink_to(src.resolve())
-            except OSError:
-                shutil.copy2(src, dst)
+            # Zone B без handle → физическая копия на D: (не симлинк!) чтобы рендер шёл с SSD
+            if not dst.exists():
+                copy_tasks.append((src, dst))
 
-    if tasks:
-        log(f"Trim {len(tasks)} + symlink {max(0, len(all_order) - len(tasks))} клипов (12 потоков)...")
+    n_trim = len(tasks)
+    n_copy = len(copy_tasks)
+    if tasks or copy_tasks:
+        log(f"Trim {n_trim} (Zone A) + copy {n_copy} (Zone B) клипов на D: (12 потоков)...")
         t0 = time.time()
 
         def _trim(args: tuple) -> None:
@@ -527,15 +526,20 @@ def trim_clips(
             if not _run_ffmpeg(cmd):
                 log(f"  [{seg_id:03d}] trim failed")
 
+        def _copy(args: tuple) -> None:
+            src, dst = args
+            shutil.copy2(src, dst)
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
-            futs = [ex.submit(_trim, t) for t in tasks]
+            futs = [ex.submit(_trim, t) for t in tasks] + \
+                   [ex.submit(_copy, t) for t in copy_tasks]
             for fut in concurrent.futures.as_completed(futs):
                 fut.result()
 
-        log(f"Trim: {len(tasks)} клипов за {time.time()-t0:.1f}s")
+        log(f"Trim+Copy: {n_trim + n_copy} клипов за {time.time()-t0:.1f}s")
 
     ordered = [p for p in all_order if p.exists()]
-    log(f"Итого клипов: {len(ordered)} (trim: {len(tasks)}, symlink: {len(ordered) - len(tasks)})")
+    log(f"Итого клипов: {len(ordered)} (trim: {n_trim}, copy: {n_copy})")
     return ordered
 
 
@@ -1009,14 +1013,15 @@ def main() -> None:
     output_dir = get_output_dir(channel_id, session)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Temp всегда на C: (SSD) — максимальная скорость записи
-    temp_dir = output_dir / "temp"
-    _c_free_gb = shutil.disk_usage("C:/").free // 1024 ** 3
-    if _c_free_gb < 15:
-        log(f"  ⚠️ C: мало места: {_c_free_gb}GB свободно — освободите диск для нормального рендера!")
+    # Temp на D: SSD — рендер быстрый, удаляется после сборки
+    temp_dir = TEMP_ROOT / channel_id / session / "temp"
+    _d_free_gb = shutil.disk_usage("D:/").free // 1024 ** 3
+    if _d_free_gb < 15:
+        log(f"  ⚠️ D: мало места: {_d_free_gb}GB свободно — освободите диск!")
     else:
-        log(f"  C: свободно: {_c_free_gb}GB")
+        log(f"  D: свободно: {_d_free_gb}GB")
     temp_dir.mkdir(parents=True, exist_ok=True)
+    set_temp_dir(temp_dir)   # все temp-файлы transitions.py → D: SSD
 
     # Загрузка данных
     result_json = get_result_json(channel_id, session)
