@@ -21,8 +21,8 @@ CHANNELS_DIR = BASE_DIR / "data" / "channels"
 # ── Библиотеки по нишам ───────────────────────────────────────────────────────
 
 LIBRARY_MAP = {
-    "cosmos":   BASE_DIR / "library_cosmos",
-    "religion": BASE_DIR / "library_religion",
+    "cosmos":   Path("E:/Video-pipeline-library/library_cosmos"),
+    "religion": Path("E:/Video-pipeline-library/library_religion"),
 }
 
 # ── Привязка каналов к нишам ──────────────────────────────────────────────────
