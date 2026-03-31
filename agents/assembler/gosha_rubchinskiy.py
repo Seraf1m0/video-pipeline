@@ -1009,15 +1009,13 @@ def main() -> None:
     output_dir = get_output_dir(channel_id, session)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Выбираем диск для temp: E: если там >10GB больше свободного места чем на C:
-    _c_free = shutil.disk_usage("C:/").free
-    _e_path = Path("E:/")
-    _e_free = shutil.disk_usage("E:/").free if _e_path.exists() else 0
-    if _e_free > _c_free + 10 * 1024 ** 3:
-        temp_dir = Path("E:/Video-pipeline-temp") / channel_id / session
-        log(f"Temp → E: (C: {_c_free//1024**3}GB free, E: {_e_free//1024**3}GB free)")
+    # Temp всегда на C: (SSD) — максимальная скорость записи
+    temp_dir = output_dir / "temp"
+    _c_free_gb = shutil.disk_usage("C:/").free // 1024 ** 3
+    if _c_free_gb < 15:
+        log(f"  ⚠️ C: мало места: {_c_free_gb}GB свободно — освободите диск для нормального рендера!")
     else:
-        temp_dir = output_dir / "temp"
+        log(f"  C: свободно: {_c_free_gb}GB")
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     # Загрузка данных

@@ -742,8 +742,10 @@ def zoom_blur_transition(intro_path, main_path, output_path, duration=0.20, **fc
 # ── CHUNK CONCAT ─────────────────────────────────────────────────────────────
 
 def _simple_concat(clip_paths, output_path):
-    Path("temp").mkdir(exist_ok=True)
-    concat_file = os.path.abspath("temp/simple_concat.txt")
+    _tmp = Path(output_path).parent / "temp"
+    _tmp.mkdir(exist_ok=True)
+    uid = abs(hash(str(output_path))) % 10_000_000
+    concat_file = str(_tmp / f"simple_concat_{uid}.txt")
     with open(concat_file, "w", encoding="utf-8") as f:
         for p in clip_paths:
             f.write(f"file '{os.path.abspath(str(p))}'\n")
@@ -754,6 +756,10 @@ def _simple_concat(clip_paths, output_path):
         "-loglevel", "warning",
         str(output_path),
     ], check=True)
+    try:
+        os.remove(concat_file)
+    except OSError:
+        pass
 
 
 # ── Маппинг типов переходов → xfade имена ────────────────────────────────────
@@ -1572,27 +1578,30 @@ def concat_all_with_transitions(
             print(f"  [gray_wipe] {n} клипов → {n_zones} зон "
                   f"({n_wipe} с вайпом, {n_cut} хардкат) → {output_path.name}", flush=True)
 
-            Path("temp").mkdir(exist_ok=True)
+            _gw_tmp = Path(output_path).parent / "temp"
+            _gw_tmp.mkdir(exist_ok=True)
             CHUNK_SIZE = 20
 
             def _process_one_zone(zi_zc_zd):
                 zi, zc, zd = zi_zc_zd
                 if len(zc) == 1:
                     return zc[0]
-                zone_out = Path(f"temp/gw_zone_{zi:03d}.mp4")
+                zone_out = _gw_tmp / f"gw_zone_{zi:03d}.mp4"
                 if len(zc) <= CHUNK_SIZE:
                     _gray_wipe_chunk(zc, zd, zone_out, duration)
                 else:
                     # Parallel sub-chunks for large zones
-                    def _sub(args):
-                        ci, sc, sd = args
-                        scout = Path(f"temp/gw_zone_{zi:03d}_{ci:03d}.mp4")
-                        _gray_wipe_chunk(sc, sd, scout, duration)
-                        return scout
                     sub_args = [
                         (ci, zc[j:j+CHUNK_SIZE], zd[j:j+CHUNK_SIZE])
                         for ci, j in enumerate(range(0, len(zc), CHUNK_SIZE))
                     ]
+
+                    def _sub(args):
+                        ci, sc, sd = args
+                        scout = _gw_tmp / f"gw_zone_{zi:03d}_{ci:03d}.mp4"
+                        _gray_wipe_chunk(sc, sd, scout, duration)
+                        return scout
+
                     with ThreadPoolExecutor(max_workers=min(len(sub_args), 6)) as sex:
                         sub_chunks = list(sex.map(_sub, sub_args))
                     if len(sub_chunks) == 1:
