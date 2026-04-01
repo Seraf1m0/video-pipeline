@@ -240,7 +240,10 @@ def _render_sub_rgba(text: str, font: ImageFont.FreeTypeFont,
     img  = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    bx, by = pad + 3, pad + 3
+    bx = pad + 3
+    # Выравниваем по нижнему краю текста (bb[3]) а не по верху canvas:
+    # гарантирует одинаковый visual baseline для всех субтитров независимо от акцентов.
+    by = th - bb[3] - pad - 3
     for dx in range(-3, 4, 2):
         for dy in range(-3, 4, 2):
             if dx == 0 and dy == 0:
@@ -343,7 +346,9 @@ def prerender_subtitles(events: list[dict],
             continue
 
         # ── Стандартный рендер (все остальные анимации) ───────────────────────
-        arr = _render_sub_rgba(ev["text"], font)
+        # Одиночное слово в WORD_HL режиме: всегда активное → яркий (жёлтый) цвет
+        _color = _COLOR_BRIGHT if subtitle_anim == ANIM_WORD_HL else _COLOR_WHITE
+        arr = _render_sub_rgba(ev["text"], font, color=_color)
         th, tw = arr.shape[:2]
         tensor = torch.from_numpy(arr).to(DEVICE)
 
@@ -351,8 +356,10 @@ def prerender_subtitles(events: list[dict],
         # Bottom anchor: нижний край всегда на одном уровне независимо от высоты текста
         y = (H - th) // 2 if center_screen else H - th - 50
 
+        # ANIM_WORD_HL требует multi-word путь выше; одиночное слово → fade
+        _anim = ANIM_FADE if subtitle_anim == ANIM_WORD_HL else subtitle_anim
         rendered.append({
-            "anim":        subtitle_anim,
+            "anim":        _anim,
             "tensor":      tensor,
             "start_f":     start_f,
             "end_f":       end_f,
@@ -448,7 +455,8 @@ def composite_subtitles(frame: torch.Tensor,
             for i, (bt, dt, wx) in enumerate(zip(
                     ev["bright_tensors"], ev["dim_tensors"], ev["x_positions"])):
                 wh = ev["word_heights"][i]
-                wy = ev["y_base"] + (ev["th"] - wh) // 2
+                # Bottom anchor: текст каждого слова заканчивается на одном уровне
+                wy = H - wh - 50
                 tensor = bt if i == active else dt
                 frame = _composite_one(frame, tensor, wx, wy, fade)
             continue

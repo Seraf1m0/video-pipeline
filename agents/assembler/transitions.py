@@ -1077,9 +1077,12 @@ def _crossfade_chunk(clip_paths, durations, output_path, duration=0.5, fps=25):
     return True
 
 
-def _fadeblack_chunk(clip_paths, durations, output_path, fade_dur=0.2):
+def _fadeblack_chunk(clip_paths, durations, output_path, fade_dur=0.2, color="black"):
     """
-    Склейка клипов с fade-to-black / fade-from-black в один проход.
+    Склейка клипов с fade-to-color / fade-from-color в один проход.
+
+    color="black"   → стандартный fadeblack (FR)
+    color="0xEAD5B0" → пастельный бежевый (ES Religion)
 
     Один FFmpeg вызов: fade per-input → concat video filter → NVENC.
     Нет промежуточных файлов, нет потери длительности (нет xfade overlap).
@@ -1109,10 +1112,11 @@ def _fadeblack_chunk(clip_paths, durations, output_path, fade_dur=0.2):
         fo_st = max(0.0, dur - fo - 0.01)
 
         vf = []
+        color_arg = f":color={color}" if color != "black" else ""
         if fi > 0:
-            vf.append(f"fade=t=in:st=0:d={fi:.3f}")
+            vf.append(f"fade=t=in:st=0:d={fi:.3f}{color_arg}")
         if fo > 0:
-            vf.append(f"fade=t=out:st={fo_st:.3f}:d={fo:.3f}")
+            vf.append(f"fade=t=out:st={fo_st:.3f}:d={fo:.3f}{color_arg}")
 
         if vf:
             filter_parts.append(f"[{i}:v]{','.join(vf)}[v{i}]")
@@ -1204,7 +1208,7 @@ def _gray_wipe_fast(clip_paths, durations, output_path, duration=0.4, fps=25):
             f"trim={tail_start:.4f}:{da:.4f},setpts=PTS-STARTPTS[ta];"
             # B: read first d seconds from input B, reset PTS
             f"[1:v]fps={fps},format=yuv420p,setpts=PTS-STARTPTS[tb];"
-            f"[ta][tb]blend=all_expr='{wipe_expr}'[out]",
+            f"[ta][tb]blend={wipe_blend}[out]",
             "-map", "[out]",
             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
             "-pix_fmt", "yuv420p", "-an", "-r", str(fps),
@@ -1295,11 +1299,16 @@ def _gray_wipe_chunk(clip_paths, durations, output_path, duration=0.4, fps=25):
 
     d   = duration
     fpf = 1.0 / fps  # длительность одного кадра
-    # blend expression: вайп от A к B по горизонтали
-    wipe_expr = (
-        f"clip(((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2-X)/100,0,1)"
-        f"*B+(1-clip(((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2-X)/100,0,1))*A"
-    )
+    # Beige wipe: позиция вайпа + мягкий бежевый ореол на границе
+    # RGB(245,225,200) → YCbCr(228,112,140) по BT.601
+    _wp   = f"((W+100)*(1-cos(3.14159265*T/{d:.4f}))/2)"
+    _al   = f"clip(({_wp}-X)/100,0,1)"
+    _bell = f"({_al}*(1-{_al})*4*0.55)"   # пик 0.55 в центре мягкого края
+    _base = f"({_al}*B+(1-{_al})*A)"
+    wipe_y  = f"({_bell}*228+(1-{_bell})*{_base})"
+    wipe_cb = f"({_bell}*112+(1-{_bell})*{_base})"
+    wipe_cr = f"({_bell}*140+(1-{_bell})*{_base})"
+    wipe_blend = f"c0_expr='{wipe_y}':c1_expr='{wipe_cb}':c2_expr='{wipe_cr}'"
 
     fc = []
     concat_labels = []
@@ -1330,7 +1339,7 @@ def _gray_wipe_chunk(clip_paths, durations, output_path, duration=0.4, fps=25):
             fc.append(f"[nv{i}]split[nv{i}a][nv{i}b]")
             fc.append(f"[nv{i}a]trim=0:{head_d:.4f},setpts=PTS-STARTPTS[s{i}]")
             fc.append(f"[nv{i}b]trim={head_d:.4f},setpts=PTS-STARTPTS[m{i}]")
-            fc.append(f"[e{i-1}][s{i}]blend=all_expr='{wipe_expr}'[b{i}]")
+            fc.append(f"[e{i-1}][s{i}]blend={wipe_blend}[b{i}]")
             concat_labels += [f"b{i}", f"m{i}"]
 
         else:
@@ -1345,7 +1354,7 @@ def _gray_wipe_chunk(clip_paths, durations, output_path, duration=0.4, fps=25):
                 f"tpad=stop=-1:stop_mode=clone:stop_duration={d:.4f},"
                 f"trim=0:{d:.4f},setpts=PTS-STARTPTS[e{i}]"
             )
-            fc.append(f"[e{i-1}][s{i}]blend=all_expr='{wipe_expr}'[b{i}]")
+            fc.append(f"[e{i-1}][s{i}]blend={wipe_blend}[b{i}]")
             concat_labels += [f"b{i}", f"m{i}"]
 
     inputs_str = "".join(f"[{lbl}]" for lbl in concat_labels)
@@ -1404,6 +1413,11 @@ def _concat_chunk(clip_paths, durations, output_path,
     # fade_dur = duration/2: 1s total → 0.5s fade-out + 0.5s fade-in = 1s черного экрана
     if transition == "fadeblack":
         return _fadeblack_chunk(clip_paths, durations, output_path, fade_dur=duration / 2)
+
+    # fadebeige — fade-to-pastel-beige (ES Religion стиль)
+    if transition == "fadebeige":
+        return _fadeblack_chunk(clip_paths, durations, output_path,
+                                fade_dur=duration / 2, color="0xEAD5B0")
 
     # gray_wipe — позиционный вайп через серый (без xfade/пикселизации)
     if transition == "gray_wipe":

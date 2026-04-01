@@ -458,14 +458,26 @@ def generate_scripture_ass(
             merged.append({**w, "word": raw.strip()})
     words = [w for w in merged if w.get("word", "").strip()]
 
-    # Группировка: 2–3 слова на строку
+    # Группировка: до max_words слов, жёсткий лимит 15 символов.
+    # 1 слово берётся всегда (нельзя дробить слова).
+    MAX_HARD_CHARS = 15
     groups: list[dict] = []
     i = 0
     while i < len(words):
+        grp = None
         for n in (max_words, 2, 1):
-            grp = words[i:i + n]
-            if grp:
+            candidate = words[i:i + n]
+            if not candidate:
                 break
+            txt_candidate = " ".join(
+                w["word"].upper() for w in candidate if w.get("word", "").strip()
+            )
+            if n == 1 or len(txt_candidate) <= MAX_HARD_CHARS:
+                grp = candidate
+                break
+        if not grp:
+            i += 1
+            continue
         txt = " ".join(w["word"].upper() for w in grp if w.get("word", "").strip())
         if txt:
             groups.append({

@@ -13,7 +13,8 @@
     "subtitle_size_offset": 16,
     "subtitle_rise_extra_px": 30,
     "subtitle_border_style": 3,
-    "color_grade": "warm_cinematic"
+    "color_grade": "warm_cinematic",
+    "subtitle_anim": "slide_up"
   },
   "channel_002_cosmos_fr": {
     "name": "Cosmos FR",
@@ -29,15 +30,16 @@
     "subtitle_font": "Montserrat Bold",
     "subtitle_max_words": 3,
     "subtitle_size_offset": 24,
-    "color_grade": "cool_cinematic"
+    "color_grade": "cool_cinematic",
+    "subtitle_anim": "word_highlight"
   },
   "channel_003_religion_es": {
     "name": "Religion ES",
     "intro_transition": "none",
-    "clip_transition": "gray_wipe",
-    "clip_transition_duration": 0.8,
-    "zone_a_end_s": 360,
-    "zone_b_transitions": 30,
+    "clip_transition": "fadebeige",
+    "clip_transition_duration": 1.0,
+    "zone_a_end_s": 300,
+    "zone_b_transitions": 35,
     "sfx_enabled": true,
     "music_vol_db": -28.0,
     "intro_audio_vol_db": -20.0,
@@ -47,6 +49,7 @@
     "subtitle_size_offset": 26,
     "subtitle_rise_extra_px": 0,
     "subtitle_max_words": 5,
-    "color_grade": "gold_dramatic"
+    "color_grade": "gold_dramatic",
+    "subtitle_anim": "fade_scale"
   }
 }
