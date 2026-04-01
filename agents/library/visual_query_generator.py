@@ -45,8 +45,10 @@ SFX_RULES_COSMOS = (
     "- impact     → sudden shock, unexpected fact, surprise\n"
     "- downlifter → sad news, disappointment, let-down\n"
     "- null       → normal segment, no SFX\n"
-    "Use VERY sparingly — only 3-5 SFX total per entire batch of 20 segments.\n"
-    "At least 75% of segments MUST have sfx: null. Reserve for peak dramatic moments only.\n"
+    "Use EXTREMELY sparingly — only 0-2 SFX total per entire batch of 20 segments.\n"
+    "At least 90% of segments MUST have sfx: null.\n"
+    "Reserve ONLY for the single most jaw-dropping or emotionally devastating moment in the batch.\n"
+    "When in doubt, choose null. Most batches should have 0 or 1 SFX.\n"
 )
 
 SFX_RULES_RELIGION = (
@@ -56,8 +58,10 @@ SFX_RULES_RELIGION = (
     "- downlifter → sorrowful moment, loss, hardship, lament\n"
     "- null       → normal segment, no SFX (most segments should be this)\n"
     "This is a calm spiritual channel — NO boom, NO impact, NO riser+boom.\n"
-    "Use VERY sparingly — only 2-3 SFX total per entire batch of 20 segments.\n"
-    "At least 85% of segments MUST have sfx: null.\n"
+    "Use EXTREMELY sparingly — only 0-1 SFX total per entire batch of 20 segments.\n"
+    "At least 95% of segments MUST have sfx: null.\n"
+    "Reserve ONLY for the single most spiritually significant moment in the entire batch.\n"
+    "Most batches should have 0 SFX.\n"
 )
 
 NICHE_PROMPTS = {

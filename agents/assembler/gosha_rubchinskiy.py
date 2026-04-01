@@ -62,6 +62,11 @@ from paths import (
 from style_engine import get_channel_style, get_intro_transition_fn
 from transitions import concat_all_with_transitions, _final_concat, intro_to_main_transition, set_temp_dir
 from audio_mixer import build_final_audio
+try:
+    from gpu_compositor import run as _gpu_composite
+    _GPU_COMPOSITOR_AVAILABLE = True
+except ImportError:
+    _GPU_COMPOSITOR_AVAILABLE = False
 from ass_generator import generate_ass, generate_karaoke_ass, generate_scripture_ass
 from subtitle_burner import burn_ass, generate_drawtext_filter
 from sfx_mixer import (
@@ -619,6 +624,49 @@ def render_videotrack(
 
 
     return bool(ok) and output.exists()
+
+
+def build_timeline_json(
+    trimmed_clips: list[Path],
+    trans_plan:    list[dict],
+    intro_path:    Path | None,
+    intro_trans_dur: float,
+    fps:           float,
+    output_path:   Path,
+) -> Path:
+    """
+    Строит timeline.json — декларативное описание монтажа.
+    Заменяет encode videotrack.mp4: никакого промежуточного рендера.
+    GPU compositor читает клипы напрямую из этого файла.
+    """
+    clips = []
+    for p in trimmed_clips:
+        try:
+            dur = get_duration(p)
+        except Exception:
+            dur = 0.0
+        clips.append({"path": str(p), "duration": round(dur, 6)})
+
+    # Приводим trans_plan к нужному формату (может содержать лишние поля)
+    transitions = [
+        {"type": t.get("type", "cut"), "dur": float(t.get("dur", 0.0))}
+        for t in trans_plan
+    ]
+
+    timeline = {
+        "version":        1,
+        "fps":            fps,
+        "intro":          str(intro_path) if intro_path else None,
+        "intro_trans_dur": intro_trans_dur,
+        "clips":          clips,
+        "transitions":    transitions,
+    }
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(timeline, f, ensure_ascii=False, indent=2)
+
+    log(f"timeline.json: {len(clips)} клипов, "
+        f"{sum(1 for t in transitions if t['type'] != 'cut')} переходов → {output_path.name}")
+    return output_path
 
 
 def build_audio_track(
@@ -1187,28 +1235,35 @@ def main() -> None:
     elif sfx_events:
         log(f"SFX: {len(sfx_events)} событий")
 
+    # Глобальный бюджет SFX: не более 10% длины видео
+    if sfx_events and total_dur > 0:
+        sfx_events = _prune_sfx_by_ratio(sfx_events, trans_times, total_dur)
+        log(f"SFX после бюджета: {len(sfx_events)} событий")
+
     # ── 4. RENDER ─────────────────────────────────────────────────────────────
     t_render = time.time()
     log("\n--- RENDER ---")
 
     videotrack_path  = temp_dir / "videotrack.mp4"
+    timeline_path    = temp_dir / "timeline.json"
     mixed_audio_path = temp_dir / "audio.m4a"  # M4A = MP4+AAC: точный заголовок длины (не raw .aac)
     ass_path         = get_ass_path(channel_id, session)
     final_output     = get_final_video(channel_id, session)
 
-    # Resume: пропускаем шаги если валидные артефакты уже есть
-    _vt_ok, _vt_dur = ffprobe_check(videotrack_path, clips_total_dur, "videotrack (cached)") \
-        if videotrack_path.exists() else (False, 0.0)
     _au_ok, _au_dur = ffprobe_check(mixed_audio_path, total_dur, "audio (cached)") \
         if mixed_audio_path.exists() else (False, 0.0)
 
-    # Параллельно: видеоряд + аудио + субтитры (пропускаем если уже готово)
+    # Определяем путь рендера ДО запуска параллельных задач
+    # GPU single-pass: timeline.json + GPU compositor (нет videotrack encode)
+    # CPU fallback:    videotrack.mp4 + final_render (FFmpeg)
+    _use_gpu = (
+        _GPU_COMPOSITOR_AVAILABLE
+        and not args.no_subs
+    )
+
+    # Параллельно: аудио + субтитры (видеоряд — только для CPU fallback)
+    _vt_ok = False
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
-        fut_video = None if _vt_ok else ex.submit(
-            render_videotrack,
-            trimmed_clips, trans_plan, trans_name, trans_dur, videotrack_path,
-            clips_total_dur,
-        )
         fut_audio = None if _au_ok else ex.submit(
             build_audio_track,
             voiceover, intro_path, intro_dur, total_dur,
@@ -1218,12 +1273,17 @@ def main() -> None:
             generate_subtitles,
             result_json, ass_path, style, intro_dur, args.no_subs,
         )
-
-        if _vt_ok:
-            log(f"  Видеоряд: resume ({_vt_dur:.1f}s уже готов)")
-            video_ok = True
-        else:
-            video_ok = fut_video.result()
+        # CPU fallback: encode videotrack параллельно с аудио/субтитрами
+        fut_video = None
+        if not _use_gpu:
+            _vt_ok, _vt_dur = ffprobe_check(videotrack_path, clips_total_dur, "videotrack (cached)") \
+                if videotrack_path.exists() else (False, 0.0)
+            if not _vt_ok:
+                fut_video = ex.submit(
+                    render_videotrack,
+                    trimmed_clips, trans_plan, trans_name, trans_dur, videotrack_path,
+                    clips_total_dur,
+                )
 
         if _au_ok:
             log(f"  Аудио: resume ({_au_dur:.1f}s уже готов)")
@@ -1233,56 +1293,108 @@ def main() -> None:
 
         ass_ok, drawtext_filter = fut_subs.result()
 
-    log(f"Видеоряд: {'✓' if video_ok else '✗'}  |  Аудио: {'✓' if audio_ok else '✗'}  |  Субтитры: {'✓' if ass_ok else '✗'}")
-    log(f"[⏱] Render (parallel): {time.time()-t_render:.1f}s")
+        if fut_video is not None:
+            video_ok = fut_video.result()
+        else:
+            video_ok = _vt_ok
 
-    # ffprobe валидация видеоряда — детектируем truncation, делаем ретрай с x264
-    if video_ok and not _vt_ok:
-        vt_valid, vt_actual = ffprobe_check(videotrack_path, clips_total_dur, "videotrack")
-        if not vt_valid:
-            log("  ⚠️ Videotrack truncated — ретрай с libx264")
-            from transitions import _set_encoder_x264
-            _set_encoder_x264()
-            video_ok = render_videotrack(
-                trimmed_clips, trans_plan, trans_name, trans_dur, videotrack_path,
-                clips_total_dur,
-            )
-            vt_valid2, _ = ffprobe_check(videotrack_path, clips_total_dur, "videotrack (x264)")
-            if not vt_valid2:
-                log("✗ Videotrack truncated даже с x264 — нехватка места на диске?")
+    log(f"Аудио: {'OK' if audio_ok else 'FAIL'}  |  Субтитры: {'OK' if ass_ok else 'FAIL'}")
+    log(f"[⏱] Parallel prep: {time.time()-t_render:.1f}s")
 
-    # ffprobe валидация аудио
+    # ffprobe аудио
     if audio_ok and not _au_ok:
         au_valid, _ = ffprobe_check(mixed_audio_path, total_dur, "audio")
         if not au_valid:
             log("✗ Аудио truncated — проверьте место на диске"); sys.exit(1)
 
-    if not video_ok and not intro_path:
-        log("✗ Нет ни видеоряда, ни интро"); sys.exit(1)
-
-    # Финальный рендер
-    render_ok = final_render(
-        intro_path      = intro_path,
-        videotrack      = videotrack_path,
-        audio_path      = mixed_audio_path,
-        ass_path        = ass_path,
-        ass_ok          = ass_ok,
-        drawtext_filter = drawtext_filter,
-        style           = style,
-        intro_dur       = intro_dur,
-        output          = final_output,
+    # Уточняем _use_gpu с учётом результатов субтитров
+    _use_gpu = (
+        _use_gpu
+        and ass_ok
+        and ass_path.exists()
+        and not drawtext_filter   # scale_pop использует drawtext — fallback CPU
     )
 
-    if not render_ok:
-        log("✗ Финальный рендер не удался"); sys.exit(1)
+    render_ok = False
 
-    # ffprobe валидация финального видео
-    final_valid, final_actual = ffprobe_check(final_output, total_dur, "final video", tolerance=5.0)
-    if not final_valid:
-        log(f"  ⚠️ Final truncated ({final_actual:.1f}s vs {total_dur:.1f}s) — ретрай с libx264")
-        from transitions import _set_encoder_x264
-        _set_encoder_x264()
-        final_output.unlink(missing_ok=True)
+    if _use_gpu:
+        # ── Single-pass GPU рендер ────────────────────────────────────────────
+        log("Финальный рендер → GPU compositor (single-pass, без videotrack encode)")
+
+        color_grade_name = style.get("color_grade", "warm_cinematic")
+        intro_trans_dur  = float(style.get("clip_transition_duration", 1.0))
+        sub_style        = style.get("subtitle_style", "default")
+        _font_size       = SUBTITLE_FONT_SIZE + style.get("subtitle_size_offset", 0)
+        _sub_font        = style.get("subtitle_font", "")
+        _FONT_MAP = {
+            "Organetto":            ORGANETTO_FONT_PATH,
+            "Organetto Bold":       ORGANETTO_FONT_PATH,
+            "Montserrat Bold":      r"C:\Users\Serafim\AppData\Local\Microsoft\Windows\Fonts\Montserrat-Bold.ttf",
+            "Montserrat ExtraBold": r"C:\Users\Serafim\AppData\Local\Microsoft\Windows\Fonts\MONTSERRAT-EXTRABOLD.TTF",
+            "Arial Black":          r"C:\Windows\Fonts\ariblk.ttf",
+        }
+        _font_path = _FONT_MAP.get(_sub_font) or ORGANETTO_FONT_PATH
+        _sub_anim  = style.get("subtitle_anim", "slide_up")
+
+        # Строим timeline.json (мгновенно — просто JSON с путями)
+        build_timeline_json(
+            trimmed_clips   = trimmed_clips,
+            trans_plan      = trans_plan,
+            intro_path      = intro_path,
+            intro_trans_dur = intro_trans_dur,
+            fps             = 25.0,
+            output_path     = timeline_path,
+        )
+
+        render_ok = _gpu_composite(
+            timeline         = timeline_path,
+            output           = final_output,
+            audio            = mixed_audio_path,
+            ass_path         = ass_path,
+            color_grade_name = color_grade_name,
+            fps              = 25.0,
+            intro_trans_dur  = intro_trans_dur,
+            font_size        = _font_size,
+            fade_ms          = SUBTITLE_FADE_IN_MS,
+            font_path        = _font_path,
+            subtitle_style   = sub_style,
+            subtitle_anim    = _sub_anim,
+        )
+        if not render_ok:
+            log("  ⚠️ GPU compositor не удался — fallback на CPU render")
+            _use_gpu = False
+
+    if not _use_gpu:
+        # ── CPU fallback: encode videotrack → FFmpeg final_render ─────────────
+        log("Финальный рендер → CPU (FFmpeg)")
+        if not _vt_ok and fut_video is None:
+            # Videotrack не был запущен параллельно — запускаем сейчас
+            _vt_ok2, _vt_dur2 = ffprobe_check(videotrack_path, clips_total_dur, "videotrack (cached)") \
+                if videotrack_path.exists() else (False, 0.0)
+            if _vt_ok2:
+                video_ok = True
+                log(f"  Видеоряд: resume ({_vt_dur2:.1f}s уже готов)")
+            else:
+                video_ok = render_videotrack(
+                    trimmed_clips, trans_plan, trans_name, trans_dur, videotrack_path,
+                    clips_total_dur,
+                )
+
+        # ffprobe валидация видеоряда
+        if video_ok:
+            vt_valid, _ = ffprobe_check(videotrack_path, clips_total_dur, "videotrack")
+            if not vt_valid:
+                log("  ⚠️ Videotrack truncated — ретрай с libx264")
+                from transitions import _set_encoder_x264
+                _set_encoder_x264()
+                video_ok = render_videotrack(
+                    trimmed_clips, trans_plan, trans_name, trans_dur, videotrack_path,
+                    clips_total_dur,
+                )
+
+        if not video_ok and not intro_path:
+            log("✗ Нет ни видеоряда, ни интро"); sys.exit(1)
+
         render_ok = final_render(
             intro_path      = intro_path,
             videotrack      = videotrack_path,
@@ -1294,7 +1406,34 @@ def main() -> None:
             intro_dur       = intro_dur,
             output          = final_output,
         )
-        ffprobe_check(final_output, total_dur, "final video (x264)", tolerance=5.0)
+
+    if not render_ok:
+        log("✗ Финальный рендер не удался"); sys.exit(1)
+
+    # ffprobe валидация финального видео
+    final_valid, final_actual = ffprobe_check(final_output, total_dur, "final video", tolerance=5.0)
+    if not final_valid:
+        if _use_gpu:
+            # GPU single-pass не имеет videotrack.mp4 — ретрай через CPU невозможен
+            log(f"  ⚠️ GPU output truncated ({final_actual:.1f}s vs {total_dur:.1f}s) — "
+                f"проверьте _iter_timeline_frames")
+        else:
+            log(f"  ⚠️ Final truncated ({final_actual:.1f}s vs {total_dur:.1f}s) — ретрай с libx264")
+            from transitions import _set_encoder_x264
+            _set_encoder_x264()
+            final_output.unlink(missing_ok=True)
+            render_ok = final_render(
+                intro_path      = intro_path,
+                videotrack      = videotrack_path,
+                audio_path      = mixed_audio_path,
+                ass_path        = ass_path,
+                ass_ok          = ass_ok,
+                drawtext_filter = drawtext_filter,
+                style           = style,
+                intro_dur       = intro_dur,
+                output          = final_output,
+            )
+            ffprobe_check(final_output, total_dur, "final video (x264)", tolerance=5.0)
 
     log(f"[⏱] Final render: {time.time()-t_render:.1f}s total")
     audit_final_audio(final_output, voice_path=voiceover)

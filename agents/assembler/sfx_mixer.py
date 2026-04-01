@@ -69,26 +69,39 @@ _SFX_WHOOSH_ALL  = _SFX_WHOOSH + _SFX_WHOOSH_BIG + _SFX_WHOOSH_FAST
 def _db(db: float) -> float:
     return 10 ** (db / 20)
 
-# Относительные коэффициенты категорий (1.0 = точно -27dB / 35% голоса)
-# boom/impact чуть громче для акцента, riser/downlifter тише
-_VOL_WHOOSH      = 0.20  # 20% от базового нормализованного уровня
-_VOL_IMPACT      = 0.26
-_VOL_GLITCH      = 0.20
-_VOL_RISER       = 0.12
-_VOL_DOWNLIFTER  = 0.16
-_VOL_BOOM        = 0.30
+# Относительные коэффициенты — в 2 раза тише (фоновое присутствие, не акцент)
+_VOL_WHOOSH      = 0.10
+_VOL_IMPACT      = 0.04
+_VOL_GLITCH      = 0.10
+_VOL_RISER       = 0.015
+_VOL_DOWNLIFTER  = 0.04
+_VOL_BOOM        = 0.05
 
 
 # ─── Утилиты ─────────────────────────────────────────────────────────────────
 
-def _pick(pool: list) -> Path | None:
-    return random.choice(pool) if pool else None
+_pick_history: dict[str, list] = {}  # категория → последние N выбранных файлов
+
+def _pick(pool: list, category: str = "") -> Path | None:
+    """Случайный выбор без повторения последних 2 файлов (анти-луп)."""
+    if not pool:
+        return None
+    if len(pool) == 1:
+        return pool[0]
+    hist = _pick_history.get(category, [])
+    candidates = [p for p in pool if p not in hist]
+    if not candidates:
+        candidates = pool  # сбросить если всё в истории
+    chosen = random.choice(candidates)
+    hist.append(chosen)
+    _pick_history[category] = hist[-2:]  # держим последние 2
+    return chosen
 
 def _pick_best(pools: list[list]) -> Path | None:
     """Выбрать случайный файл из первого непустого пула."""
     for p in pools:
         if p:
-            return random.choice(p)
+            return _pick(p, category=str(id(p)))
     return None
 
 # Целевой уровень SFX: 35% от громкости озвучки (-17.9 dB среднее)
@@ -157,7 +170,7 @@ def _sfx_gain(path: Path, category_vol: float) -> float:
     return linear
 
 
-MAX_SFX_PER_TRANSITION_RATIO = 0.6   # не более 60% переходов получают SFX
+MAX_SFX_PER_TRANSITION_RATIO = 0.15  # не более 15% переходов получают SFX
 SFX_SYNC_TOLERANCE           = 0.05  # секунд — максимальный допустимый десинк SFX↔переход
 SFX_MAX_SHIFT                = 0.10  # секунд — максимальный сдвиг (100ms, выше уже слышно)
 SFX_DROP_IF_MORE             = 0.25  # секунд — дропаем если до ближайшего перехода > 250ms
@@ -179,18 +192,40 @@ _SFX_PRIORITY: dict[str, int] = {
 _SFX_SYNC_EXEMPT = {"riser", "downlifter"}
 
 
+def _sfx_budget_limit(video_duration_s: float) -> int:
+    """
+    Бюджет SFX событий = 10% от длины видео, с небольшим ростом для длинных видео.
+    Формула: base=10%, +1% за каждые 5 минут сверх 10 мин, макс 18%.
+    Средняя длина SFX ~4s → budget_events = duration * ratio / 4.
+
+    10 мин (600s): 10% → 15 событий
+    15 мин (900s): 11% → 25 событий
+    20 мин (1200s): 12% → 36 событий
+    30 мин (1800s): 14% → 63 событий
+    """
+    base_ratio  = 0.10
+    extra_ratio = min(0.08, max(0.0, (video_duration_s - 600) / 300) * 0.01)
+    ratio       = base_ratio + extra_ratio
+    avg_sfx_dur = 4.0
+    return max(5, int(video_duration_s * ratio / avg_sfx_dur))
+
+
 def _prune_sfx_by_ratio(
     events:           list[dict],
     transition_times: list[float],
+    video_duration_s: float = 0.0,
 ) -> list[dict]:
     """
-    Оставить SFX только для MAX_SFX_PER_TRANSITION_RATIO переходов.
+    Оставить SFX только для MAX_SFX_PER_TRANSITION_RATIO переходов,
+    и не более бюджета (10% видео).
     Приоритет: boom/riser > impact > glitch > whoosh.
-    Лишние события дропаются с логом в pipeline_validator.
     """
     if not transition_times or not events:
         return events
-    max_sfx = max(1, int(len(transition_times) * MAX_SFX_PER_TRANSITION_RATIO))
+    max_by_ratio  = max(1, int(len(transition_times) * MAX_SFX_PER_TRANSITION_RATIO))
+    max_by_budget = _sfx_budget_limit(video_duration_s) if video_duration_s > 0 else max_by_ratio
+    max_sfx       = min(max_by_ratio, max_by_budget)
+    print(f"  [SFX budget] ratio_limit={max_by_ratio} | budget_limit={max_by_budget} | cap={max_sfx}", flush=True)
     if len(events) <= max_sfx:
         return events
 
@@ -476,9 +511,10 @@ def inject_sfx(
     transition_types:  list[str]  | None = None,
     intro_end_time:    float      | None = None,
     narrator_events:   list[dict] | None = None,
-    transition_durs:   list[float]| None = None,  # длительности переходов для short-trans фильтра
-    zone_a_end_s:      float             = 0.0,   # 0 = no zoning
-    zone_b_max_per_min: float            = 0.8,   # events/min after zone_a_end_s
+    transition_durs:   list[float]| None = None,
+    zone_a_end_s:      float             = 0.0,
+    zone_b_max_per_min: float            = 0.8,
+    video_duration_s:  float             = 0.0,   # для бюджета 10% SFX
 ) -> Path:
     """
     Наложить SFX на аудио в точках переходов + контекстные нарратив-события.
@@ -520,8 +556,8 @@ def inject_sfx(
         print(f"  [SFX zones] A(0–{zone_a_end_s:.0f}s): {len(zone_a_events)} events | "
               f"B({zone_a_end_s:.0f}s+): {len(zone_b_events)} events", flush=True)
 
-    # 1. Прунинг по соотношению: не более 60% переходов получают SFX
-    events = _prune_sfx_by_ratio(events, transition_times)
+    # 1. Прунинг по соотношению + бюджет 10% видео
+    events = _prune_sfx_by_ratio(events, transition_times, video_duration_s)
 
     # 2. Синхронизация: shift ≤ 100ms, drop ≤ 250ms, короткие переходы без SFX
     events = _enforce_sfx_sync(events, transition_times, transition_durs)

@@ -107,7 +107,7 @@ def main():
             mini_json = out_dir / "result_mini.json"
             mini_json.write_text(json.dumps(data_mini), encoding="utf-8")
         return select_clips_for_video(
-            session=session, channel_id=channel_id,
+            session="speed_test_session", channel_id=channel_id,
             segments=segs, max_repeats_in_video=5, max_from_prev=5,
             intro_duration=0.0,
         )
