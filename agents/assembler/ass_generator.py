@@ -143,7 +143,11 @@ def generate_ass(
 
     print(f"  ✅ Слов для ASS: {len(words_filtered)}")
 
-    # Группируем по 3 слова; если длина превышает max_line_chars — используем 2
+    # Группируем: до 3 слов, жёсткий лимит MAX_HARD_CHARS символов.
+    # Логика: пробуем 3 → 2 → 1 слово; берём первое, что влазит в лимит.
+    # 1 слово берём всегда (нельзя дробить слова).
+    MAX_HARD_CHARS = 15
+
     def _words_text(ws: list) -> str:
         return " ".join(str(w.get("word", "")).strip().upper() for w in ws
                         if str(w.get("word", "")).strip())
@@ -151,12 +155,13 @@ def generate_ass(
     groups = []
     i = 0
     while i < len(words_filtered):
-        # Пробуем взять 3 слова, если 3 есть и они помещаются — берём 3, иначе 2
+        group = None
         for count in (3, 2, 1):
-            group = words_filtered[i:i + count]
-            if not group:
+            candidate = words_filtered[i:i + count]
+            if not candidate:
                 break
-            if count < 3 or len(_words_text(group)) <= max_line_chars:
+            if count == 1 or len(_words_text(candidate)) <= MAX_HARD_CHARS:
+                group = candidate
                 break
         if group:
             groups.append({
