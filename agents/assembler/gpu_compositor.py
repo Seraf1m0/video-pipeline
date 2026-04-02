@@ -621,8 +621,11 @@ def _open_decoder(path: Path) -> subprocess.Popen:
 
 
 def _open_encoder(output: Path, fps: float,
-                  audio_path: Path | None) -> subprocess.Popen:
-    """rawvideo rgb24 stdin → h264_nvenc → output.mp4"""
+                  audio_path: Path | None,
+                  intermediate: bool = False) -> subprocess.Popen:
+    """rawvideo rgb24 stdin → h264_nvenc → output.mp4
+    intermediate=True: промежуточный файл (будет перекодирован) → preset p1 для скорости.
+    """
     cmd = [
         "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
         "-f", "rawvideo", "-pix_fmt", "rgb24",
@@ -630,8 +633,9 @@ def _open_encoder(output: Path, fps: float,
     ]
     if audio_path and Path(audio_path).exists():
         cmd += ["-i", str(audio_path), "-c:a", "aac", "-b:a", "192k", "-shortest"]
+    preset = "p1" if intermediate else "p4"
     cmd += [
-        "-c:v", "h264_nvenc", "-preset", "p4",
+        "-c:v", "h264_nvenc", "-preset", preset,
         "-rc", "vbr", "-cq", "19", "-b:v", "20M", "-maxrate", "25M", "-bufsize", "40M",
         "-bf", "0", "-g", "50",          # нет B-фреймов → монотонный PTS, плавное воспроизведение
         "-pix_fmt", "yuv420p",
@@ -1001,7 +1005,8 @@ def run(
     _gpu_clips_tmp: Path | None = None
     if _skip_intro:
         _gpu_clips_tmp = output.parent / f"_gpu_clips_{output.stem}.mp4"
-        encoder = _open_encoder(_gpu_clips_tmp, fps_actual, audio_path=None)
+        # промежуточный файл: будет перекодирован intro merge → p1 для скорости
+        encoder = _open_encoder(_gpu_clips_tmp, fps_actual, audio_path=None, intermediate=True)
     else:
         encoder = _open_encoder(output, fps_actual, audio)
 
@@ -1034,7 +1039,7 @@ def run(
 
     # ── Reader thread: декодирует в очередь независимо от GPU ─────────────────
     # Всегда yields (raw_a: bytes, raw_b: bytes|None, alpha: float) или None
-    READ_Q_SIZE = 6
+    READ_Q_SIZE = 16   # увеличен с 6: меньше голода GPU при дисковых паузах
     read_q: queue.Queue = queue.Queue(maxsize=READ_Q_SIZE)
 
     def _reader():
@@ -1082,8 +1087,23 @@ def run(
     with torch.no_grad():
         slot = 0  # ping-pong: 0 или 1
 
-        # Читаем первый элемент заранее (tuple или None)
-        item = read_q.get()
+        # Постоянный prefetch-поток: читает из read_q в prefetch_q.
+        # Заменяет создание нового Thread на каждый кадр (~23k Thread объектов).
+        PREFETCH_Q_SIZE = 2
+        prefetch_q: queue.Queue = queue.Queue(maxsize=PREFETCH_Q_SIZE)
+
+        def _prefetcher():
+            while True:
+                item = read_q.get()
+                prefetch_q.put(item)
+                if item is None:
+                    break
+
+        prefetch_thread = threading.Thread(target=_prefetcher, daemon=True)
+        prefetch_thread.start()
+
+        # Читаем первый элемент заранее
+        item = prefetch_q.get()
 
         while item is not None:
             raw_a, raw_b, alpha_blend = item
@@ -1103,14 +1123,7 @@ def run(
             # Ждём H2D перед compute
             comp_stream.wait_stream(h2d_stream)
 
-            # 3. Запускаем следующее чтение ПОКА GPU считает (реальный overlap)
-            next_item_holder = [None]
-            def _prefetch():
-                next_item_holder[0] = read_q.get()
-            prefetch_t = threading.Thread(target=_prefetch, daemon=True)
-            prefetch_t.start()
-
-            # 4. GPU compute (comp stream)
+            # 3. GPU compute (comp stream)
             with torch.cuda.stream(comp_stream):
                 frame = g.float() / 255.0
 
@@ -1129,13 +1142,13 @@ def run(
                     frame = composite_subtitles(frame, frame_num, sub_idx)
                 result = (frame.clamp(0.0, 1.0) * 255.0).byte()
 
-            # 5. GPU → pinned CPU (синхронно — CPU должен дождаться D2H перед чтением)
+            # 4. GPU → pinned CPU (синхронно — CPU должен дождаться D2H перед чтением)
             # non_blocking=True создавал race condition: CPU читал pinned buffer
             # пока D2H копия ещё шла → битые кадры у всех клипов
             torch.cuda.current_stream().wait_stream(comp_stream)
             po.copy_(result.reshape(-1), non_blocking=False)
 
-            # 6. Данные гарантированно готовы — отправляем в writer
+            # 5. Данные гарантированно готовы — отправляем в writer
             write_q.put(po.numpy().tobytes())
 
             frame_num += 1
@@ -1149,8 +1162,7 @@ def run(
                 print(f"  [{pct:5.1f}%] кадр {frame_num}/{total_frames} | "
                       f"{fps_r:.0f} fps | ETA {eta:.0f}s", flush=True)
 
-            prefetch_t.join()
-            item = next_item_holder[0]
+            item = prefetch_q.get()
 
     write_q.put(None)  # сигнал writer thread завершить работу
 
