@@ -20,6 +20,12 @@ data/transcripts/
 data/prompts/
 data/output/
 
+# Speed-test медиафайлы (бинарники, не в git)
+data/speed_test/**/*.mp4
+data/speed_test/**/*.m4a
+data/speed_test/**/*.wav
+data/speed_test/**/*.ass
+
 # Библиотеки клипов (гигабайты)
 library_cosmos/
 library_religion/

@@ -116,7 +116,7 @@ _CH_ALIAS = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 def log(msg: str) -> None:
-    print(f"[ASSEMBLER] {msg}", flush=True)
+    print(f"[GOSHA] {msg}", flush=True)
 
 
 _DURATION_CACHE: dict[str, float] = {}
@@ -1038,7 +1038,7 @@ def main() -> None:
 
     t_start = time.time()
     log("=" * 60)
-    log("ASSEMBLER v2 — МОНТАЖ ВИДЕО")
+    log("GOSHA v2 — МОНТАЖ ВИДЕО")
     log("=" * 60)
 
     # ── 1. INIT ───────────────────────────────────────────────────────────────

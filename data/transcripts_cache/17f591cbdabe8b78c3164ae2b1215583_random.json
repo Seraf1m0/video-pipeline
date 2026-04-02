@@ -1,0 +1,10658 @@
+{
+  "ffmpeg_verified": true,
+  "total_duration": 872.738,
+  "coverage": 872.0,
+  "gap": 0.738,
+  "segments": [
+    {
+      "id": 1,
+      "start": 0,
+      "end": 2,
+      "text": "Béthelgeuse, cette géante"
+    },
+    {
+      "id": 2,
+      "start": 2,
+      "end": 6,
+      "text": "rouge nichée dans la constellation d'Orion, l'un des"
+    },
+    {
+      "id": 3,
+      "start": 6,
+      "end": 10,
+      "text": "points les plus brillants de notre ciel nocturne."
+    },
+    {
+      "id": 4,
+      "start": 10,
+      "end": 13,
+      "text": "Et voilà qu'elle a commencé à s'éteindre."
+    },
+    {
+      "id": 5,
+      "start": 13,
+      "end": 15,
+      "text": "Pas seulement à"
+    },
+    {
+      "id": 6,
+      "start": 15,
+      "end": 18,
+      "text": "faiblir légèrement, mais à perdre sérieusement"
+    },
+    {
+      "id": 7,
+      "start": 18,
+      "end": 21,
+      "text": "de son éclat, semaine après semaine."
+    },
+    {
+      "id": 8,
+      "start": 21,
+      "end": 24,
+      "text": "En l'espace de quelques jours,"
+    },
+    {
+      "id": 9,
+      "start": 24,
+      "end": 28,
+      "text": "sa luminosité a chuté de près de 40%."
+    },
+    {
+      "id": 10,
+      "start": 28,
+      "end": 32,
+      "text": "Et le plus frappant, c'est qu'il n'y avait pas besoin"
+    },
+    {
+      "id": 11,
+      "start": 32,
+      "end": 35,
+      "text": "d'un super télescope comme James Webb pour s'en apercevoir."
+    },
+    {
+      "id": 12,
+      "start": 35,
+      "end": 39,
+      "text": "N'importe qui pouvait sortir, lever les yeux vers"
+    },
+    {
+      "id": 13,
+      "start": 39,
+      "end": 41,
+      "text": "Orion et se dire"
+    },
+    {
+      "id": 14,
+      "start": 41,
+      "end": 44,
+      "text": "« Waouh, elle a changé ! »"
+    },
+    {
+      "id": 15,
+      "start": 44,
+      "end": 46,
+      "text": "C'était une preuve directe."
+    },
+    {
+      "id": 16,
+      "start": 46,
+      "end": 49,
+      "text": "L'univers se transforme sur nos yeux."
+    },
+    {
+      "id": 17,
+      "start": 49,
+      "end": 51,
+      "text": "et en ce"
+    },
+    {
+      "id": 18,
+      "start": 51,
+      "end": 55,
+      "text": "début d'année 2026, ce vieux mystère cosmique"
+    },
+    {
+      "id": 19,
+      "start": 55,
+      "end": 58,
+      "text": "a ressurgi avec une force inédite."
+    },
+    {
+      "id": 20,
+      "start": 58,
+      "end": 60,
+      "text": "Elon Musk a déclaré"
+    },
+    {
+      "id": 21,
+      "start": 60,
+      "end": 63,
+      "text": "que l'étoile bételgeuse était sur le point d'exploser"
+    },
+    {
+      "id": 22,
+      "start": 63,
+      "end": 66,
+      "text": "et que l'humanité disposait d'un"
+    },
+    {
+      "id": 23,
+      "start": 66,
+      "end": 69,
+      "text": "temps limité pour se préparer."
+    },
+    {
+      "id": 24,
+      "start": 69,
+      "end": 73,
+      "text": "Il n'est pas astronome, mais ce n'est pas non plus un simple alarmiste."
+    },
+    {
+      "id": 25,
+      "start": 73,
+      "end": 77,
+      "text": "Quand Musk parle, le monde écoute."
+    },
+    {
+      "id": 26,
+      "start": 77,
+      "end": 79,
+      "text": "Cette déclaration a"
+    },
+    {
+      "id": 27,
+      "start": 79,
+      "end": 82,
+      "text": "inquiété le public, mais aussi"
+    },
+    {
+      "id": 28,
+      "start": 82,
+      "end": 84,
+      "text": "les spécialistes, des astrophysiciens"
+    },
+    {
+      "id": 29,
+      "start": 84,
+      "end": 86,
+      "text": "aux climatologues en"
+    },
+    {
+      "id": 30,
+      "start": 86,
+      "end": 89,
+      "text": "passant par les experts en télécommunication."
+    },
+    {
+      "id": 31,
+      "start": 89,
+      "end": 92,
+      "text": "La question centrale est"
+    },
+    {
+      "id": 32,
+      "start": 92,
+      "end": 94,
+      "text": "d'une simplicité effrayante."
+    },
+    {
+      "id": 33,
+      "start": 94,
+      "end": 97,
+      "text": "Sur quoi repose une telle certitude ?"
+    },
+    {
+      "id": 34,
+      "start": 97,
+      "end": 101,
+      "text": "Bethelgeuse est depuis longtemps considérée comme"
+    },
+    {
+      "id": 35,
+      "start": 101,
+      "end": 103,
+      "text": "une étoile instable."
+    },
+    {
+      "id": 36,
+      "start": 103,
+      "end": 107,
+      "text": "C'est l'une des super géantes rouges les plus proches de la Terre."
+    },
+    {
+      "id": 37,
+      "start": 107,
+      "end": 111,
+      "text": "Environ 640 années-lumière."
+    },
+    {
+      "id": 38,
+      "start": 111,
+      "end": 115,
+      "text": "Elle est si immense que si elle remplaçait notre Soleil,"
+    },
+    {
+      "id": 39,
+      "start": 115,
+      "end": 118,
+      "text": "sa surface s'étendrait au-delà"
+    },
+    {
+      "id": 40,
+      "start": 118,
+      "end": 120,
+      "text": "de l'orbite de Mars."
+    },
+    {
+      "id": 41,
+      "start": 120,
+      "end": 123,
+      "text": "Mais dans l'espace, la taille n'est"
+    },
+    {
+      "id": 42,
+      "start": 123,
+      "end": 125,
+      "text": "pas synonyme de stabilité."
+    },
+    {
+      "id": 43,
+      "start": 125,
+      "end": 128,
+      "text": "Et c'est précisément ce qui"
+    },
+    {
+      "id": 44,
+      "start": 128,
+      "end": 130,
+      "text": "rend Béthelgeuse potentiellement dangereuse."
+    },
+    {
+      "id": 45,
+      "start": 130,
+      "end": 133,
+      "text": "Les super géantes rouges vivent peu de temps"
+    },
+    {
+      "id": 46,
+      "start": 133,
+      "end": 136,
+      "text": "et finissent leur course"
+    },
+    {
+      "id": 47,
+      "start": 136,
+      "end": 138,
+      "text": "par un effondrement gravitationnel."
+    },
+    {
+      "id": 48,
+      "start": 138,
+      "end": 141,
+      "text": "Une explosion en supernova capable de"
+    },
+    {
+      "id": 49,
+      "start": 141,
+      "end": 143,
+      "text": "briller pendant un temps"
+    },
+    {
+      "id": 50,
+      "start": 143,
+      "end": 147,
+      "text": "plus fort qu'une galaxie toute entière."
+    },
+    {
+      "id": 51,
+      "start": 147,
+      "end": 151,
+      "text": "Après l'obscurcissement mystérieux de Bethelgeuse en 2019,"
+    },
+    {
+      "id": 52,
+      "start": 151,
+      "end": 155,
+      "text": "les astronomes ont commencé à la surveiller de très près."
+    },
+    {
+      "id": 53,
+      "start": 155,
+      "end": 157,
+      "text": "Certains expliquaient cette baisse de régime"
+    },
+    {
+      "id": 54,
+      "start": 157,
+      "end": 159,
+      "text": "par l'éjection d'un"
+    },
+    {
+      "id": 55,
+      "start": 159,
+      "end": 162,
+      "text": "nuage de poussière masquant partiellement l'étoile,"
+    },
+    {
+      "id": 56,
+      "start": 162,
+      "end": 164,
+      "text": "comme si elle avait mué."
+    },
+    {
+      "id": 57,
+      "start": 164,
+      "end": 168,
+      "text": "D'autres parlaient de pulsations chaotiques en son sein,"
+    },
+    {
+      "id": 58,
+      "start": 168,
+      "end": 170,
+      "text": "des flux de plasma"
+    },
+    {
+      "id": 59,
+      "start": 170,
+      "end": 173,
+      "text": "et d'énergie suggérant l'épuisement de son carburant."
+    },
+    {
+      "id": 60,
+      "start": 173,
+      "end": 176,
+      "text": "Mais aucune version n'efface"
+    },
+    {
+      "id": 61,
+      "start": 176,
+      "end": 178,
+      "text": "l'essentiel. La probabilité"
+    },
+    {
+      "id": 62,
+      "start": 178,
+      "end": 181,
+      "text": "d'un effondrement demeure, seul le"
+    },
+    {
+      "id": 63,
+      "start": 181,
+      "end": 183,
+      "text": "moment exact reste inconnu."
+    },
+    {
+      "id": 64,
+      "start": 183,
+      "end": 186,
+      "text": "Aujourd'hui, Musk affirme que ces signaux"
+    },
+    {
+      "id": 65,
+      "start": 186,
+      "end": 188,
+      "text": "ont été soit mal"
+    },
+    {
+      "id": 66,
+      "start": 188,
+      "end": 191,
+      "text": "interprétés, soit présentés de manière trop édulcorée."
+    },
+    {
+      "id": 67,
+      "start": 191,
+      "end": 194,
+      "text": "Selon lui, de nouvelles données montrent"
+    },
+    {
+      "id": 68,
+      "start": 194,
+      "end": 197,
+      "text": "des signes de contraction accélérée du noyau."
+    },
+    {
+      "id": 69,
+      "start": 197,
+      "end": 200,
+      "text": "Il prétend avoir accès à des analyses"
+    },
+    {
+      "id": 70,
+      "start": 200,
+      "end": 202,
+      "text": "effectuées par une IA quantique,"
+    },
+    {
+      "id": 71,
+      "start": 202,
+      "end": 206,
+      "text": "ainsi qu'à des observations récentes de"
+    },
+    {
+      "id": 72,
+      "start": 206,
+      "end": 208,
+      "text": "télescopes optiques et infrarouges,"
+    },
+    {
+      "id": 73,
+      "start": 208,
+      "end": 212,
+      "text": "et même à des mesures de neutrinos émanant de l'étoile."
+    },
+    {
+      "id": 74,
+      "start": 212,
+      "end": 214,
+      "text": "Or, ce sont justement"
+    },
+    {
+      "id": 75,
+      "start": 214,
+      "end": 217,
+      "text": "les neutrinos, ces particules presque sans masse,"
+    },
+    {
+      "id": 76,
+      "start": 217,
+      "end": 220,
+      "text": "qui peuvent annoncer un effondrement avec"
+    },
+    {
+      "id": 77,
+      "start": 220,
+      "end": 224,
+      "text": "bien plus de précision que les indicateurs habituels."
+    },
+    {
+      "id": 78,
+      "start": 224,
+      "end": 228,
+      "text": "Bien que la NASA et l'ESA n'aient rien confirmé,"
+    },
+    {
+      "id": 79,
+      "start": 228,
+      "end": 231,
+      "text": "cette déclaration a curieusement"
+    },
+    {
+      "id": 80,
+      "start": 231,
+      "end": 233,
+      "text": "interpellé certains théoriciens."
+    },
+    {
+      "id": 81,
+      "start": 233,
+      "end": 236,
+      "text": "Par exemple, le docteur Rajan Patel,"
+    },
+    {
+      "id": 82,
+      "start": 236,
+      "end": 238,
+      "text": "de l'Université de Chicago,"
+    },
+    {
+      "id": 83,
+      "start": 238,
+      "end": 240,
+      "text": "a décrit un phénomène"
+    },
+    {
+      "id": 84,
+      "start": 240,
+      "end": 243,
+      "text": "baptisé « rythme anthropique » de Bethelgeuse,"
+    },
+    {
+      "id": 85,
+      "start": 243,
+      "end": 246,
+      "text": "des fluctuations de luminosité qui se répètent"
+    },
+    {
+      "id": 86,
+      "start": 246,
+      "end": 248,
+      "text": "de plus en plus vite,"
+    },
+    {
+      "id": 87,
+      "start": 248,
+      "end": 252,
+      "text": "comme si l'étoile accélérait son compte à rebours."
+    },
+    {
+      "id": 88,
+      "start": 252,
+      "end": 256,
+      "text": "Selon la version de Patel, ce rythme anthropique est"
+    },
+    {
+      "id": 89,
+      "start": 256,
+      "end": 258,
+      "text": "le signe d'un état terminal."
+    },
+    {
+      "id": 90,
+      "start": 258,
+      "end": 262,
+      "text": "Si l'étoile explose dans les semaines à venir,"
+    },
+    {
+      "id": 91,
+      "start": 262,
+      "end": 266,
+      "text": "la lumière de la supernova pourrait illuminer le ciel en plein jour"
+    },
+    {
+      "id": 92,
+      "start": 266,
+      "end": 269,
+      "text": "et transformer pendant des mois"
+    },
+    {
+      "id": 93,
+      "start": 269,
+      "end": 271,
+      "text": "la nuit en crépuscule."
+    },
+    {
+      "id": 94,
+      "start": 271,
+      "end": 274,
+      "text": "La dernière fois qu'un tel"
+    },
+    {
+      "id": 95,
+      "start": 274,
+      "end": 276,
+      "text": "événement a été observé,"
+    },
+    {
+      "id": 96,
+      "start": 276,
+      "end": 279,
+      "text": "c'était en 1604, mais cette supernova"
+    },
+    {
+      "id": 97,
+      "start": 279,
+      "end": 281,
+      "text": "était bien plus lointaine."
+    },
+    {
+      "id": 98,
+      "start": 281,
+      "end": 285,
+      "text": "Bethelgeuse n'est qu'à 640 années-lumière, et c'est"
+    },
+    {
+      "id": 99,
+      "start": 285,
+      "end": 287,
+      "text": "bien cela qui inquiète."
+    },
+    {
+      "id": 100,
+      "start": 287,
+      "end": 291,
+      "text": "Généralement, on estime que les effets dangereux d'une"
+    },
+    {
+      "id": 101,
+      "start": 291,
+      "end": 295,
+      "text": "supernova sont limités à une distance d'environ 30 années-lumière."
+    },
+    {
+      "id": 102,
+      "start": 295,
+      "end": 298,
+      "text": "Mais Musk soutient que c'est une simplification."
+    },
+    {
+      "id": 103,
+      "start": 298,
+      "end": 302,
+      "text": "Il ne parle pas d'une destruction directe,"
+    },
+    {
+      "id": 104,
+      "start": 302,
+      "end": 307,
+      "text": "mais d'un impact indirect des radiations, rayons gamma et"
+    },
+    {
+      "id": 105,
+      "start": 307,
+      "end": 310,
+      "text": "rayons cosmiques, sur les infrastructures terrestres."
+    },
+    {
+      "id": 106,
+      "start": 310,
+      "end": 315,
+      "text": "Selon lui, le rayonnement relativiste pourrait provoquer une impulsion électromagnétique massive et paralyser les satellites, les réseaux électriques, les communications et la navigation."
+    },
+    {
+      "id": 107,
+      "start": 315,
+      "end": 320,
+      "text": "Ce serait comparable à une éjection de masse coronale solaire, mais d'une intensité infiniment supérieure."
+    },
+    {
+      "id": 108,
+      "start": 320,
+      "end": 325,
+      "text": "La communauté scientifique est divisée."
+    },
+    {
+      "id": 109,
+      "start": 325,
+      "end": 330,
+      "text": "Michel Thorne estime que la vie sur Terre n'est pas menacée grâce à la magnétosphère,"
+    },
+    {
+      "id": 110,
+      "start": 330,
+      "end": 335,
+      "text": "mais elle admet des risques pour la couche d'ozone et une irradiation accrue à haute altitude,"
+    },
+    {
+      "id": 111,
+      "start": 335,
+      "end": 340,
+      "text": "pour les équipages d'avions et les équipements en orbite basse."
+    },
+    {
+      "id": 112,
+      "start": 340,
+      "end": 345,
+      "text": "Pendant que les débats font rage, les télescopes continuent de scruter l'astre."
+    },
+    {
+      "id": 113,
+      "start": 345,
+      "end": 350,
+      "text": "L'Observatoire européen Austral et le télescope James Webb ont augmenté la"
+    },
+    {
+      "id": 114,
+      "start": 350,
+      "end": 355,
+      "text": "fréquence de leur collecte de données. Dans le milieu scientifique, on sent que"
+    },
+    {
+      "id": 115,
+      "start": 355,
+      "end": 360,
+      "text": "les paramètres de l'étoile ont changé. Les impulsions sont différentes, le"
+    },
+    {
+      "id": 116,
+      "start": 360,
+      "end": 365,
+      "text": "spectre est plus chaotique et la vitesse de perte de masse ces dernières"
+    },
+    {
+      "id": 117,
+      "start": 365,
+      "end": 370,
+      "text": "semaine est, selon certains rapports, sans précédent depuis des décennies. Si Musk se trompe, cela"
+    },
+    {
+      "id": 118,
+      "start": 370,
+      "end": 375,
+      "text": "restera une provocation bruyante, un simple sujet de polémique. Mais s'il a raison et que sa"
+    },
+    {
+      "id": 119,
+      "start": 375,
+      "end": 380,
+      "text": "prédiction à deux semaines se réalise, la Terre sera témoin du plus grand événement astronomique"
+    },
+    {
+      "id": 120,
+      "start": 380,
+      "end": 385,
+      "text": "de l'ère moderne, une supernova visible à l'œil nu. Ce sera un spectacle de lumière et de mort,"
+    },
+    {
+      "id": 121,
+      "start": 385,
+      "end": 390,
+      "text": "une sorte de miracle visuel porteur de questions angoissantes. Peut-on réellement prédire la mort"
+    },
+    {
+      "id": 122,
+      "start": 390,
+      "end": 395,
+      "text": "d'une étoile ? Pourquoi l'idée que l'univers puisse changer sous nos yeux est-elle à la fois"
+    },
+    {
+      "id": 123,
+      "start": 395,
+      "end": 400,
+      "text": "si attirante et si terrifiante. Et la question cruciale, pourquoi Elon Musk, qui n'est pas astronome,"
+    },
+    {
+      "id": 124,
+      "start": 400,
+      "end": 405,
+      "text": "parle-t-il avec une telle assurance là où les spécialistes refusent de se prononcer ? Certains"
+    },
+    {
+      "id": 125,
+      "start": 405,
+      "end": 410,
+      "text": "pensent qu'il a eu accès à des données non encore publiées. D'autres qu'il joue, une fois de plus,"
+    },
+    {
+      "id": 126,
+      "start": 410,
+      "end": 415,
+      "text": "avec la conscience collective pour préparer les esprits à quelque chose de plus vaste."
+    },
+    {
+      "id": 127,
+      "start": 415,
+      "end": 420,
+      "text": "Jusqu'au XXe siècle, l'astronomie était une affaire de contemplation."
+    },
+    {
+      "id": 128,
+      "start": 420,
+      "end": 425,
+      "text": "Aujourd'hui, regarder le ciel signifie prendre en compte des menaces réelles."
+    },
+    {
+      "id": 129,
+      "start": 425,
+      "end": 430,
+      "text": "En 1989, une tempête solaire a mis à terre le réseau électrique du Québec en quelques heures."
+    },
+    {
+      "id": 130,
+      "start": 430,
+      "end": 435,
+      "text": "Imaginez maintenant l'impulsion d'une supernova, affaiblie par son voyage à travers l'espace mais"
+    },
+    {
+      "id": 131,
+      "start": 435,
+      "end": 440,
+      "text": "frappant une planète qui n'est jamais déconnectée. Depuis 2023, le département de la sécurité"
+    },
+    {
+      "id": 132,
+      "start": 440,
+      "end": 445,
+      "text": "intérieure des Etats-Unis a commencé à financer des plans de réponse aux événements astrophysiques"
+    },
+    {
+      "id": 133,
+      "start": 445,
+      "end": 450,
+      "text": "extrême. Autrefois, cela sonnait comme de la science-fiction. Mais notre dépendance aux"
+    },
+    {
+      "id": 134,
+      "start": 450,
+      "end": 455,
+      "text": "satellites, à l'automatisation, au système quantique et au chiffrement d'états fait"
+    },
+    {
+      "id": 135,
+      "start": 455,
+      "end": 460,
+      "text": "des menaces cosmiques un enjeu de sécurité nationale. Bethelgeuse est devenue une telle"
+    },
+    {
+      "id": 136,
+      "start": 460,
+      "end": 465,
+      "text": "menace, même sans avoir encore explosé. C'est là que réside la fracture majeure de notre époque."
+    },
+    {
+      "id": 137,
+      "start": 465,
+      "end": 470,
+      "text": "une étoile mourante ne brûlera peut-être pas la terre mais elle peut"
+    },
+    {
+      "id": 138,
+      "start": 470,
+      "end": 475,
+      "text": "frapper notre point le plus vulnérable notre illusion de contrôle à chaque"
+    },
+    {
+      "id": 139,
+      "start": 475,
+      "end": 480,
+      "text": "nouveau lot de données les scientifiques l'admettent nous observons une mort"
+    },
+    {
+      "id": 140,
+      "start": 480,
+      "end": 485,
+      "text": "annoncée nous ignorons simplement quand elle"
+    },
+    {
+      "id": 141,
+      "start": 485,
+      "end": 490,
+      "text": "surviendra. Il y a là un certain symbolisme."
+    },
+    {
+      "id": 142,
+      "start": 490,
+      "end": 495,
+      "text": "Bethelgeuse se meurt et nous l'observons à travers des caméras thermiques, des"
+    },
+    {
+      "id": 143,
+      "start": 495,
+      "end": 500,
+      "text": "spectromètres, des détecteurs de neutrinos et des réseaux mondiaux de"
+    },
+    {
+      "id": 144,
+      "start": 500,
+      "end": 505,
+      "text": "données. Nous n'avons jamais été aussi prêts à observer et pourtant si peu"
+    },
+    {
+      "id": 145,
+      "start": 505,
+      "end": 510,
+      "text": "prêts à réaliser ce que nous allons voir. Une question se pose alors, non pas dans"
+    },
+    {
+      "id": 146,
+      "start": 510,
+      "end": 515,
+      "text": "les amphithéâtres, mais dans le silence de tous ceux qui scrutent le ciel. Que ferons-nous"
+    },
+    {
+      "id": 147,
+      "start": 515,
+      "end": 520,
+      "text": "quand le ciel changera de couleur ? Il ne s'agit pas seulement de la fin d'une étoile,"
+    },
+    {
+      "id": 148,
+      "start": 520,
+      "end": 525,
+      "text": "mais d'un point de bascule touchant la structure en même de notre civilisation interconnectée."
+    },
+    {
+      "id": 149,
+      "start": 525,
+      "end": 530,
+      "text": "Si vous avez regardé jusqu'ici, c'est que ce sentiment est déjà là, une sensation diffuse, inquiète, mais bien réelle."
+    },
+    {
+      "id": 150,
+      "start": 530,
+      "end": 535,
+      "text": "C'est pourquoi il est essentiel de s'abonner."
+    },
+    {
+      "id": 151,
+      "start": 535,
+      "end": 540,
+      "text": "Nous allons suivre de près les nouvelles données, les détails et le silence des institutions qui ont le devoir de nous informer."
+    },
+    {
+      "id": 152,
+      "start": 540,
+      "end": 545,
+      "text": "Mais que se passerait-il réellement si une supernova comme Bethelgeuse s'illuminait ?"
+    },
+    {
+      "id": 153,
+      "start": 545,
+      "end": 550,
+      "text": "Fin 2023, un rapport interne de l'Observatoire européen Austral a été discrètement envoyé"
+    },
+    {
+      "id": 154,
+      "start": 550,
+      "end": 555,
+      "text": "aux instituts ayant accès aux télescopes les plus sensibles."
+    },
+    {
+      "id": 155,
+      "start": 555,
+      "end": 560,
+      "text": "Il mentionnait une instabilité du rayonnement dans l'infrarouge moyen et des sursauts irréguliers"
+    },
+    {
+      "id": 156,
+      "start": 560,
+      "end": 565,
+      "text": "liés à des éjections de matière."
+    },
+    {
+      "id": 157,
+      "start": 565,
+      "end": 570,
+      "text": "Les supergéantes rouges ont toujours été instables, mais un élément nouveau est apparu."
+    },
+    {
+      "id": 158,
+      "start": 570,
+      "end": 575,
+      "text": "Les intervalles entre les fluctuations ont commencé à se réduire,"
+    },
+    {
+      "id": 159,
+      "start": 575,
+      "end": 580,
+      "text": "comme si un mécanisme s'emballait avant l'arrêt final."
+    },
+    {
+      "id": 160,
+      "start": 580,
+      "end": 585,
+      "text": "Ces données ont été confrontées au modèle d'effondrement stellaire, notamment MESA."
+    },
+    {
+      "id": 161,
+      "start": 585,
+      "end": 590,
+      "text": "Les conclusions ne sont pas définitives, mais elles pointent vers un scénario alarmant."
+    },
+    {
+      "id": 162,
+      "start": 590,
+      "end": 595,
+      "text": "Bételgeuse pourrait être entrée dans la phase de combustion de l'oxygène,"
+    },
+    {
+      "id": 163,
+      "start": 595,
+      "end": 600,
+      "text": "l'ultime étape avant l'effondrement du noyau si c'est le cas pour la première fois dans"
+    },
+    {
+      "id": 164,
+      "start": 600,
+      "end": 605,
+      "text": "l'histoire nous observons les derniers battements de coeur d'une étoile géante même si la science"
+    },
+    {
+      "id": 165,
+      "start": 605,
+      "end": 610,
+      "text": "ne sait toujours pas prédire avec exactitude le moment de l'explosion parallèlement un groupe"
+    },
+    {
+      "id": 166,
+      "start": 610,
+      "end": 615,
+      "text": "croissant de scientifiques voit cette explosion potentielle non pas comme une catastrophe mais"
+    },
+    {
+      "id": 167,
+      "start": 615,
+      "end": 620,
+      "text": "comme une chance unique. Des laboratoires préparent des protocoles de collecte de données en temps"
+    },
+    {
+      "id": 168,
+      "start": 620,
+      "end": 625,
+      "text": "réel. Télescopes optiques, radios, infrarouges, détecteurs de particules. Un tel éclat permettrait"
+    },
+    {
+      "id": 169,
+      "start": 625,
+      "end": 630,
+      "text": "de valider les modèles de nucléosynthèse, la naissance des trous noirs et, peut-être,"
+    },
+    {
+      "id": 170,
+      "start": 630,
+      "end": 635,
+      "text": "la nature de la matière noire. Mais et si l'effet principal n'était pas technique mais cognitif ?"
+    },
+    {
+      "id": 171,
+      "start": 635,
+      "end": 640,
+      "text": "L'explosion d'une étoile proche pourrait changer notre perception de l'univers, tout"
+    },
+    {
+      "id": 172,
+      "start": 640,
+      "end": 645,
+      "text": "comme la photo de la Terre vue de l'espace a transformé la pensée écologique."
+    },
+    {
+      "id": 173,
+      "start": 645,
+      "end": 650,
+      "text": "Certains y verront un signe, d'autres des probabilités."
+    },
+    {
+      "id": 174,
+      "start": 650,
+      "end": 655,
+      "text": "Les enfants poseront des questions auxquelles il faudra répondre de manière claire et"
+    },
+    {
+      "id": 175,
+      "start": 655,
+      "end": 660,
+      "text": "rapide."
+    },
+    {
+      "id": 176,
+      "start": 660,
+      "end": 665,
+      "text": "Bethelgeuse devient la frontière entre le prévisible et l'incontrôlable, entre la"
+    },
+    {
+      "id": 177,
+      "start": 665,
+      "end": 670,
+      "text": "donné et l'inconnu, nous forçant à revoir la notion même de stabilité. Le paradoxe est que"
+    },
+    {
+      "id": 178,
+      "start": 670,
+      "end": 675,
+      "text": "plus nous en apprenons, moins nous nous sentons en sécurité. Cette étoile rouge, visible à l'œil"
+    },
+    {
+      "id": 179,
+      "start": 675,
+      "end": 680,
+      "text": "nu, nous rappelle que les processus ne se déroulent pas seulement là-haut, mais aussi à l'intérieur"
+    },
+    {
+      "id": 180,
+      "start": 680,
+      "end": 685,
+      "text": "de nos propres systèmes. Les signaux de la nature que nous ignorons deviennent le miroir de notre"
+    },
+    {
+      "id": 181,
+      "start": 685,
+      "end": 690,
+      "text": "refus de voir les signes de défaillance de nos propres structures. Béthelgeuse ne crie pas,"
+    },
+    {
+      "id": 182,
+      "start": 690,
+      "end": 695,
+      "text": "elle faiblit, elle pulse, elle devient chaotique. Nous restons branchés sur nos écrans mais"
+    },
+    {
+      "id": 183,
+      "start": 695,
+      "end": 700,
+      "text": "déconnecté des signaux. Même avec des dégâts physiques minimes, l'impact"
+    },
+    {
+      "id": 184,
+      "start": 700,
+      "end": 705,
+      "text": "symbolique serait immense. Le ciel changera, la science changera et notre"
+    },
+    {
+      "id": 185,
+      "start": 705,
+      "end": 710,
+      "text": "rapport à l'inconnu aussi. L'ironie, c'est que nous avons des algorithmes pour"
+    },
+    {
+      "id": 186,
+      "start": 710,
+      "end": 715,
+      "text": "prédire le comportement humain, mais nous sommes incapables de dire quand une"
+    },
+    {
+      "id": 187,
+      "start": 715,
+      "end": 720,
+      "text": "étoile mourra. Et cela en dit plus sur nos priorités que sur nos limites. Si cette nouvelle"
+    },
+    {
+      "id": 188,
+      "start": 720,
+      "end": 725,
+      "text": "vous a interpellé, abonnez-vous à la chaîne, aimez la vidéo et partagez en commentaire"
+    },
+    {
+      "id": 189,
+      "start": 725,
+      "end": 730,
+      "text": "ce qui vous a le plus frappé. Nous formons une communauté de personnes qui n'acceptent"
+    },
+    {
+      "id": 190,
+      "start": 730,
+      "end": 735,
+      "text": "pas"
+    },
+    {
+      "id": 191,
+      "start": 735,
+      "end": 740,
+      "text": "les"
+    },
+    {
+      "id": 192,
+      "start": 740,
+      "end": 745,
+      "text": "réponses"
+    },
+    {
+      "id": 193,
+      "start": 745,
+      "end": 750,
+      "text": "toutes"
+    },
+    {
+      "id": 194,
+      "start": 750,
+      "end": 755,
+      "text": "faites."
+    },
+    {
+      "id": 195,
+      "start": 755,
+      "end": 760,
+      "text": "[конец]"
+    },
+    {
+      "id": 196,
+      "start": 760,
+      "end": 765,
+      "text": "[конец]"
+    },
+    {
+      "id": 197,
+      "start": 765,
+      "end": 770,
+      "text": "[конец]"
+    },
+    {
+      "id": 198,
+      "start": 770,
+      "end": 775,
+      "text": "[конец]"
+    },
+    {
+      "id": 199,
+      "start": 775,
+      "end": 780,
+      "text": "[конец]"
+    },
+    {
+      "id": 200,
+      "start": 780,
+      "end": 785,
+      "text": "[конец]"
+    },
+    {
+      "id": 201,
+      "start": 785,
+      "end": 790,
+      "text": "[конец]"
+    },
+    {
+      "id": 202,
+      "start": 790,
+      "end": 795,
+      "text": "[конец]"
+    },
+    {
+      "id": 203,
+      "start": 795,
+      "end": 800,
+      "text": "[конец]"
+    },
+    {
+      "id": 204,
+      "start": 800,
+      "end": 805,
+      "text": "[конец]"
+    },
+    {
+      "id": 205,
+      "start": 805,
+      "end": 810,
+      "text": "[конец]"
+    },
+    {
+      "id": 206,
+      "start": 810,
+      "end": 815,
+      "text": "[конец]"
+    },
+    {
+      "id": 207,
+      "start": 815,
+      "end": 820,
+      "text": "[конец]"
+    },
+    {
+      "id": 208,
+      "start": 820,
+      "end": 825,
+      "text": "[конец]"
+    },
+    {
+      "id": 209,
+      "start": 825,
+      "end": 830,
+      "text": "[конец]"
+    },
+    {
+      "id": 210,
+      "start": 830,
+      "end": 835,
+      "text": "[конец]"
+    },
+    {
+      "id": 211,
+      "start": 835,
+      "end": 840,
+      "text": "[конец]"
+    },
+    {
+      "id": 212,
+      "start": 840,
+      "end": 845,
+      "text": "[конец]"
+    },
+    {
+      "id": 213,
+      "start": 845,
+      "end": 850,
+      "text": "[конец]"
+    },
+    {
+      "id": 214,
+      "start": 850,
+      "end": 855,
+      "text": "[конец]"
+    },
+    {
+      "id": 215,
+      "start": 855,
+      "end": 860,
+      "text": "[конец]"
+    },
+    {
+      "id": 216,
+      "start": 860,
+      "end": 865,
+      "text": "[конец]"
+    },
+    {
+      "id": 217,
+      "start": 865,
+      "end": 870,
+      "text": "[конец]"
+    },
+    {
+      "id": 218,
+      "start": 870,
+      "end": 872,
+      "text": "[конец]"
+    }
+  ],
+  "words": [
+    {
+      "word": " Béthelgeuse,",
+      "start": 0.0,
+      "end": 0.92
+    },
+    {
+      "word": " cette",
+      "start": 1.4,
+      "end": 2.04
+    },
+    {
+      "word": " géante",
+      "start": 2.04,
+      "end": 2.4
+    },
+    {
+      "word": " rouge",
+      "start": 2.4,
+      "end": 2.88
+    },
+    {
+      "word": " nichée",
+      "start": 2.88,
+      "end": 3.44
+    },
+    {
+      "word": " dans",
+      "start": 3.44,
+      "end": 3.56
+    },
+    {
+      "word": " la",
+      "start": 3.56,
+      "end": 3.7
+    },
+    {
+      "word": " constellation",
+      "start": 3.7,
+      "end": 4.22
+    },
+    {
+      "word": " d",
+      "start": 4.22,
+      "end": 4.56
+    },
+    {
+      "word": "'Orion,",
+      "start": 4.56,
+      "end": 4.88
+    },
+    {
+      "word": " l",
+      "start": 6.1,
+      "end": 6.2
+    },
+    {
+      "word": "'un",
+      "start": 6.2,
+      "end": 6.3
+    },
+    {
+      "word": " des",
+      "start": 6.3,
+      "end": 6.48
+    },
+    {
+      "word": " points",
+      "start": 6.48,
+      "end": 6.82
+    },
+    {
+      "word": " les",
+      "start": 6.82,
+      "end": 7.0
+    },
+    {
+      "word": " plus",
+      "start": 7.0,
+      "end": 7.2
+    },
+    {
+      "word": " brillants",
+      "start": 7.2,
+      "end": 7.7
+    },
+    {
+      "word": " de",
+      "start": 7.7,
+      "end": 7.82
+    },
+    {
+      "word": " notre",
+      "start": 7.82,
+      "end": 8.06
+    },
+    {
+      "word": " ciel",
+      "start": 8.06,
+      "end": 8.44
+    },
+    {
+      "word": " nocturne.",
+      "start": 8.44,
+      "end": 9.2
+    },
+    {
+      "word": " Et",
+      "start": 9.6,
+      "end": 10.26
+    },
+    {
+      "word": " voilà",
+      "start": 10.26,
+      "end": 10.58
+    },
+    {
+      "word": " qu",
+      "start": 10.58,
+      "end": 10.74
+    },
+    {
+      "word": "'elle",
+      "start": 10.74,
+      "end": 10.82
+    },
+    {
+      "word": " a",
+      "start": 10.82,
+      "end": 10.9
+    },
+    {
+      "word": " commencé",
+      "start": 10.9,
+      "end": 11.32
+    },
+    {
+      "word": " à",
+      "start": 11.32,
+      "end": 11.74
+    },
+    {
+      "word": " s",
+      "start": 11.74,
+      "end": 11.94
+    },
+    {
+      "word": "'éteindre.",
+      "start": 11.94,
+      "end": 12.48
+    },
+    {
+      "word": " Pas",
+      "start": 13.38,
+      "end": 13.74
+    },
+    {
+      "word": " seulement",
+      "start": 13.74,
+      "end": 14.2
+    },
+    {
+      "word": " à",
+      "start": 14.2,
+      "end": 14.38
+    },
+    {
+      "word": " faiblir",
+      "start": 14.38,
+      "end": 14.8
+    },
+    {
+      "word": " légèrement,",
+      "start": 14.8,
+      "end": 15.34
+    },
+    {
+      "word": " mais",
+      "start": 15.66,
+      "end": 16.2
+    },
+    {
+      "word": " à",
+      "start": 16.2,
+      "end": 16.4
+    },
+    {
+      "word": " perdre",
+      "start": 16.4,
+      "end": 16.76
+    },
+    {
+      "word": " sérieusement",
+      "start": 16.76,
+      "end": 17.52
+    },
+    {
+      "word": " de",
+      "start": 17.52,
+      "end": 17.7
+    },
+    {
+      "word": " son",
+      "start": 17.7,
+      "end": 17.86
+    },
+    {
+      "word": " éclat,",
+      "start": 17.86,
+      "end": 18.34
+    },
+    {
+      "word": " semaine",
+      "start": 18.6,
+      "end": 19.5
+    },
+    {
+      "word": " après",
+      "start": 19.5,
+      "end": 19.9
+    },
+    {
+      "word": " semaine.",
+      "start": 19.9,
+      "end": 20.54
+    },
+    {
+      "word": " En",
+      "start": 21.18,
+      "end": 21.9
+    },
+    {
+      "word": " l",
+      "start": 21.9,
+      "end": 22.02
+    },
+    {
+      "word": "'espace",
+      "start": 22.02,
+      "end": 22.26
+    },
+    {
+      "word": " de",
+      "start": 22.26,
+      "end": 22.48
+    },
+    {
+      "word": " quelques",
+      "start": 22.48,
+      "end": 22.76
+    },
+    {
+      "word": " jours,",
+      "start": 22.76,
+      "end": 23.24
+    },
+    {
+      "word": " sa",
+      "start": 23.76,
+      "end": 23.86
+    },
+    {
+      "word": " luminosité",
+      "start": 23.86,
+      "end": 24.66
+    },
+    {
+      "word": " a",
+      "start": 24.66,
+      "end": 24.98
+    },
+    {
+      "word": " chuté",
+      "start": 24.98,
+      "end": 25.36
+    },
+    {
+      "word": " de",
+      "start": 25.36,
+      "end": 25.5
+    },
+    {
+      "word": " près",
+      "start": 25.5,
+      "end": 25.7
+    },
+    {
+      "word": " de",
+      "start": 25.7,
+      "end": 25.86
+    },
+    {
+      "word": " 40%.",
+      "start": 25.86,
+      "end": 26.8
+    },
+    {
+      "word": " Et",
+      "start": 27.54,
+      "end": 28.12
+    },
+    {
+      "word": " le",
+      "start": 28.12,
+      "end": 28.24
+    },
+    {
+      "word": " plus",
+      "start": 28.24,
+      "end": 28.42
+    },
+    {
+      "word": " frappant,",
+      "start": 28.42,
+      "end": 28.92
+    },
+    {
+      "word": " c",
+      "start": 29.12,
+      "end": 29.7
+    },
+    {
+      "word": "'est",
+      "start": 29.7,
+      "end": 29.76
+    },
+    {
+      "word": " qu",
+      "start": 29.76,
+      "end": 29.84
+    },
+    {
+      "word": "'il",
+      "start": 29.84,
+      "end": 29.92
+    },
+    {
+      "word": " n",
+      "start": 29.92,
+      "end": 30.06
+    },
+    {
+      "word": "'y",
+      "start": 30.06,
+      "end": 30.08
+    },
+    {
+      "word": " avait",
+      "start": 30.08,
+      "end": 30.18
+    },
+    {
+      "word": " pas",
+      "start": 30.18,
+      "end": 30.36
+    },
+    {
+      "word": " besoin",
+      "start": 30.36,
+      "end": 30.74
+    },
+    {
+      "word": " d",
+      "start": 30.74,
+      "end": 30.9
+    },
+    {
+      "word": "'un",
+      "start": 30.9,
+      "end": 31.0
+    },
+    {
+      "word": " super",
+      "start": 31.0,
+      "end": 31.3
+    },
+    {
+      "word": " télescope",
+      "start": 31.3,
+      "end": 31.9
+    },
+    {
+      "word": " comme",
+      "start": 31.9,
+      "end": 32.12
+    },
+    {
+      "word": " James",
+      "start": 32.12,
+      "end": 32.4
+    },
+    {
+      "word": " Webb",
+      "start": 32.4,
+      "end": 32.78
+    },
+    {
+      "word": " pour",
+      "start": 32.78,
+      "end": 33.32
+    },
+    {
+      "word": " s",
+      "start": 33.32,
+      "end": 33.46
+    },
+    {
+      "word": "'en",
+      "start": 33.46,
+      "end": 33.52
+    },
+    {
+      "word": " apercevoir.",
+      "start": 33.52,
+      "end": 34.2
+    },
+    {
+      "word": " N",
+      "start": 34.86,
+      "end": 35.44
+    },
+    {
+      "word": "'importe",
+      "start": 35.44,
+      "end": 35.8
+    },
+    {
+      "word": " qui",
+      "start": 35.8,
+      "end": 36.18
+    },
+    {
+      "word": " pouvait",
+      "start": 36.18,
+      "end": 36.48
+    },
+    {
+      "word": " sortir,",
+      "start": 36.48,
+      "end": 36.98
+    },
+    {
+      "word": " lever",
+      "start": 37.84,
+      "end": 38.06
+    },
+    {
+      "word": " les",
+      "start": 38.06,
+      "end": 38.3
+    },
+    {
+      "word": " yeux",
+      "start": 38.3,
+      "end": 38.52
+    },
+    {
+      "word": " vers",
+      "start": 38.52,
+      "end": 38.76
+    },
+    {
+      "word": " Orion",
+      "start": 38.76,
+      "end": 39.24
+    },
+    {
+      "word": " et",
+      "start": 39.24,
+      "end": 39.86
+    },
+    {
+      "word": " se",
+      "start": 39.86,
+      "end": 40.06
+    },
+    {
+      "word": " dire",
+      "start": 40.06,
+      "end": 40.48
+    },
+    {
+      "word": " «",
+      "start": 40.48,
+      "end": 40.74
+    },
+    {
+      "word": " Waouh,",
+      "start": 40.74,
+      "end": 41.66
+    },
+    {
+      "word": " elle",
+      "start": 41.8,
+      "end": 42.2
+    },
+    {
+      "word": " a",
+      "start": 42.2,
+      "end": 42.34
+    },
+    {
+      "word": " changé",
+      "start": 42.34,
+      "end": 42.9
+    },
+    {
+      "word": " !",
+      "start": 42.9,
+      "end": 43.08
+    },
+    {
+      "word": " »",
+      "start": 43.08,
+      "end": 44.08
+    },
+    {
+      "word": " C",
+      "start": 44.08,
+      "end": 44.6
+    },
+    {
+      "word": "'était",
+      "start": 44.6,
+      "end": 44.74
+    },
+    {
+      "word": " une",
+      "start": 44.74,
+      "end": 44.98
+    },
+    {
+      "word": " preuve",
+      "start": 44.98,
+      "end": 45.34
+    },
+    {
+      "word": " directe.",
+      "start": 45.34,
+      "end": 46.16
+    },
+    {
+      "word": " L",
+      "start": 46.42,
+      "end": 46.98
+    },
+    {
+      "word": "'univers",
+      "start": 46.98,
+      "end": 47.34
+    },
+    {
+      "word": " se",
+      "start": 47.34,
+      "end": 47.72
+    },
+    {
+      "word": " transforme",
+      "start": 47.72,
+      "end": 48.3
+    },
+    {
+      "word": " sur",
+      "start": 48.3,
+      "end": 48.4
+    },
+    {
+      "word": " nos",
+      "start": 48.4,
+      "end": 48.6
+    },
+    {
+      "word": " yeux.",
+      "start": 48.6,
+      "end": 48.88
+    },
+    {
+      "word": " et",
+      "start": 48.88,
+      "end": 49.86
+    },
+    {
+      "word": " en",
+      "start": 49.86,
+      "end": 50.02
+    },
+    {
+      "word": " ce",
+      "start": 50.02,
+      "end": 50.2
+    },
+    {
+      "word": " début",
+      "start": 50.2,
+      "end": 50.52
+    },
+    {
+      "word": " d",
+      "start": 50.52,
+      "end": 50.66
+    },
+    {
+      "word": "'année",
+      "start": 50.66,
+      "end": 50.84
+    },
+    {
+      "word": " 2026,",
+      "start": 50.84,
+      "end": 51.58
+    },
+    {
+      "word": " ce",
+      "start": 52.1,
+      "end": 52.6
+    },
+    {
+      "word": " vieux",
+      "start": 52.6,
+      "end": 52.96
+    },
+    {
+      "word": " mystère",
+      "start": 52.96,
+      "end": 53.48
+    },
+    {
+      "word": " cosmique",
+      "start": 53.48,
+      "end": 54.14
+    },
+    {
+      "word": " a",
+      "start": 54.14,
+      "end": 54.46
+    },
+    {
+      "word": " ressurgi",
+      "start": 54.46,
+      "end": 55.2
+    },
+    {
+      "word": " avec",
+      "start": 55.2,
+      "end": 55.8
+    },
+    {
+      "word": " une",
+      "start": 55.8,
+      "end": 56.02
+    },
+    {
+      "word": " force",
+      "start": 56.02,
+      "end": 56.44
+    },
+    {
+      "word": " inédite.",
+      "start": 56.44,
+      "end": 57.3
+    },
+    {
+      "word": " Elon",
+      "start": 58.28,
+      "end": 58.92
+    },
+    {
+      "word": " Musk",
+      "start": 58.92,
+      "end": 59.4
+    },
+    {
+      "word": " a",
+      "start": 59.4,
+      "end": 59.64
+    },
+    {
+      "word": " déclaré",
+      "start": 59.64,
+      "end": 60.12
+    },
+    {
+      "word": " que",
+      "start": 60.12,
+      "end": 60.28
+    },
+    {
+      "word": " l",
+      "start": 60.28,
+      "end": 60.4
+    },
+    {
+      "word": "'étoile",
+      "start": 60.4,
+      "end": 60.7
+    },
+    {
+      "word": " bételgeuse",
+      "start": 60.7,
+      "end": 61.48
+    },
+    {
+      "word": " était",
+      "start": 61.48,
+      "end": 62.04
+    },
+    {
+      "word": " sur",
+      "start": 62.04,
+      "end": 62.26
+    },
+    {
+      "word": " le",
+      "start": 62.26,
+      "end": 62.4
+    },
+    {
+      "word": " point",
+      "start": 62.4,
+      "end": 62.66
+    },
+    {
+      "word": " d",
+      "start": 62.66,
+      "end": 62.82
+    },
+    {
+      "word": "'exploser",
+      "start": 62.82,
+      "end": 63.4
+    },
+    {
+      "word": " et",
+      "start": 63.4,
+      "end": 64.48
+    },
+    {
+      "word": " que",
+      "start": 64.48,
+      "end": 64.64
+    },
+    {
+      "word": " l",
+      "start": 64.64,
+      "end": 64.8
+    },
+    {
+      "word": "'humanité",
+      "start": 64.8,
+      "end": 65.32
+    },
+    {
+      "word": " disposait",
+      "start": 65.32,
+      "end": 65.9
+    },
+    {
+      "word": " d",
+      "start": 65.9,
+      "end": 66.02
+    },
+    {
+      "word": "'un",
+      "start": 66.02,
+      "end": 66.12
+    },
+    {
+      "word": " temps",
+      "start": 66.12,
+      "end": 66.28
+    },
+    {
+      "word": " limité",
+      "start": 66.28,
+      "end": 66.96
+    },
+    {
+      "word": " pour",
+      "start": 66.96,
+      "end": 67.26
+    },
+    {
+      "word": " se",
+      "start": 67.26,
+      "end": 67.44
+    },
+    {
+      "word": " préparer.",
+      "start": 67.44,
+      "end": 68.0
+    },
+    {
+      "word": " Il",
+      "start": 68.78,
+      "end": 69.42
+    },
+    {
+      "word": " n",
+      "start": 69.42,
+      "end": 69.54
+    },
+    {
+      "word": "'est",
+      "start": 69.54,
+      "end": 69.6
+    },
+    {
+      "word": " pas",
+      "start": 69.6,
+      "end": 69.74
+    },
+    {
+      "word": " astronome,",
+      "start": 69.74,
+      "end": 70.46
+    },
+    {
+      "word": " mais",
+      "start": 70.7,
+      "end": 71.12
+    },
+    {
+      "word": " ce",
+      "start": 71.12,
+      "end": 71.26
+    },
+    {
+      "word": " n",
+      "start": 71.26,
+      "end": 71.32
+    },
+    {
+      "word": "'est",
+      "start": 71.32,
+      "end": 71.4
+    },
+    {
+      "word": " pas",
+      "start": 71.4,
+      "end": 71.52
+    },
+    {
+      "word": " non",
+      "start": 71.52,
+      "end": 71.64
+    },
+    {
+      "word": " plus",
+      "start": 71.64,
+      "end": 71.84
+    },
+    {
+      "word": " un",
+      "start": 71.84,
+      "end": 72.02
+    },
+    {
+      "word": " simple",
+      "start": 72.02,
+      "end": 72.34
+    },
+    {
+      "word": " alarmiste.",
+      "start": 72.34,
+      "end": 73.06
+    },
+    {
+      "word": " Quand",
+      "start": 73.44,
+      "end": 73.82
+    },
+    {
+      "word": " Musk",
+      "start": 73.82,
+      "end": 74.18
+    },
+    {
+      "word": " parle,",
+      "start": 74.18,
+      "end": 74.68
+    },
+    {
+      "word": " le",
+      "start": 75.08,
+      "end": 75.38
+    },
+    {
+      "word": " monde",
+      "start": 75.38,
+      "end": 75.76
+    },
+    {
+      "word": " écoute.",
+      "start": 75.76,
+      "end": 76.48
+    },
+    {
+      "word": " Cette",
+      "start": 77.38,
+      "end": 78.14
+    },
+    {
+      "word": " déclaration",
+      "start": 78.14,
+      "end": 78.76
+    },
+    {
+      "word": " a",
+      "start": 78.76,
+      "end": 79.18
+    },
+    {
+      "word": " inquiété",
+      "start": 79.18,
+      "end": 79.58
+    },
+    {
+      "word": " le",
+      "start": 79.58,
+      "end": 79.72
+    },
+    {
+      "word": " public,",
+      "start": 79.72,
+      "end": 80.22
+    },
+    {
+      "word": " mais",
+      "start": 80.46,
+      "end": 81.1
+    },
+    {
+      "word": " aussi",
+      "start": 81.1,
+      "end": 81.42
+    },
+    {
+      "word": " les",
+      "start": 81.42,
+      "end": 81.6
+    },
+    {
+      "word": " spécialistes,",
+      "start": 81.6,
+      "end": 82.42
+    },
+    {
+      "word": " des",
+      "start": 82.74,
+      "end": 83.42
+    },
+    {
+      "word": " astrophysiciens",
+      "start": 83.42,
+      "end": 84.42
+    },
+    {
+      "word": " aux",
+      "start": 84.42,
+      "end": 84.64
+    },
+    {
+      "word": " climatologues",
+      "start": 84.64,
+      "end": 85.54
+    },
+    {
+      "word": " en",
+      "start": 85.54,
+      "end": 86.2
+    },
+    {
+      "word": " passant",
+      "start": 86.2,
+      "end": 86.58
+    },
+    {
+      "word": " par",
+      "start": 86.58,
+      "end": 86.72
+    },
+    {
+      "word": " les",
+      "start": 86.72,
+      "end": 86.9
+    },
+    {
+      "word": " experts",
+      "start": 86.9,
+      "end": 87.28
+    },
+    {
+      "word": " en",
+      "start": 87.28,
+      "end": 87.48
+    },
+    {
+      "word": " télécommunication.",
+      "start": 87.48,
+      "end": 88.42
+    },
+    {
+      "word": " La",
+      "start": 89.2,
+      "end": 89.96
+    },
+    {
+      "word": " question",
+      "start": 89.96,
+      "end": 90.34
+    },
+    {
+      "word": " centrale",
+      "start": 90.34,
+      "end": 91.0
+    },
+    {
+      "word": " est",
+      "start": 91.0,
+      "end": 91.24
+    },
+    {
+      "word": " d",
+      "start": 91.24,
+      "end": 91.34
+    },
+    {
+      "word": "'une",
+      "start": 91.34,
+      "end": 91.42
+    },
+    {
+      "word": " simplicité",
+      "start": 91.42,
+      "end": 92.14
+    },
+    {
+      "word": " effrayante.",
+      "start": 92.14,
+      "end": 93.12
+    },
+    {
+      "word": " Sur",
+      "start": 93.6,
+      "end": 94.22
+    },
+    {
+      "word": " quoi",
+      "start": 94.22,
+      "end": 94.56
+    },
+    {
+      "word": " repose",
+      "start": 94.56,
+      "end": 95.16
+    },
+    {
+      "word": " une",
+      "start": 95.16,
+      "end": 95.4
+    },
+    {
+      "word": " telle",
+      "start": 95.4,
+      "end": 95.72
+    },
+    {
+      "word": " certitude",
+      "start": 95.72,
+      "end": 96.34
+    },
+    {
+      "word": " ?",
+      "start": 96.34,
+      "end": 97.48
+    },
+    {
+      "word": " Bethelgeuse",
+      "start": 97.48,
+      "end": 98.58
+    },
+    {
+      "word": " est",
+      "start": 98.58,
+      "end": 98.8
+    },
+    {
+      "word": " depuis",
+      "start": 98.8,
+      "end": 99.06
+    },
+    {
+      "word": " longtemps",
+      "start": 99.06,
+      "end": 99.52
+    },
+    {
+      "word": " considérée",
+      "start": 99.52,
+      "end": 100.28
+    },
+    {
+      "word": " comme",
+      "start": 100.28,
+      "end": 100.46
+    },
+    {
+      "word": " une",
+      "start": 100.46,
+      "end": 100.6
+    },
+    {
+      "word": " étoile",
+      "start": 100.6,
+      "end": 100.94
+    },
+    {
+      "word": " instable.",
+      "start": 100.94,
+      "end": 101.62
+    },
+    {
+      "word": " C",
+      "start": 102.52,
+      "end": 102.9
+    },
+    {
+      "word": "'est",
+      "start": 102.9,
+      "end": 102.98
+    },
+    {
+      "word": " l",
+      "start": 102.98,
+      "end": 103.14
+    },
+    {
+      "word": "'une",
+      "start": 103.14,
+      "end": 103.24
+    },
+    {
+      "word": " des",
+      "start": 103.24,
+      "end": 103.42
+    },
+    {
+      "word": " super",
+      "start": 103.42,
+      "end": 103.8
+    },
+    {
+      "word": " géantes",
+      "start": 103.8,
+      "end": 104.18
+    },
+    {
+      "word": " rouges",
+      "start": 104.18,
+      "end": 104.64
+    },
+    {
+      "word": " les",
+      "start": 104.64,
+      "end": 104.86
+    },
+    {
+      "word": " plus",
+      "start": 104.86,
+      "end": 105.04
+    },
+    {
+      "word": " proches",
+      "start": 105.04,
+      "end": 105.48
+    },
+    {
+      "word": " de",
+      "start": 105.48,
+      "end": 105.6
+    },
+    {
+      "word": " la",
+      "start": 105.6,
+      "end": 105.76
+    },
+    {
+      "word": " Terre.",
+      "start": 105.76,
+      "end": 106.16
+    },
+    {
+      "word": " Environ",
+      "start": 107.1,
+      "end": 107.54
+    },
+    {
+      "word": " 640",
+      "start": 107.54,
+      "end": 108.9
+    },
+    {
+      "word": " années",
+      "start": 108.9,
+      "end": 109.32
+    },
+    {
+      "word": "-lumière.",
+      "start": 109.32,
+      "end": 109.86
+    },
+    {
+      "word": " Elle",
+      "start": 110.92,
+      "end": 111.32
+    },
+    {
+      "word": " est",
+      "start": 111.32,
+      "end": 111.46
+    },
+    {
+      "word": " si",
+      "start": 111.46,
+      "end": 111.74
+    },
+    {
+      "word": " immense",
+      "start": 111.74,
+      "end": 112.24
+    },
+    {
+      "word": " que",
+      "start": 112.24,
+      "end": 113.08
+    },
+    {
+      "word": " si",
+      "start": 113.08,
+      "end": 113.26
+    },
+    {
+      "word": " elle",
+      "start": 113.26,
+      "end": 113.42
+    },
+    {
+      "word": " remplaçait",
+      "start": 113.42,
+      "end": 113.98
+    },
+    {
+      "word": " notre",
+      "start": 113.98,
+      "end": 114.2
+    },
+    {
+      "word": " Soleil,",
+      "start": 114.2,
+      "end": 114.8
+    },
+    {
+      "word": " sa",
+      "start": 115.04,
+      "end": 115.52
+    },
+    {
+      "word": " surface",
+      "start": 115.52,
+      "end": 116.0
+    },
+    {
+      "word": " s",
+      "start": 116.0,
+      "end": 116.46
+    },
+    {
+      "word": "'étendrait",
+      "start": 116.46,
+      "end": 116.92
+    },
+    {
+      "word": " au",
+      "start": 116.92,
+      "end": 117.26
+    },
+    {
+      "word": "-delà",
+      "start": 117.26,
+      "end": 117.6
+    },
+    {
+      "word": " de",
+      "start": 117.6,
+      "end": 117.76
+    },
+    {
+      "word": " l",
+      "start": 117.76,
+      "end": 117.86
+    },
+    {
+      "word": "'orbite",
+      "start": 117.86,
+      "end": 118.22
+    },
+    {
+      "word": " de",
+      "start": 118.22,
+      "end": 118.42
+    },
+    {
+      "word": " Mars.",
+      "start": 118.42,
+      "end": 118.74
+    },
+    {
+      "word": " Mais",
+      "start": 119.84,
+      "end": 120.24
+    },
+    {
+      "word": " dans",
+      "start": 120.24,
+      "end": 120.42
+    },
+    {
+      "word": " l",
+      "start": 120.42,
+      "end": 120.54
+    },
+    {
+      "word": "'espace,",
+      "start": 120.54,
+      "end": 121.02
+    },
+    {
+      "word": " la",
+      "start": 121.4,
+      "end": 121.8
+    },
+    {
+      "word": " taille",
+      "start": 121.8,
+      "end": 122.2
+    },
+    {
+      "word": " n",
+      "start": 122.2,
+      "end": 122.34
+    },
+    {
+      "word": "'est",
+      "start": 122.34,
+      "end": 122.4
+    },
+    {
+      "word": " pas",
+      "start": 122.4,
+      "end": 122.54
+    },
+    {
+      "word": " synonyme",
+      "start": 122.54,
+      "end": 123.1
+    },
+    {
+      "word": " de",
+      "start": 123.1,
+      "end": 123.24
+    },
+    {
+      "word": " stabilité.",
+      "start": 123.24,
+      "end": 123.94
+    },
+    {
+      "word": " Et",
+      "start": 124.64,
+      "end": 125.04
+    },
+    {
+      "word": " c",
+      "start": 125.04,
+      "end": 125.16
+    },
+    {
+      "word": "'est",
+      "start": 125.16,
+      "end": 125.26
+    },
+    {
+      "word": " précisément",
+      "start": 125.26,
+      "end": 126.06
+    },
+    {
+      "word": " ce",
+      "start": 126.06,
+      "end": 126.3
+    },
+    {
+      "word": " qui",
+      "start": 126.3,
+      "end": 126.46
+    },
+    {
+      "word": " rend",
+      "start": 126.46,
+      "end": 126.68
+    },
+    {
+      "word": " Béthelgeuse",
+      "start": 126.68,
+      "end": 127.56
+    },
+    {
+      "word": " potentiellement",
+      "start": 127.56,
+      "end": 128.68
+    },
+    {
+      "word": " dangereuse.",
+      "start": 128.68,
+      "end": 129.38
+    },
+    {
+      "word": " Les",
+      "start": 130.16,
+      "end": 130.96
+    },
+    {
+      "word": " super",
+      "start": 130.96,
+      "end": 131.36
+    },
+    {
+      "word": " géantes",
+      "start": 131.36,
+      "end": 131.78
+    },
+    {
+      "word": " rouges",
+      "start": 131.78,
+      "end": 132.26
+    },
+    {
+      "word": " vivent",
+      "start": 132.26,
+      "end": 132.74
+    },
+    {
+      "word": " peu",
+      "start": 132.74,
+      "end": 132.96
+    },
+    {
+      "word": " de",
+      "start": 132.96,
+      "end": 133.16
+    },
+    {
+      "word": " temps",
+      "start": 133.16,
+      "end": 133.4
+    },
+    {
+      "word": " et",
+      "start": 133.4,
+      "end": 134.28
+    },
+    {
+      "word": " finissent",
+      "start": 134.28,
+      "end": 134.72
+    },
+    {
+      "word": " leur",
+      "start": 134.72,
+      "end": 134.9
+    },
+    {
+      "word": " course",
+      "start": 134.9,
+      "end": 135.28
+    },
+    {
+      "word": " par",
+      "start": 135.28,
+      "end": 135.5
+    },
+    {
+      "word": " un",
+      "start": 135.5,
+      "end": 135.66
+    },
+    {
+      "word": " effondrement",
+      "start": 135.66,
+      "end": 136.26
+    },
+    {
+      "word": " gravitationnel.",
+      "start": 136.26,
+      "end": 137.22
+    },
+    {
+      "word": " Une",
+      "start": 137.98,
+      "end": 138.36
+    },
+    {
+      "word": " explosion",
+      "start": 138.36,
+      "end": 138.9
+    },
+    {
+      "word": " en",
+      "start": 138.9,
+      "end": 139.18
+    },
+    {
+      "word": " supernova",
+      "start": 139.18,
+      "end": 139.8
+    },
+    {
+      "word": " capable",
+      "start": 139.8,
+      "end": 140.76
+    },
+    {
+      "word": " de",
+      "start": 140.76,
+      "end": 141.08
+    },
+    {
+      "word": " briller",
+      "start": 141.08,
+      "end": 141.62
+    },
+    {
+      "word": " pendant",
+      "start": 141.62,
+      "end": 142.1
+    },
+    {
+      "word": " un",
+      "start": 142.1,
+      "end": 142.38
+    },
+    {
+      "word": " temps",
+      "start": 142.38,
+      "end": 142.58
+    },
+    {
+      "word": " plus",
+      "start": 142.58,
+      "end": 143.48
+    },
+    {
+      "word": " fort",
+      "start": 143.48,
+      "end": 143.86
+    },
+    {
+      "word": " qu",
+      "start": 143.86,
+      "end": 144.02
+    },
+    {
+      "word": "'une",
+      "start": 144.02,
+      "end": 144.14
+    },
+    {
+      "word": " galaxie",
+      "start": 144.14,
+      "end": 144.72
+    },
+    {
+      "word": " toute",
+      "start": 144.72,
+      "end": 144.98
+    },
+    {
+      "word": " entière.",
+      "start": 144.98,
+      "end": 145.62
+    },
+    {
+      "word": " Après",
+      "start": 146.52,
+      "end": 147.28
+    },
+    {
+      "word": " l",
+      "start": 147.28,
+      "end": 147.42
+    },
+    {
+      "word": "'obscurcissement",
+      "start": 147.42,
+      "end": 148.12
+    },
+    {
+      "word": " mystérieux",
+      "start": 148.12,
+      "end": 148.82
+    },
+    {
+      "word": " de",
+      "start": 148.82,
+      "end": 148.94
+    },
+    {
+      "word": " Bethelgeuse",
+      "start": 148.94,
+      "end": 149.64
+    },
+    {
+      "word": " en",
+      "start": 149.64,
+      "end": 149.84
+    },
+    {
+      "word": " 2019,",
+      "start": 149.84,
+      "end": 150.42
+    },
+    {
+      "word": " les",
+      "start": 151.28,
+      "end": 151.66
+    },
+    {
+      "word": " astronomes",
+      "start": 151.66,
+      "end": 152.34
+    },
+    {
+      "word": " ont",
+      "start": 152.34,
+      "end": 152.52
+    },
+    {
+      "word": " commencé",
+      "start": 152.52,
+      "end": 152.92
+    },
+    {
+      "word": " à",
+      "start": 152.92,
+      "end": 153.08
+    },
+    {
+      "word": " la",
+      "start": 153.08,
+      "end": 153.18
+    },
+    {
+      "word": " surveiller",
+      "start": 153.18,
+      "end": 153.62
+    },
+    {
+      "word": " de",
+      "start": 153.62,
+      "end": 153.78
+    },
+    {
+      "word": " très",
+      "start": 153.78,
+      "end": 154.02
+    },
+    {
+      "word": " près.",
+      "start": 154.02,
+      "end": 154.3
+    },
+    {
+      "word": " Certains",
+      "start": 155.06,
+      "end": 155.82
+    },
+    {
+      "word": " expliquaient",
+      "start": 155.82,
+      "end": 156.26
+    },
+    {
+      "word": " cette",
+      "start": 156.26,
+      "end": 156.46
+    },
+    {
+      "word": " baisse",
+      "start": 156.46,
+      "end": 156.72
+    },
+    {
+      "word": " de",
+      "start": 156.72,
+      "end": 156.84
+    },
+    {
+      "word": " régime",
+      "start": 156.84,
+      "end": 157.28
+    },
+    {
+      "word": " par",
+      "start": 157.28,
+      "end": 157.88
+    },
+    {
+      "word": " l",
+      "start": 157.88,
+      "end": 158.0
+    },
+    {
+      "word": "'éjection",
+      "start": 158.0,
+      "end": 158.4
+    },
+    {
+      "word": " d",
+      "start": 158.4,
+      "end": 158.52
+    },
+    {
+      "word": "'un",
+      "start": 158.52,
+      "end": 158.56
+    },
+    {
+      "word": " nuage",
+      "start": 158.56,
+      "end": 158.84
+    },
+    {
+      "word": " de",
+      "start": 158.84,
+      "end": 158.98
+    },
+    {
+      "word": " poussière",
+      "start": 158.98,
+      "end": 159.56
+    },
+    {
+      "word": " masquant",
+      "start": 159.56,
+      "end": 160.5
+    },
+    {
+      "word": " partiellement",
+      "start": 160.5,
+      "end": 161.0
+    },
+    {
+      "word": " l",
+      "start": 161.0,
+      "end": 161.14
+    },
+    {
+      "word": "'étoile,",
+      "start": 161.14,
+      "end": 161.48
+    },
+    {
+      "word": " comme",
+      "start": 161.74,
+      "end": 162.18
+    },
+    {
+      "word": " si",
+      "start": 162.18,
+      "end": 162.34
+    },
+    {
+      "word": " elle",
+      "start": 162.34,
+      "end": 162.48
+    },
+    {
+      "word": " avait",
+      "start": 162.48,
+      "end": 162.66
+    },
+    {
+      "word": " mué.",
+      "start": 162.66,
+      "end": 163.06
+    },
+    {
+      "word": " D",
+      "start": 163.94,
+      "end": 164.7
+    },
+    {
+      "word": "'autres",
+      "start": 164.7,
+      "end": 164.88
+    },
+    {
+      "word": " parlaient",
+      "start": 164.88,
+      "end": 165.26
+    },
+    {
+      "word": " de",
+      "start": 165.26,
+      "end": 165.38
+    },
+    {
+      "word": " pulsations",
+      "start": 165.38,
+      "end": 165.96
+    },
+    {
+      "word": " chaotiques",
+      "start": 165.96,
+      "end": 166.5
+    },
+    {
+      "word": " en",
+      "start": 166.5,
+      "end": 166.64
+    },
+    {
+      "word": " son",
+      "start": 166.64,
+      "end": 166.84
+    },
+    {
+      "word": " sein,",
+      "start": 166.84,
+      "end": 167.06
+    },
+    {
+      "word": " des",
+      "start": 167.5,
+      "end": 168.14
+    },
+    {
+      "word": " flux",
+      "start": 168.14,
+      "end": 168.4
+    },
+    {
+      "word": " de",
+      "start": 168.4,
+      "end": 168.54
+    },
+    {
+      "word": " plasma",
+      "start": 168.54,
+      "end": 168.92
+    },
+    {
+      "word": " et",
+      "start": 168.92,
+      "end": 169.14
+    },
+    {
+      "word": " d",
+      "start": 169.14,
+      "end": 169.26
+    },
+    {
+      "word": "'énergie",
+      "start": 169.26,
+      "end": 169.64
+    },
+    {
+      "word": " suggérant",
+      "start": 169.64,
+      "end": 170.68
+    },
+    {
+      "word": " l",
+      "start": 170.68,
+      "end": 170.82
+    },
+    {
+      "word": "'épuisement",
+      "start": 170.82,
+      "end": 171.28
+    },
+    {
+      "word": " de",
+      "start": 171.28,
+      "end": 171.38
+    },
+    {
+      "word": " son",
+      "start": 171.38,
+      "end": 171.52
+    },
+    {
+      "word": " carburant.",
+      "start": 171.52,
+      "end": 172.06
+    },
+    {
+      "word": " Mais",
+      "start": 172.98,
+      "end": 173.74
+    },
+    {
+      "word": " aucune",
+      "start": 173.74,
+      "end": 174.04
+    },
+    {
+      "word": " version",
+      "start": 174.04,
+      "end": 174.5
+    },
+    {
+      "word": " n",
+      "start": 174.5,
+      "end": 174.66
+    },
+    {
+      "word": "'efface",
+      "start": 174.66,
+      "end": 174.94
+    },
+    {
+      "word": " l",
+      "start": 174.94,
+      "end": 175.08
+    },
+    {
+      "word": "'essentiel.",
+      "start": 175.08,
+      "end": 175.54
+    },
+    {
+      "word": " La",
+      "start": 176.18,
+      "end": 176.74
+    },
+    {
+      "word": " probabilité",
+      "start": 176.74,
+      "end": 177.42
+    },
+    {
+      "word": " d",
+      "start": 177.42,
+      "end": 177.54
+    },
+    {
+      "word": "'un",
+      "start": 177.54,
+      "end": 177.62
+    },
+    {
+      "word": " effondrement",
+      "start": 177.62,
+      "end": 178.2
+    },
+    {
+      "word": " demeure,",
+      "start": 178.2,
+      "end": 178.8
+    },
+    {
+      "word": " seul",
+      "start": 179.34,
+      "end": 179.88
+    },
+    {
+      "word": " le",
+      "start": 179.88,
+      "end": 180.04
+    },
+    {
+      "word": " moment",
+      "start": 180.04,
+      "end": 180.28
+    },
+    {
+      "word": " exact",
+      "start": 180.28,
+      "end": 180.78
+    },
+    {
+      "word": " reste",
+      "start": 180.78,
+      "end": 181.24
+    },
+    {
+      "word": " inconnu.",
+      "start": 181.24,
+      "end": 181.68
+    },
+    {
+      "word": " Aujourd",
+      "start": 183.26,
+      "end": 183.64
+    },
+    {
+      "word": "'hui,",
+      "start": 183.64,
+      "end": 184.0
+    },
+    {
+      "word": " Musk",
+      "start": 184.48,
+      "end": 184.86
+    },
+    {
+      "word": " affirme",
+      "start": 184.86,
+      "end": 185.38
+    },
+    {
+      "word": " que",
+      "start": 185.38,
+      "end": 185.5
+    },
+    {
+      "word": " ces",
+      "start": 185.5,
+      "end": 185.68
+    },
+    {
+      "word": " signaux",
+      "start": 185.68,
+      "end": 186.08
+    },
+    {
+      "word": " ont",
+      "start": 186.08,
+      "end": 186.24
+    },
+    {
+      "word": " été",
+      "start": 186.24,
+      "end": 186.48
+    },
+    {
+      "word": " soit",
+      "start": 186.48,
+      "end": 186.82
+    },
+    {
+      "word": " mal",
+      "start": 186.82,
+      "end": 187.06
+    },
+    {
+      "word": " interprétés,",
+      "start": 187.06,
+      "end": 187.72
+    },
+    {
+      "word": " soit",
+      "start": 187.98,
+      "end": 188.68
+    },
+    {
+      "word": " présentés",
+      "start": 188.68,
+      "end": 189.16
+    },
+    {
+      "word": " de",
+      "start": 189.16,
+      "end": 189.28
+    },
+    {
+      "word": " manière",
+      "start": 189.28,
+      "end": 189.52
+    },
+    {
+      "word": " trop",
+      "start": 189.52,
+      "end": 189.84
+    },
+    {
+      "word": " édulcorée.",
+      "start": 189.84,
+      "end": 190.48
+    },
+    {
+      "word": " Selon",
+      "start": 191.42,
+      "end": 192.1
+    },
+    {
+      "word": " lui,",
+      "start": 192.1,
+      "end": 192.32
+    },
+    {
+      "word": " de",
+      "start": 192.7,
+      "end": 192.98
+    },
+    {
+      "word": " nouvelles",
+      "start": 192.98,
+      "end": 193.3
+    },
+    {
+      "word": " données",
+      "start": 193.3,
+      "end": 193.6
+    },
+    {
+      "word": " montrent",
+      "start": 193.6,
+      "end": 194.02
+    },
+    {
+      "word": " des",
+      "start": 194.02,
+      "end": 194.22
+    },
+    {
+      "word": " signes",
+      "start": 194.22,
+      "end": 194.56
+    },
+    {
+      "word": " de",
+      "start": 194.56,
+      "end": 194.72
+    },
+    {
+      "word": " contraction",
+      "start": 194.72,
+      "end": 195.16
+    },
+    {
+      "word": " accélérée",
+      "start": 195.16,
+      "end": 196.0
+    },
+    {
+      "word": " du",
+      "start": 196.0,
+      "end": 196.14
+    },
+    {
+      "word": " noyau.",
+      "start": 196.14,
+      "end": 196.5
+    },
+    {
+      "word": " Il",
+      "start": 197.44,
+      "end": 197.78
+    },
+    {
+      "word": " prétend",
+      "start": 197.78,
+      "end": 198.16
+    },
+    {
+      "word": " avoir",
+      "start": 198.16,
+      "end": 198.4
+    },
+    {
+      "word": " accès",
+      "start": 198.4,
+      "end": 198.8
+    },
+    {
+      "word": " à",
+      "start": 198.8,
+      "end": 198.9
+    },
+    {
+      "word": " des",
+      "start": 198.9,
+      "end": 199.08
+    },
+    {
+      "word": " analyses",
+      "start": 199.08,
+      "end": 199.52
+    },
+    {
+      "word": " effectuées",
+      "start": 199.52,
+      "end": 200.56
+    },
+    {
+      "word": " par",
+      "start": 200.56,
+      "end": 200.72
+    },
+    {
+      "word": " une",
+      "start": 200.72,
+      "end": 200.92
+    },
+    {
+      "word": " IA",
+      "start": 200.92,
+      "end": 201.26
+    },
+    {
+      "word": " quantique,",
+      "start": 201.26,
+      "end": 201.84
+    },
+    {
+      "word": " ainsi",
+      "start": 202.12,
+      "end": 202.82
+    },
+    {
+      "word": " qu",
+      "start": 202.82,
+      "end": 202.98
+    },
+    {
+      "word": "'à",
+      "start": 202.98,
+      "end": 203.04
+    },
+    {
+      "word": " des",
+      "start": 203.04,
+      "end": 203.18
+    },
+    {
+      "word": " observations",
+      "start": 203.18,
+      "end": 203.7
+    },
+    {
+      "word": " récentes",
+      "start": 203.7,
+      "end": 204.54
+    },
+    {
+      "word": " de",
+      "start": 204.54,
+      "end": 205.06
+    },
+    {
+      "word": " télescopes",
+      "start": 205.06,
+      "end": 205.66
+    },
+    {
+      "word": " optiques",
+      "start": 205.66,
+      "end": 206.08
+    },
+    {
+      "word": " et",
+      "start": 206.08,
+      "end": 206.2
+    },
+    {
+      "word": " infrarouges,",
+      "start": 206.2,
+      "end": 206.9
+    },
+    {
+      "word": " et",
+      "start": 207.52,
+      "end": 207.86
+    },
+    {
+      "word": " même",
+      "start": 207.86,
+      "end": 208.08
+    },
+    {
+      "word": " à",
+      "start": 208.08,
+      "end": 208.2
+    },
+    {
+      "word": " des",
+      "start": 208.2,
+      "end": 208.34
+    },
+    {
+      "word": " mesures",
+      "start": 208.34,
+      "end": 208.72
+    },
+    {
+      "word": " de",
+      "start": 208.72,
+      "end": 208.9
+    },
+    {
+      "word": " neutrinos",
+      "start": 208.9,
+      "end": 209.46
+    },
+    {
+      "word": " émanant",
+      "start": 209.46,
+      "end": 210.24
+    },
+    {
+      "word": " de",
+      "start": 210.24,
+      "end": 210.34
+    },
+    {
+      "word": " l",
+      "start": 210.34,
+      "end": 210.44
+    },
+    {
+      "word": "'étoile.",
+      "start": 210.44,
+      "end": 210.78
+    },
+    {
+      "word": " Or,",
+      "start": 211.82,
+      "end": 212.5
+    },
+    {
+      "word": " ce",
+      "start": 212.8,
+      "end": 213.2
+    },
+    {
+      "word": " sont",
+      "start": 213.2,
+      "end": 213.4
+    },
+    {
+      "word": " justement",
+      "start": 213.4,
+      "end": 213.92
+    },
+    {
+      "word": " les",
+      "start": 213.92,
+      "end": 214.12
+    },
+    {
+      "word": " neutrinos,",
+      "start": 214.12,
+      "end": 214.66
+    },
+    {
+      "word": " ces",
+      "start": 214.86,
+      "end": 215.44
+    },
+    {
+      "word": " particules",
+      "start": 215.44,
+      "end": 215.96
+    },
+    {
+      "word": " presque",
+      "start": 215.96,
+      "end": 216.34
+    },
+    {
+      "word": " sans",
+      "start": 216.34,
+      "end": 216.62
+    },
+    {
+      "word": " masse,",
+      "start": 216.62,
+      "end": 216.96
+    },
+    {
+      "word": " qui",
+      "start": 216.96,
+      "end": 217.76
+    },
+    {
+      "word": " peuvent",
+      "start": 217.76,
+      "end": 218.0
+    },
+    {
+      "word": " annoncer",
+      "start": 218.0,
+      "end": 218.44
+    },
+    {
+      "word": " un",
+      "start": 218.44,
+      "end": 218.56
+    },
+    {
+      "word": " effondrement",
+      "start": 218.56,
+      "end": 219.22
+    },
+    {
+      "word": " avec",
+      "start": 219.22,
+      "end": 219.96
+    },
+    {
+      "word": " bien",
+      "start": 219.96,
+      "end": 220.28
+    },
+    {
+      "word": " plus",
+      "start": 220.28,
+      "end": 220.56
+    },
+    {
+      "word": " de",
+      "start": 220.56,
+      "end": 220.72
+    },
+    {
+      "word": " précision",
+      "start": 220.72,
+      "end": 221.3
+    },
+    {
+      "word": " que",
+      "start": 221.3,
+      "end": 221.82
+    },
+    {
+      "word": " les",
+      "start": 221.82,
+      "end": 221.98
+    },
+    {
+      "word": " indicateurs",
+      "start": 221.98,
+      "end": 222.56
+    },
+    {
+      "word": " habituels.",
+      "start": 222.56,
+      "end": 223.16
+    },
+    {
+      "word": " Bien",
+      "start": 224.36,
+      "end": 225.22
+    },
+    {
+      "word": " que",
+      "start": 225.22,
+      "end": 225.4
+    },
+    {
+      "word": " la",
+      "start": 225.4,
+      "end": 225.58
+    },
+    {
+      "word": " NASA",
+      "start": 225.58,
+      "end": 225.84
+    },
+    {
+      "word": " et",
+      "start": 225.84,
+      "end": 226.06
+    },
+    {
+      "word": " l",
+      "start": 226.06,
+      "end": 226.16
+    },
+    {
+      "word": "'ESA",
+      "start": 226.16,
+      "end": 226.6
+    },
+    {
+      "word": " n",
+      "start": 226.6,
+      "end": 227.12
+    },
+    {
+      "word": "'aient",
+      "start": 227.12,
+      "end": 227.12
+    },
+    {
+      "word": " rien",
+      "start": 227.12,
+      "end": 227.36
+    },
+    {
+      "word": " confirmé,",
+      "start": 227.36,
+      "end": 227.96
+    },
+    {
+      "word": " cette",
+      "start": 228.36,
+      "end": 228.74
+    },
+    {
+      "word": " déclaration",
+      "start": 228.74,
+      "end": 229.32
+    },
+    {
+      "word": " a",
+      "start": 229.32,
+      "end": 229.64
+    },
+    {
+      "word": " curieusement",
+      "start": 229.64,
+      "end": 230.16
+    },
+    {
+      "word": " interpellé",
+      "start": 230.16,
+      "end": 230.9
+    },
+    {
+      "word": " certains",
+      "start": 230.9,
+      "end": 231.26
+    },
+    {
+      "word": " théoriciens.",
+      "start": 231.26,
+      "end": 231.92
+    },
+    {
+      "word": " Par",
+      "start": 232.95,
+      "end": 233.38
+    },
+    {
+      "word": " exemple,",
+      "start": 233.38,
+      "end": 233.8
+    },
+    {
+      "word": " le",
+      "start": 234.4,
+      "end": 234.44
+    },
+    {
+      "word": " docteur",
+      "start": 234.44,
+      "end": 234.84
+    },
+    {
+      "word": " Rajan",
+      "start": 234.84,
+      "end": 235.28
+    },
+    {
+      "word": " Patel,",
+      "start": 235.28,
+      "end": 235.78
+    },
+    {
+      "word": " de",
+      "start": 235.94,
+      "end": 236.34
+    },
+    {
+      "word": " l",
+      "start": 236.34,
+      "end": 236.44
+    },
+    {
+      "word": "'Université",
+      "start": 236.44,
+      "end": 236.98
+    },
+    {
+      "word": " de",
+      "start": 236.98,
+      "end": 237.14
+    },
+    {
+      "word": " Chicago,",
+      "start": 237.14,
+      "end": 237.58
+    },
+    {
+      "word": " a",
+      "start": 237.96,
+      "end": 238.42
+    },
+    {
+      "word": " décrit",
+      "start": 238.42,
+      "end": 238.74
+    },
+    {
+      "word": " un",
+      "start": 238.74,
+      "end": 238.9
+    },
+    {
+      "word": " phénomène",
+      "start": 238.9,
+      "end": 239.42
+    },
+    {
+      "word": " baptisé",
+      "start": 239.42,
+      "end": 239.98
+    },
+    {
+      "word": " «",
+      "start": 239.98,
+      "end": 240.36
+    },
+    {
+      "word": " rythme",
+      "start": 240.36,
+      "end": 240.92
+    },
+    {
+      "word": " anthropique",
+      "start": 240.92,
+      "end": 241.58
+    },
+    {
+      "word": " »",
+      "start": 241.58,
+      "end": 241.7
+    },
+    {
+      "word": " de",
+      "start": 241.7,
+      "end": 241.86
+    },
+    {
+      "word": " Bethelgeuse,",
+      "start": 241.86,
+      "end": 242.56
+    },
+    {
+      "word": " des",
+      "start": 243.27,
+      "end": 243.58
+    },
+    {
+      "word": " fluctuations",
+      "start": 243.58,
+      "end": 244.06
+    },
+    {
+      "word": " de",
+      "start": 244.06,
+      "end": 244.48
+    },
+    {
+      "word": " luminosité",
+      "start": 244.48,
+      "end": 245.16
+    },
+    {
+      "word": " qui",
+      "start": 245.16,
+      "end": 245.78
+    },
+    {
+      "word": " se",
+      "start": 245.78,
+      "end": 245.98
+    },
+    {
+      "word": " répètent",
+      "start": 245.98,
+      "end": 246.46
+    },
+    {
+      "word": " de",
+      "start": 246.46,
+      "end": 246.58
+    },
+    {
+      "word": " plus",
+      "start": 246.58,
+      "end": 246.78
+    },
+    {
+      "word": " en",
+      "start": 246.78,
+      "end": 246.96
+    },
+    {
+      "word": " plus",
+      "start": 246.96,
+      "end": 247.12
+    },
+    {
+      "word": " vite,",
+      "start": 247.12,
+      "end": 247.42
+    },
+    {
+      "word": " comme",
+      "start": 247.9,
+      "end": 248.4
+    },
+    {
+      "word": " si",
+      "start": 248.4,
+      "end": 248.58
+    },
+    {
+      "word": " l",
+      "start": 248.58,
+      "end": 248.72
+    },
+    {
+      "word": "'étoile",
+      "start": 248.72,
+      "end": 249.1
+    },
+    {
+      "word": " accélérait",
+      "start": 249.1,
+      "end": 249.74
+    },
+    {
+      "word": " son",
+      "start": 249.74,
+      "end": 249.92
+    },
+    {
+      "word": " compte",
+      "start": 249.92,
+      "end": 250.2
+    },
+    {
+      "word": " à",
+      "start": 250.2,
+      "end": 250.32
+    },
+    {
+      "word": " rebours.",
+      "start": 250.32,
+      "end": 250.74
+    },
+    {
+      "word": " Selon",
+      "start": 251.94,
+      "end": 252.56
+    },
+    {
+      "word": " la",
+      "start": 252.56,
+      "end": 252.66
+    },
+    {
+      "word": " version",
+      "start": 252.66,
+      "end": 252.96
+    },
+    {
+      "word": " de",
+      "start": 252.96,
+      "end": 253.14
+    },
+    {
+      "word": " Patel,",
+      "start": 253.14,
+      "end": 253.56
+    },
+    {
+      "word": " ce",
+      "start": 253.96,
+      "end": 254.34
+    },
+    {
+      "word": " rythme",
+      "start": 254.34,
+      "end": 254.74
+    },
+    {
+      "word": " anthropique",
+      "start": 254.74,
+      "end": 255.4
+    },
+    {
+      "word": " est",
+      "start": 255.4,
+      "end": 255.94
+    },
+    {
+      "word": " le",
+      "start": 255.94,
+      "end": 256.06
+    },
+    {
+      "word": " signe",
+      "start": 256.06,
+      "end": 256.4
+    },
+    {
+      "word": " d",
+      "start": 256.4,
+      "end": 256.52
+    },
+    {
+      "word": "'un",
+      "start": 256.52,
+      "end": 256.6
+    },
+    {
+      "word": " état",
+      "start": 256.6,
+      "end": 256.86
+    },
+    {
+      "word": " terminal.",
+      "start": 256.86,
+      "end": 257.26
+    },
+    {
+      "word": " Si",
+      "start": 258.5,
+      "end": 259.12
+    },
+    {
+      "word": " l",
+      "start": 259.12,
+      "end": 259.26
+    },
+    {
+      "word": "'étoile",
+      "start": 259.26,
+      "end": 259.58
+    },
+    {
+      "word": " explose",
+      "start": 259.58,
+      "end": 260.12
+    },
+    {
+      "word": " dans",
+      "start": 260.12,
+      "end": 260.22
+    },
+    {
+      "word": " les",
+      "start": 260.22,
+      "end": 260.36
+    },
+    {
+      "word": " semaines",
+      "start": 260.36,
+      "end": 260.66
+    },
+    {
+      "word": " à",
+      "start": 260.66,
+      "end": 260.9
+    },
+    {
+      "word": " venir,",
+      "start": 260.9,
+      "end": 261.12
+    },
+    {
+      "word": " la",
+      "start": 262.06,
+      "end": 262.2
+    },
+    {
+      "word": " lumière",
+      "start": 262.2,
+      "end": 262.52
+    },
+    {
+      "word": " de",
+      "start": 262.52,
+      "end": 262.7
+    },
+    {
+      "word": " la",
+      "start": 262.7,
+      "end": 262.82
+    },
+    {
+      "word": " supernova",
+      "start": 262.82,
+      "end": 263.42
+    },
+    {
+      "word": " pourrait",
+      "start": 263.42,
+      "end": 264.2
+    },
+    {
+      "word": " illuminer",
+      "start": 264.2,
+      "end": 264.76
+    },
+    {
+      "word": " le",
+      "start": 264.76,
+      "end": 264.92
+    },
+    {
+      "word": " ciel",
+      "start": 264.92,
+      "end": 265.18
+    },
+    {
+      "word": " en",
+      "start": 265.18,
+      "end": 265.38
+    },
+    {
+      "word": " plein",
+      "start": 265.38,
+      "end": 265.52
+    },
+    {
+      "word": " jour",
+      "start": 265.52,
+      "end": 265.86
+    },
+    {
+      "word": " et",
+      "start": 265.86,
+      "end": 266.58
+    },
+    {
+      "word": " transformer",
+      "start": 266.58,
+      "end": 267.14
+    },
+    {
+      "word": " pendant",
+      "start": 267.14,
+      "end": 267.52
+    },
+    {
+      "word": " des",
+      "start": 267.52,
+      "end": 267.74
+    },
+    {
+      "word": " mois",
+      "start": 267.74,
+      "end": 268.02
+    },
+    {
+      "word": " la",
+      "start": 268.02,
+      "end": 268.68
+    },
+    {
+      "word": " nuit",
+      "start": 268.68,
+      "end": 268.94
+    },
+    {
+      "word": " en",
+      "start": 268.94,
+      "end": 269.24
+    },
+    {
+      "word": " crépuscule.",
+      "start": 269.24,
+      "end": 269.88
+    },
+    {
+      "word": " La",
+      "start": 271.14,
+      "end": 271.72
+    },
+    {
+      "word": " dernière",
+      "start": 271.72,
+      "end": 272.02
+    },
+    {
+      "word": " fois",
+      "start": 272.02,
+      "end": 272.26
+    },
+    {
+      "word": " qu",
+      "start": 272.26,
+      "end": 272.4
+    },
+    {
+      "word": "'un",
+      "start": 272.4,
+      "end": 272.52
+    },
+    {
+      "word": " tel",
+      "start": 272.52,
+      "end": 272.66
+    },
+    {
+      "word": " événement",
+      "start": 272.66,
+      "end": 273.08
+    },
+    {
+      "word": " a",
+      "start": 273.08,
+      "end": 273.22
+    },
+    {
+      "word": " été",
+      "start": 273.22,
+      "end": 273.38
+    },
+    {
+      "word": " observé,",
+      "start": 273.38,
+      "end": 273.98
+    },
+    {
+      "word": " c",
+      "start": 274.22,
+      "end": 274.64
+    },
+    {
+      "word": "'était",
+      "start": 274.64,
+      "end": 274.78
+    },
+    {
+      "word": " en",
+      "start": 274.78,
+      "end": 274.96
+    },
+    {
+      "word": " 1604,",
+      "start": 274.96,
+      "end": 275.86
+    },
+    {
+      "word": " mais",
+      "start": 276.26,
+      "end": 276.92
+    },
+    {
+      "word": " cette",
+      "start": 276.92,
+      "end": 277.14
+    },
+    {
+      "word": " supernova",
+      "start": 277.14,
+      "end": 277.74
+    },
+    {
+      "word": " était",
+      "start": 277.74,
+      "end": 278.36
+    },
+    {
+      "word": " bien",
+      "start": 278.36,
+      "end": 278.66
+    },
+    {
+      "word": " plus",
+      "start": 278.66,
+      "end": 278.88
+    },
+    {
+      "word": " lointaine.",
+      "start": 278.88,
+      "end": 279.42
+    },
+    {
+      "word": " Bethelgeuse",
+      "start": 280.82,
+      "end": 281.4
+    },
+    {
+      "word": " n",
+      "start": 281.4,
+      "end": 281.9
+    },
+    {
+      "word": "'est",
+      "start": 281.9,
+      "end": 281.92
+    },
+    {
+      "word": " qu",
+      "start": 281.92,
+      "end": 282.06
+    },
+    {
+      "word": "'à",
+      "start": 282.06,
+      "end": 282.12
+    },
+    {
+      "word": " 640",
+      "start": 282.12,
+      "end": 282.82
+    },
+    {
+      "word": " années",
+      "start": 282.82,
+      "end": 283.08
+    },
+    {
+      "word": "-lumière,",
+      "start": 283.08,
+      "end": 283.56
+    },
+    {
+      "word": " et",
+      "start": 283.7,
+      "end": 284.34
+    },
+    {
+      "word": " c",
+      "start": 284.34,
+      "end": 284.46
+    },
+    {
+      "word": "'est",
+      "start": 284.46,
+      "end": 284.52
+    },
+    {
+      "word": " bien",
+      "start": 284.52,
+      "end": 284.74
+    },
+    {
+      "word": " cela",
+      "start": 284.74,
+      "end": 285.0
+    },
+    {
+      "word": " qui",
+      "start": 285.0,
+      "end": 285.22
+    },
+    {
+      "word": " inquiète.",
+      "start": 285.22,
+      "end": 285.7
+    },
+    {
+      "word": " Généralement,",
+      "start": 287.18,
+      "end": 287.76
+    },
+    {
+      "word": " on",
+      "start": 288.02,
+      "end": 288.36
+    },
+    {
+      "word": " estime",
+      "start": 288.36,
+      "end": 288.74
+    },
+    {
+      "word": " que",
+      "start": 288.74,
+      "end": 288.88
+    },
+    {
+      "word": " les",
+      "start": 288.88,
+      "end": 289.06
+    },
+    {
+      "word": " effets",
+      "start": 289.06,
+      "end": 289.34
+    },
+    {
+      "word": " dangereux",
+      "start": 289.34,
+      "end": 289.8
+    },
+    {
+      "word": " d",
+      "start": 289.8,
+      "end": 289.92
+    },
+    {
+      "word": "'une",
+      "start": 289.92,
+      "end": 290.0
+    },
+    {
+      "word": " supernova",
+      "start": 290.0,
+      "end": 290.58
+    },
+    {
+      "word": " sont",
+      "start": 290.58,
+      "end": 291.26
+    },
+    {
+      "word": " limités",
+      "start": 291.26,
+      "end": 291.76
+    },
+    {
+      "word": " à",
+      "start": 291.76,
+      "end": 291.88
+    },
+    {
+      "word": " une",
+      "start": 291.88,
+      "end": 292.02
+    },
+    {
+      "word": " distance",
+      "start": 292.02,
+      "end": 292.4
+    },
+    {
+      "word": " d",
+      "start": 292.4,
+      "end": 292.56
+    },
+    {
+      "word": "'environ",
+      "start": 292.56,
+      "end": 292.84
+    },
+    {
+      "word": " 30",
+      "start": 292.84,
+      "end": 293.18
+    },
+    {
+      "word": " années",
+      "start": 293.18,
+      "end": 293.5
+    },
+    {
+      "word": "-lumière.",
+      "start": 293.5,
+      "end": 294.02
+    },
+    {
+      "word": " Mais",
+      "start": 294.82,
+      "end": 295.4
+    },
+    {
+      "word": " Musk",
+      "start": 295.4,
+      "end": 295.82
+    },
+    {
+      "word": " soutient",
+      "start": 295.82,
+      "end": 296.56
+    },
+    {
+      "word": " que",
+      "start": 296.56,
+      "end": 296.72
+    },
+    {
+      "word": " c",
+      "start": 296.72,
+      "end": 296.82
+    },
+    {
+      "word": "'est",
+      "start": 296.82,
+      "end": 296.9
+    },
+    {
+      "word": " une",
+      "start": 296.9,
+      "end": 297.06
+    },
+    {
+      "word": " simplification.",
+      "start": 297.06,
+      "end": 297.78
+    },
+    {
+      "word": " Il",
+      "start": 297.78,
+      "end": 299.22
+    },
+    {
+      "word": " ne",
+      "start": 299.22,
+      "end": 299.36
+    },
+    {
+      "word": " parle",
+      "start": 299.36,
+      "end": 299.6
+    },
+    {
+      "word": " pas",
+      "start": 299.6,
+      "end": 299.82
+    },
+    {
+      "word": " d",
+      "start": 299.82,
+      "end": 299.96
+    },
+    {
+      "word": "'une",
+      "start": 299.96,
+      "end": 300.06
+    },
+    {
+      "word": " destruction",
+      "start": 300.06,
+      "end": 300.42
+    },
+    {
+      "word": " directe,",
+      "start": 300.42,
+      "end": 301.32
+    },
+    {
+      "word": " mais",
+      "start": 301.34,
+      "end": 301.8
+    },
+    {
+      "word": " d",
+      "start": 301.8,
+      "end": 301.94
+    },
+    {
+      "word": "'un",
+      "start": 301.94,
+      "end": 302.04
+    },
+    {
+      "word": " impact",
+      "start": 302.04,
+      "end": 302.4
+    },
+    {
+      "word": " indirect",
+      "start": 302.4,
+      "end": 303.02
+    },
+    {
+      "word": " des",
+      "start": 303.02,
+      "end": 303.42
+    },
+    {
+      "word": " radiations,",
+      "start": 303.42,
+      "end": 304.04
+    },
+    {
+      "word": " rayons",
+      "start": 304.12,
+      "end": 305.28
+    },
+    {
+      "word": " gamma",
+      "start": 305.28,
+      "end": 305.54
+    },
+    {
+      "word": " et",
+      "start": 305.54,
+      "end": 306.06
+    },
+    {
+      "word": " rayons",
+      "start": 306.06,
+      "end": 306.34
+    },
+    {
+      "word": " cosmiques,",
+      "start": 306.34,
+      "end": 306.9
+    },
+    {
+      "word": " sur",
+      "start": 307.1,
+      "end": 307.9
+    },
+    {
+      "word": " les",
+      "start": 307.9,
+      "end": 308.06
+    },
+    {
+      "word": " infrastructures",
+      "start": 308.06,
+      "end": 308.78
+    },
+    {
+      "word": " terrestres.",
+      "start": 308.78,
+      "end": 309.44
+    },
+    {
+      "word": " Selon",
+      "start": 310.18,
+      "end": 310.86
+    },
+    {
+      "word": " lui,",
+      "start": 310.86,
+      "end": 311.1
+    },
+    {
+      "word": " le",
+      "start": 311.52,
+      "end": 311.9
+    },
+    {
+      "word": " rayonnement",
+      "start": 311.9,
+      "end": 312.4
+    },
+    {
+      "word": " relativiste",
+      "start": 312.4,
+      "end": 313.2
+    },
+    {
+      "word": " pourrait",
+      "start": 313.2,
+      "end": 313.76
+    },
+    {
+      "word": " provoquer",
+      "start": 313.76,
+      "end": 314.3
+    },
+    {
+      "word": " une",
+      "start": 314.3,
+      "end": 314.52
+    },
+    {
+      "word": " impulsion",
+      "start": 314.52,
+      "end": 315.02
+    },
+    {
+      "word": " électromagnétique",
+      "start": 315.02,
+      "end": 316.12
+    },
+    {
+      "word": " massive",
+      "start": 316.12,
+      "end": 316.54
+    },
+    {
+      "word": " et",
+      "start": 316.54,
+      "end": 317.36
+    },
+    {
+      "word": " paralyser",
+      "start": 317.36,
+      "end": 317.94
+    },
+    {
+      "word": " les",
+      "start": 317.94,
+      "end": 318.06
+    },
+    {
+      "word": " satellites,",
+      "start": 318.06,
+      "end": 318.48
+    },
+    {
+      "word": " les",
+      "start": 318.9,
+      "end": 319.26
+    },
+    {
+      "word": " réseaux",
+      "start": 319.26,
+      "end": 319.56
+    },
+    {
+      "word": " électriques,",
+      "start": 319.56,
+      "end": 320.16
+    },
+    {
+      "word": " les",
+      "start": 320.38,
+      "end": 320.72
+    },
+    {
+      "word": " communications",
+      "start": 320.72,
+      "end": 321.4
+    },
+    {
+      "word": " et",
+      "start": 321.4,
+      "end": 321.88
+    },
+    {
+      "word": " la",
+      "start": 321.88,
+      "end": 322.02
+    },
+    {
+      "word": " navigation.",
+      "start": 322.02,
+      "end": 322.5
+    },
+    {
+      "word": " Ce",
+      "start": 323.38,
+      "end": 324.08
+    },
+    {
+      "word": " serait",
+      "start": 324.08,
+      "end": 324.4
+    },
+    {
+      "word": " comparable",
+      "start": 324.4,
+      "end": 325.06
+    },
+    {
+      "word": " à",
+      "start": 325.06,
+      "end": 325.64
+    },
+    {
+      "word": " une",
+      "start": 325.64,
+      "end": 325.82
+    },
+    {
+      "word": " éjection",
+      "start": 325.82,
+      "end": 326.32
+    },
+    {
+      "word": " de",
+      "start": 326.32,
+      "end": 326.48
+    },
+    {
+      "word": " masse",
+      "start": 326.48,
+      "end": 326.74
+    },
+    {
+      "word": " coronale",
+      "start": 326.74,
+      "end": 327.28
+    },
+    {
+      "word": " solaire,",
+      "start": 327.28,
+      "end": 327.94
+    },
+    {
+      "word": " mais",
+      "start": 327.96,
+      "end": 328.58
+    },
+    {
+      "word": " d",
+      "start": 328.58,
+      "end": 328.7
+    },
+    {
+      "word": "'une",
+      "start": 328.7,
+      "end": 328.78
+    },
+    {
+      "word": " intensité",
+      "start": 328.78,
+      "end": 329.38
+    },
+    {
+      "word": " infiniment",
+      "start": 329.38,
+      "end": 330.18
+    },
+    {
+      "word": " supérieure.",
+      "start": 330.18,
+      "end": 330.88
+    },
+    {
+      "word": " La",
+      "start": 331.84,
+      "end": 332.54
+    },
+    {
+      "word": " communauté",
+      "start": 332.54,
+      "end": 333.02
+    },
+    {
+      "word": " scientifique",
+      "start": 333.02,
+      "end": 333.8
+    },
+    {
+      "word": " est",
+      "start": 333.8,
+      "end": 334.08
+    },
+    {
+      "word": " divisée.",
+      "start": 334.08,
+      "end": 334.6
+    },
+    {
+      "word": " Michel",
+      "start": 335.4,
+      "end": 336.02
+    },
+    {
+      "word": " Thorne",
+      "start": 336.02,
+      "end": 336.64
+    },
+    {
+      "word": " estime",
+      "start": 336.64,
+      "end": 337.48
+    },
+    {
+      "word": " que",
+      "start": 337.48,
+      "end": 337.64
+    },
+    {
+      "word": " la",
+      "start": 337.64,
+      "end": 337.76
+    },
+    {
+      "word": " vie",
+      "start": 337.76,
+      "end": 337.92
+    },
+    {
+      "word": " sur",
+      "start": 337.92,
+      "end": 338.2
+    },
+    {
+      "word": " Terre",
+      "start": 338.2,
+      "end": 338.4
+    },
+    {
+      "word": " n",
+      "start": 338.4,
+      "end": 338.6
+    },
+    {
+      "word": "'est",
+      "start": 338.6,
+      "end": 338.66
+    },
+    {
+      "word": " pas",
+      "start": 338.66,
+      "end": 338.78
+    },
+    {
+      "word": " menacée",
+      "start": 338.78,
+      "end": 339.34
+    },
+    {
+      "word": " grâce",
+      "start": 339.34,
+      "end": 340.08
+    },
+    {
+      "word": " à",
+      "start": 340.08,
+      "end": 340.28
+    },
+    {
+      "word": " la",
+      "start": 340.28,
+      "end": 340.38
+    },
+    {
+      "word": " magnétosphère,",
+      "start": 340.38,
+      "end": 341.22
+    },
+    {
+      "word": " mais",
+      "start": 341.46,
+      "end": 342.04
+    },
+    {
+      "word": " elle",
+      "start": 342.04,
+      "end": 342.22
+    },
+    {
+      "word": " admet",
+      "start": 342.22,
+      "end": 342.5
+    },
+    {
+      "word": " des",
+      "start": 342.5,
+      "end": 342.64
+    },
+    {
+      "word": " risques",
+      "start": 342.64,
+      "end": 343.06
+    },
+    {
+      "word": " pour",
+      "start": 343.06,
+      "end": 343.3
+    },
+    {
+      "word": " la",
+      "start": 343.3,
+      "end": 343.46
+    },
+    {
+      "word": " couche",
+      "start": 343.46,
+      "end": 343.72
+    },
+    {
+      "word": " d",
+      "start": 343.72,
+      "end": 343.84
+    },
+    {
+      "word": "'ozone",
+      "start": 343.84,
+      "end": 344.22
+    },
+    {
+      "word": " et",
+      "start": 344.22,
+      "end": 344.88
+    },
+    {
+      "word": " une",
+      "start": 344.88,
+      "end": 345.08
+    },
+    {
+      "word": " irradiation",
+      "start": 345.08,
+      "end": 345.74
+    },
+    {
+      "word": " accrue",
+      "start": 345.74,
+      "end": 346.28
+    },
+    {
+      "word": " à",
+      "start": 346.28,
+      "end": 346.62
+    },
+    {
+      "word": " haute",
+      "start": 346.62,
+      "end": 346.88
+    },
+    {
+      "word": " altitude,",
+      "start": 346.88,
+      "end": 347.26
+    },
+    {
+      "word": " pour",
+      "start": 348.15,
+      "end": 348.5
+    },
+    {
+      "word": " les",
+      "start": 348.5,
+      "end": 348.7
+    },
+    {
+      "word": " équipages",
+      "start": 348.7,
+      "end": 349.2
+    },
+    {
+      "word": " d",
+      "start": 349.2,
+      "end": 349.32
+    },
+    {
+      "word": "'avions",
+      "start": 349.32,
+      "end": 349.6
+    },
+    {
+      "word": " et",
+      "start": 349.6,
+      "end": 350.0
+    },
+    {
+      "word": " les",
+      "start": 350.0,
+      "end": 350.18
+    },
+    {
+      "word": " équipements",
+      "start": 350.18,
+      "end": 350.68
+    },
+    {
+      "word": " en",
+      "start": 350.68,
+      "end": 350.92
+    },
+    {
+      "word": " orbite",
+      "start": 350.92,
+      "end": 351.28
+    },
+    {
+      "word": " basse.",
+      "start": 351.28,
+      "end": 351.78
+    },
+    {
+      "word": " Pendant",
+      "start": 352.76,
+      "end": 353.52
+    },
+    {
+      "word": " que",
+      "start": 353.52,
+      "end": 353.64
+    },
+    {
+      "word": " les",
+      "start": 353.64,
+      "end": 353.78
+    },
+    {
+      "word": " débats",
+      "start": 353.78,
+      "end": 354.1
+    },
+    {
+      "word": " font",
+      "start": 354.1,
+      "end": 354.3
+    },
+    {
+      "word": " rage,",
+      "start": 354.3,
+      "end": 354.52
+    },
+    {
+      "word": " les",
+      "start": 355.02,
+      "end": 355.4
+    },
+    {
+      "word": " télescopes",
+      "start": 355.4,
+      "end": 356.04
+    },
+    {
+      "word": " continuent",
+      "start": 356.04,
+      "end": 356.58
+    },
+    {
+      "word": " de",
+      "start": 356.58,
+      "end": 356.7
+    },
+    {
+      "word": " scruter",
+      "start": 356.7,
+      "end": 357.08
+    },
+    {
+      "word": " l",
+      "start": 357.08,
+      "end": 357.3
+    },
+    {
+      "word": "'astre.",
+      "start": 357.3,
+      "end": 357.58
+    },
+    {
+      "word": " L",
+      "start": 358.24,
+      "end": 359.0
+    },
+    {
+      "word": "'Observatoire",
+      "start": 359.0,
+      "end": 359.74
+    },
+    {
+      "word": " européen",
+      "start": 359.74,
+      "end": 360.4
+    },
+    {
+      "word": " Austral",
+      "start": 360.4,
+      "end": 360.82
+    },
+    {
+      "word": " et",
+      "start": 360.82,
+      "end": 361.6
+    },
+    {
+      "word": " le",
+      "start": 361.6,
+      "end": 361.74
+    },
+    {
+      "word": " télescope",
+      "start": 361.74,
+      "end": 362.38
+    },
+    {
+      "word": " James",
+      "start": 362.38,
+      "end": 362.74
+    },
+    {
+      "word": " Webb",
+      "start": 362.74,
+      "end": 363.18
+    },
+    {
+      "word": " ont",
+      "start": 363.18,
+      "end": 363.88
+    },
+    {
+      "word": " augmenté",
+      "start": 363.88,
+      "end": 364.42
+    },
+    {
+      "word": " la",
+      "start": 364.42,
+      "end": 364.56
+    },
+    {
+      "word": " fréquence",
+      "start": 364.56,
+      "end": 365.26
+    },
+    {
+      "word": " de",
+      "start": 365.26,
+      "end": 365.52
+    },
+    {
+      "word": " leur",
+      "start": 365.52,
+      "end": 365.68
+    },
+    {
+      "word": " collecte",
+      "start": 365.68,
+      "end": 366.26
+    },
+    {
+      "word": " de",
+      "start": 366.26,
+      "end": 366.38
+    },
+    {
+      "word": " données.",
+      "start": 366.38,
+      "end": 366.7
+    },
+    {
+      "word": " Dans",
+      "start": 367.48,
+      "end": 368.04
+    },
+    {
+      "word": " le",
+      "start": 368.04,
+      "end": 368.2
+    },
+    {
+      "word": " milieu",
+      "start": 368.2,
+      "end": 368.48
+    },
+    {
+      "word": " scientifique,",
+      "start": 368.48,
+      "end": 369.22
+    },
+    {
+      "word": " on",
+      "start": 369.54,
+      "end": 370.0
+    },
+    {
+      "word": " sent",
+      "start": 370.0,
+      "end": 370.26
+    },
+    {
+      "word": " que",
+      "start": 370.26,
+      "end": 370.44
+    },
+    {
+      "word": " les",
+      "start": 370.44,
+      "end": 370.58
+    },
+    {
+      "word": " paramètres",
+      "start": 370.58,
+      "end": 371.14
+    },
+    {
+      "word": " de",
+      "start": 371.14,
+      "end": 371.32
+    },
+    {
+      "word": " l",
+      "start": 371.32,
+      "end": 371.44
+    },
+    {
+      "word": "'étoile",
+      "start": 371.44,
+      "end": 371.88
+    },
+    {
+      "word": " ont",
+      "start": 371.88,
+      "end": 372.1
+    },
+    {
+      "word": " changé.",
+      "start": 372.1,
+      "end": 372.6
+    },
+    {
+      "word": " Les",
+      "start": 373.14,
+      "end": 373.8
+    },
+    {
+      "word": " impulsions",
+      "start": 373.8,
+      "end": 374.44
+    },
+    {
+      "word": " sont",
+      "start": 374.44,
+      "end": 374.66
+    },
+    {
+      "word": " différentes,",
+      "start": 374.66,
+      "end": 375.3
+    },
+    {
+      "word": " le",
+      "start": 375.9,
+      "end": 376.28
+    },
+    {
+      "word": " spectre",
+      "start": 376.28,
+      "end": 376.82
+    },
+    {
+      "word": " est",
+      "start": 376.82,
+      "end": 376.98
+    },
+    {
+      "word": " plus",
+      "start": 376.98,
+      "end": 377.18
+    },
+    {
+      "word": " chaotique",
+      "start": 377.18,
+      "end": 377.86
+    },
+    {
+      "word": " et",
+      "start": 377.86,
+      "end": 378.8
+    },
+    {
+      "word": " la",
+      "start": 378.8,
+      "end": 378.96
+    },
+    {
+      "word": " vitesse",
+      "start": 378.96,
+      "end": 379.34
+    },
+    {
+      "word": " de",
+      "start": 379.34,
+      "end": 379.56
+    },
+    {
+      "word": " perte",
+      "start": 379.56,
+      "end": 379.9
+    },
+    {
+      "word": " de",
+      "start": 379.9,
+      "end": 380.06
+    },
+    {
+      "word": " masse",
+      "start": 380.06,
+      "end": 380.42
+    },
+    {
+      "word": " ces",
+      "start": 380.42,
+      "end": 380.74
+    },
+    {
+      "word": " dernières",
+      "start": 380.74,
+      "end": 381.14
+    },
+    {
+      "word": " semaine",
+      "start": 381.14,
+      "end": 381.6
+    },
+    {
+      "word": " est,",
+      "start": 381.6,
+      "end": 382.34
+    },
+    {
+      "word": " selon",
+      "start": 382.54,
+      "end": 382.92
+    },
+    {
+      "word": " certains",
+      "start": 382.92,
+      "end": 383.28
+    },
+    {
+      "word": " rapports,",
+      "start": 383.28,
+      "end": 383.9
+    },
+    {
+      "word": " sans",
+      "start": 384.42,
+      "end": 384.64
+    },
+    {
+      "word": " précédent",
+      "start": 384.64,
+      "end": 385.28
+    },
+    {
+      "word": " depuis",
+      "start": 385.28,
+      "end": 385.72
+    },
+    {
+      "word": " des",
+      "start": 385.72,
+      "end": 386.0
+    },
+    {
+      "word": " décennies.",
+      "start": 386.0,
+      "end": 386.6
+    },
+    {
+      "word": " Si",
+      "start": 387.14,
+      "end": 387.92
+    },
+    {
+      "word": " Musk",
+      "start": 387.92,
+      "end": 388.26
+    },
+    {
+      "word": " se",
+      "start": 388.26,
+      "end": 388.52
+    },
+    {
+      "word": " trompe,",
+      "start": 388.52,
+      "end": 389.04
+    },
+    {
+      "word": " cela",
+      "start": 389.34,
+      "end": 389.84
+    },
+    {
+      "word": " restera",
+      "start": 389.84,
+      "end": 390.34
+    },
+    {
+      "word": " une",
+      "start": 390.34,
+      "end": 390.52
+    },
+    {
+      "word": " provocation",
+      "start": 390.52,
+      "end": 391.22
+    },
+    {
+      "word": " bruyante,",
+      "start": 391.22,
+      "end": 391.96
+    },
+    {
+      "word": " un",
+      "start": 392.36,
+      "end": 392.86
+    },
+    {
+      "word": " simple",
+      "start": 392.86,
+      "end": 393.3
+    },
+    {
+      "word": " sujet",
+      "start": 393.3,
+      "end": 393.68
+    },
+    {
+      "word": " de",
+      "start": 393.68,
+      "end": 393.84
+    },
+    {
+      "word": " polémique.",
+      "start": 393.84,
+      "end": 394.46
+    },
+    {
+      "word": " Mais",
+      "start": 394.92,
+      "end": 395.7
+    },
+    {
+      "word": " s",
+      "start": 395.7,
+      "end": 395.88
+    },
+    {
+      "word": "'il",
+      "start": 395.88,
+      "end": 396.02
+    },
+    {
+      "word": " a",
+      "start": 396.02,
+      "end": 396.06
+    },
+    {
+      "word": " raison",
+      "start": 396.06,
+      "end": 396.44
+    },
+    {
+      "word": " et",
+      "start": 396.44,
+      "end": 397.12
+    },
+    {
+      "word": " que",
+      "start": 397.12,
+      "end": 397.26
+    },
+    {
+      "word": " sa",
+      "start": 397.26,
+      "end": 397.42
+    },
+    {
+      "word": " prédiction",
+      "start": 397.42,
+      "end": 398.0
+    },
+    {
+      "word": " à",
+      "start": 398.0,
+      "end": 398.26
+    },
+    {
+      "word": " deux",
+      "start": 398.26,
+      "end": 398.46
+    },
+    {
+      "word": " semaines",
+      "start": 398.46,
+      "end": 398.86
+    },
+    {
+      "word": " se",
+      "start": 398.86,
+      "end": 399.12
+    },
+    {
+      "word": " réalise,",
+      "start": 399.12,
+      "end": 399.74
+    },
+    {
+      "word": " la",
+      "start": 400.56,
+      "end": 400.68
+    },
+    {
+      "word": " Terre",
+      "start": 400.68,
+      "end": 400.96
+    },
+    {
+      "word": " sera",
+      "start": 400.96,
+      "end": 401.3
+    },
+    {
+      "word": " témoin",
+      "start": 401.3,
+      "end": 401.8
+    },
+    {
+      "word": " du",
+      "start": 401.8,
+      "end": 402.38
+    },
+    {
+      "word": " plus",
+      "start": 402.38,
+      "end": 402.58
+    },
+    {
+      "word": " grand",
+      "start": 402.58,
+      "end": 402.92
+    },
+    {
+      "word": " événement",
+      "start": 402.92,
+      "end": 403.48
+    },
+    {
+      "word": " astronomique",
+      "start": 403.48,
+      "end": 404.3
+    },
+    {
+      "word": " de",
+      "start": 404.3,
+      "end": 404.56
+    },
+    {
+      "word": " l",
+      "start": 404.56,
+      "end": 404.7
+    },
+    {
+      "word": "'ère",
+      "start": 404.7,
+      "end": 404.8
+    },
+    {
+      "word": " moderne,",
+      "start": 404.8,
+      "end": 405.42
+    },
+    {
+      "word": " une",
+      "start": 405.64,
+      "end": 406.5
+    },
+    {
+      "word": " supernova",
+      "start": 406.5,
+      "end": 407.2
+    },
+    {
+      "word": " visible",
+      "start": 407.2,
+      "end": 408.18
+    },
+    {
+      "word": " à",
+      "start": 408.18,
+      "end": 408.54
+    },
+    {
+      "word": " l",
+      "start": 408.54,
+      "end": 408.68
+    },
+    {
+      "word": "'œil",
+      "start": 408.68,
+      "end": 408.84
+    },
+    {
+      "word": " nu.",
+      "start": 408.84,
+      "end": 409.0
+    },
+    {
+      "word": " Ce",
+      "start": 409.74,
+      "end": 410.38
+    },
+    {
+      "word": " sera",
+      "start": 410.38,
+      "end": 410.66
+    },
+    {
+      "word": " un",
+      "start": 410.66,
+      "end": 410.8
+    },
+    {
+      "word": " spectacle",
+      "start": 410.8,
+      "end": 411.22
+    },
+    {
+      "word": " de",
+      "start": 411.22,
+      "end": 411.54
+    },
+    {
+      "word": " lumière",
+      "start": 411.54,
+      "end": 411.96
+    },
+    {
+      "word": " et",
+      "start": 411.96,
+      "end": 412.42
+    },
+    {
+      "word": " de",
+      "start": 412.42,
+      "end": 412.58
+    },
+    {
+      "word": " mort,",
+      "start": 412.58,
+      "end": 413.02
+    },
+    {
+      "word": " une",
+      "start": 413.58,
+      "end": 414.12
+    },
+    {
+      "word": " sorte",
+      "start": 414.12,
+      "end": 414.44
+    },
+    {
+      "word": " de",
+      "start": 414.44,
+      "end": 414.7
+    },
+    {
+      "word": " miracle",
+      "start": 414.7,
+      "end": 415.12
+    },
+    {
+      "word": " visuel",
+      "start": 415.12,
+      "end": 415.88
+    },
+    {
+      "word": " porteur",
+      "start": 415.88,
+      "end": 416.86
+    },
+    {
+      "word": " de",
+      "start": 416.86,
+      "end": 417.02
+    },
+    {
+      "word": " questions",
+      "start": 417.02,
+      "end": 417.4
+    },
+    {
+      "word": " angoissantes.",
+      "start": 417.4,
+      "end": 418.4
+    },
+    {
+      "word": " Peut",
+      "start": 419.12,
+      "end": 419.76
+    },
+    {
+      "word": "-on",
+      "start": 419.76,
+      "end": 419.88
+    },
+    {
+      "word": " réellement",
+      "start": 419.88,
+      "end": 420.56
+    },
+    {
+      "word": " prédire",
+      "start": 420.56,
+      "end": 421.1
+    },
+    {
+      "word": " la",
+      "start": 421.1,
+      "end": 421.26
+    },
+    {
+      "word": " mort",
+      "start": 421.26,
+      "end": 421.52
+    },
+    {
+      "word": " d",
+      "start": 421.52,
+      "end": 421.66
+    },
+    {
+      "word": "'une",
+      "start": 421.66,
+      "end": 421.74
+    },
+    {
+      "word": " étoile",
+      "start": 421.74,
+      "end": 422.22
+    },
+    {
+      "word": " ?",
+      "start": 422.22,
+      "end": 422.7
+    },
+    {
+      "word": " Pourquoi",
+      "start": 422.7,
+      "end": 423.8
+    },
+    {
+      "word": " l",
+      "start": 423.8,
+      "end": 424.1
+    },
+    {
+      "word": "'idée",
+      "start": 424.1,
+      "end": 424.3
+    },
+    {
+      "word": " que",
+      "start": 424.3,
+      "end": 424.52
+    },
+    {
+      "word": " l",
+      "start": 424.52,
+      "end": 424.66
+    },
+    {
+      "word": "'univers",
+      "start": 424.66,
+      "end": 424.98
+    },
+    {
+      "word": " puisse",
+      "start": 424.98,
+      "end": 425.52
+    },
+    {
+      "word": " changer",
+      "start": 425.52,
+      "end": 425.94
+    },
+    {
+      "word": " sous",
+      "start": 425.94,
+      "end": 426.18
+    },
+    {
+      "word": " nos",
+      "start": 426.18,
+      "end": 426.42
+    },
+    {
+      "word": " yeux",
+      "start": 426.42,
+      "end": 426.7
+    },
+    {
+      "word": " est",
+      "start": 426.7,
+      "end": 427.46
+    },
+    {
+      "word": "-elle",
+      "start": 427.46,
+      "end": 427.58
+    },
+    {
+      "word": " à",
+      "start": 427.58,
+      "end": 427.7
+    },
+    {
+      "word": " la",
+      "start": 427.7,
+      "end": 427.8
+    },
+    {
+      "word": " fois",
+      "start": 427.8,
+      "end": 428.1
+    },
+    {
+      "word": " si",
+      "start": 428.1,
+      "end": 428.4
+    },
+    {
+      "word": " attirante",
+      "start": 428.4,
+      "end": 429.18
+    },
+    {
+      "word": " et",
+      "start": 429.18,
+      "end": 429.84
+    },
+    {
+      "word": " si",
+      "start": 429.84,
+      "end": 430.08
+    },
+    {
+      "word": " terrifiante.",
+      "start": 430.08,
+      "end": 430.88
+    },
+    {
+      "word": " Et",
+      "start": 431.54,
+      "end": 432.16
+    },
+    {
+      "word": " la",
+      "start": 432.16,
+      "end": 432.3
+    },
+    {
+      "word": " question",
+      "start": 432.3,
+      "end": 432.66
+    },
+    {
+      "word": " cruciale,",
+      "start": 432.66,
+      "end": 433.54
+    },
+    {
+      "word": " pourquoi",
+      "start": 433.68,
+      "end": 434.62
+    },
+    {
+      "word": " Elon",
+      "start": 434.62,
+      "end": 435.0
+    },
+    {
+      "word": " Musk,",
+      "start": 435.0,
+      "end": 435.58
+    },
+    {
+      "word": " qui",
+      "start": 435.74,
+      "end": 436.12
+    },
+    {
+      "word": " n",
+      "start": 436.12,
+      "end": 436.24
+    },
+    {
+      "word": "'est",
+      "start": 436.24,
+      "end": 436.3
+    },
+    {
+      "word": " pas",
+      "start": 436.3,
+      "end": 436.44
+    },
+    {
+      "word": " astronome,",
+      "start": 436.44,
+      "end": 437.16
+    },
+    {
+      "word": " parle",
+      "start": 437.86,
+      "end": 438.06
+    },
+    {
+      "word": "-t",
+      "start": 438.06,
+      "end": 438.28
+    },
+    {
+      "word": "-il",
+      "start": 438.28,
+      "end": 438.38
+    },
+    {
+      "word": " avec",
+      "start": 438.38,
+      "end": 438.56
+    },
+    {
+      "word": " une",
+      "start": 438.56,
+      "end": 438.82
+    },
+    {
+      "word": " telle",
+      "start": 438.82,
+      "end": 439.12
+    },
+    {
+      "word": " assurance",
+      "start": 439.12,
+      "end": 439.58
+    },
+    {
+      "word": " là",
+      "start": 439.58,
+      "end": 440.66
+    },
+    {
+      "word": " où",
+      "start": 440.66,
+      "end": 441.0
+    },
+    {
+      "word": " les",
+      "start": 441.0,
+      "end": 441.16
+    },
+    {
+      "word": " spécialistes",
+      "start": 441.16,
+      "end": 442.0
+    },
+    {
+      "word": " refusent",
+      "start": 442.0,
+      "end": 443.02
+    },
+    {
+      "word": " de",
+      "start": 443.02,
+      "end": 443.12
+    },
+    {
+      "word": " se",
+      "start": 443.12,
+      "end": 443.28
+    },
+    {
+      "word": " prononcer",
+      "start": 443.28,
+      "end": 443.88
+    },
+    {
+      "word": " ?",
+      "start": 443.88,
+      "end": 444.66
+    },
+    {
+      "word": " Certains",
+      "start": 444.66,
+      "end": 445.8
+    },
+    {
+      "word": " pensent",
+      "start": 445.8,
+      "end": 446.36
+    },
+    {
+      "word": " qu",
+      "start": 446.36,
+      "end": 446.78
+    },
+    {
+      "word": "'il",
+      "start": 446.78,
+      "end": 446.86
+    },
+    {
+      "word": " a",
+      "start": 446.86,
+      "end": 446.96
+    },
+    {
+      "word": " eu",
+      "start": 446.96,
+      "end": 447.06
+    },
+    {
+      "word": " accès",
+      "start": 447.06,
+      "end": 447.48
+    },
+    {
+      "word": " à",
+      "start": 447.48,
+      "end": 447.58
+    },
+    {
+      "word": " des",
+      "start": 447.58,
+      "end": 447.72
+    },
+    {
+      "word": " données",
+      "start": 447.72,
+      "end": 448.06
+    },
+    {
+      "word": " non",
+      "start": 448.06,
+      "end": 448.5
+    },
+    {
+      "word": " encore",
+      "start": 448.5,
+      "end": 448.82
+    },
+    {
+      "word": " publiées.",
+      "start": 448.82,
+      "end": 449.48
+    },
+    {
+      "word": " D",
+      "start": 450.2,
+      "end": 450.82
+    },
+    {
+      "word": "'autres",
+      "start": 450.82,
+      "end": 451.04
+    },
+    {
+      "word": " qu",
+      "start": 451.04,
+      "end": 451.24
+    },
+    {
+      "word": "'il",
+      "start": 451.24,
+      "end": 451.32
+    },
+    {
+      "word": " joue,",
+      "start": 451.32,
+      "end": 451.58
+    },
+    {
+      "word": " une",
+      "start": 451.78,
+      "end": 452.2
+    },
+    {
+      "word": " fois",
+      "start": 452.2,
+      "end": 452.4
+    },
+    {
+      "word": " de",
+      "start": 452.4,
+      "end": 452.5
+    },
+    {
+      "word": " plus,",
+      "start": 452.5,
+      "end": 452.84
+    },
+    {
+      "word": " avec",
+      "start": 452.84,
+      "end": 453.52
+    },
+    {
+      "word": " la",
+      "start": 453.52,
+      "end": 453.7
+    },
+    {
+      "word": " conscience",
+      "start": 453.7,
+      "end": 454.06
+    },
+    {
+      "word": " collective",
+      "start": 454.06,
+      "end": 454.56
+    },
+    {
+      "word": " pour",
+      "start": 454.56,
+      "end": 455.32
+    },
+    {
+      "word": " préparer",
+      "start": 455.32,
+      "end": 455.84
+    },
+    {
+      "word": " les",
+      "start": 455.84,
+      "end": 456.02
+    },
+    {
+      "word": " esprits",
+      "start": 456.02,
+      "end": 456.44
+    },
+    {
+      "word": " à",
+      "start": 456.44,
+      "end": 456.86
+    },
+    {
+      "word": " quelque",
+      "start": 456.86,
+      "end": 457.08
+    },
+    {
+      "word": " chose",
+      "start": 457.08,
+      "end": 457.38
+    },
+    {
+      "word": " de",
+      "start": 457.38,
+      "end": 457.52
+    },
+    {
+      "word": " plus",
+      "start": 457.52,
+      "end": 457.68
+    },
+    {
+      "word": " vaste.",
+      "start": 457.68,
+      "end": 459.02
+    },
+    {
+      "word": " Jusqu",
+      "start": 459.48,
+      "end": 460.2
+    },
+    {
+      "word": "'au",
+      "start": 460.2,
+      "end": 460.28
+    },
+    {
+      "word": " XXe",
+      "start": 460.28,
+      "end": 460.58
+    },
+    {
+      "word": " siècle,",
+      "start": 460.58,
+      "end": 461.04
+    },
+    {
+      "word": " l",
+      "start": 461.74,
+      "end": 461.78
+    },
+    {
+      "word": "'astronomie",
+      "start": 461.78,
+      "end": 462.34
+    },
+    {
+      "word": " était",
+      "start": 462.34,
+      "end": 462.54
+    },
+    {
+      "word": " une",
+      "start": 462.54,
+      "end": 462.74
+    },
+    {
+      "word": " affaire",
+      "start": 462.74,
+      "end": 463.02
+    },
+    {
+      "word": " de",
+      "start": 463.02,
+      "end": 463.14
+    },
+    {
+      "word": " contemplation.",
+      "start": 463.14,
+      "end": 463.86
+    },
+    {
+      "word": " Aujourd",
+      "start": 464.68,
+      "end": 465.32
+    },
+    {
+      "word": "'hui,",
+      "start": 465.32,
+      "end": 465.68
+    },
+    {
+      "word": " regarder",
+      "start": 466.3,
+      "end": 466.64
+    },
+    {
+      "word": " le",
+      "start": 466.64,
+      "end": 466.84
+    },
+    {
+      "word": " ciel",
+      "start": 466.84,
+      "end": 467.16
+    },
+    {
+      "word": " signifie",
+      "start": 467.16,
+      "end": 468.14
+    },
+    {
+      "word": " prendre",
+      "start": 468.14,
+      "end": 468.44
+    },
+    {
+      "word": " en",
+      "start": 468.44,
+      "end": 468.72
+    },
+    {
+      "word": " compte",
+      "start": 468.72,
+      "end": 469.0
+    },
+    {
+      "word": " des",
+      "start": 469.0,
+      "end": 469.24
+    },
+    {
+      "word": " menaces",
+      "start": 469.24,
+      "end": 469.6
+    },
+    {
+      "word": " réelles.",
+      "start": 469.6,
+      "end": 470.08
+    },
+    {
+      "word": " En",
+      "start": 471.28,
+      "end": 472.0
+    },
+    {
+      "word": " 1989,",
+      "start": 472.0,
+      "end": 472.72
+    },
+    {
+      "word": " une",
+      "start": 473.52,
+      "end": 473.92
+    },
+    {
+      "word": " tempête",
+      "start": 473.92,
+      "end": 474.32
+    },
+    {
+      "word": " solaire",
+      "start": 474.32,
+      "end": 474.88
+    },
+    {
+      "word": " a",
+      "start": 474.88,
+      "end": 475.38
+    },
+    {
+      "word": " mis",
+      "start": 475.38,
+      "end": 475.6
+    },
+    {
+      "word": " à",
+      "start": 475.6,
+      "end": 475.76
+    },
+    {
+      "word": " terre",
+      "start": 475.76,
+      "end": 475.96
+    },
+    {
+      "word": " le",
+      "start": 475.96,
+      "end": 476.16
+    },
+    {
+      "word": " réseau",
+      "start": 476.16,
+      "end": 476.46
+    },
+    {
+      "word": " électrique",
+      "start": 476.46,
+      "end": 476.98
+    },
+    {
+      "word": " du",
+      "start": 476.98,
+      "end": 477.12
+    },
+    {
+      "word": " Québec",
+      "start": 477.12,
+      "end": 477.48
+    },
+    {
+      "word": " en",
+      "start": 477.48,
+      "end": 477.82
+    },
+    {
+      "word": " quelques",
+      "start": 477.82,
+      "end": 478.22
+    },
+    {
+      "word": " heures.",
+      "start": 478.22,
+      "end": 478.6
+    },
+    {
+      "word": " Imaginez",
+      "start": 479.78,
+      "end": 480.66
+    },
+    {
+      "word": " maintenant",
+      "start": 480.66,
+      "end": 481.12
+    },
+    {
+      "word": " l",
+      "start": 481.12,
+      "end": 481.76
+    },
+    {
+      "word": "'impulsion",
+      "start": 481.76,
+      "end": 482.18
+    },
+    {
+      "word": " d",
+      "start": 482.18,
+      "end": 482.4
+    },
+    {
+      "word": "'une",
+      "start": 482.4,
+      "end": 482.5
+    },
+    {
+      "word": " supernova,",
+      "start": 482.5,
+      "end": 483.16
+    },
+    {
+      "word": " affaiblie",
+      "start": 483.94,
+      "end": 484.8
+    },
+    {
+      "word": " par",
+      "start": 484.8,
+      "end": 484.98
+    },
+    {
+      "word": " son",
+      "start": 484.98,
+      "end": 485.14
+    },
+    {
+      "word": " voyage",
+      "start": 485.14,
+      "end": 485.5
+    },
+    {
+      "word": " à",
+      "start": 485.5,
+      "end": 485.66
+    },
+    {
+      "word": " travers",
+      "start": 485.66,
+      "end": 485.9
+    },
+    {
+      "word": " l",
+      "start": 485.9,
+      "end": 486.04
+    },
+    {
+      "word": "'espace",
+      "start": 486.04,
+      "end": 486.3
+    },
+    {
+      "word": " mais",
+      "start": 486.3,
+      "end": 487.34
+    },
+    {
+      "word": " frappant",
+      "start": 487.34,
+      "end": 487.8
+    },
+    {
+      "word": " une",
+      "start": 487.8,
+      "end": 487.96
+    },
+    {
+      "word": " planète",
+      "start": 487.96,
+      "end": 488.5
+    },
+    {
+      "word": " qui",
+      "start": 488.5,
+      "end": 489.04
+    },
+    {
+      "word": " n",
+      "start": 489.04,
+      "end": 489.16
+    },
+    {
+      "word": "'est",
+      "start": 489.16,
+      "end": 489.24
+    },
+    {
+      "word": " jamais",
+      "start": 489.24,
+      "end": 489.62
+    },
+    {
+      "word": " déconnectée.",
+      "start": 489.62,
+      "end": 490.34
+    },
+    {
+      "word": " Depuis",
+      "start": 491.24,
+      "end": 492.12
+    },
+    {
+      "word": " 2023,",
+      "start": 492.12,
+      "end": 492.78
+    },
+    {
+      "word": " le",
+      "start": 493.26,
+      "end": 493.74
+    },
+    {
+      "word": " département",
+      "start": 493.74,
+      "end": 494.36
+    },
+    {
+      "word": " de",
+      "start": 494.36,
+      "end": 494.52
+    },
+    {
+      "word": " la",
+      "start": 494.52,
+      "end": 494.64
+    },
+    {
+      "word": " sécurité",
+      "start": 494.64,
+      "end": 495.0
+    },
+    {
+      "word": " intérieure",
+      "start": 495.0,
+      "end": 495.9
+    },
+    {
+      "word": " des",
+      "start": 495.9,
+      "end": 496.06
+    },
+    {
+      "word": " Etats",
+      "start": 496.06,
+      "end": 496.38
+    },
+    {
+      "word": "-Unis",
+      "start": 496.38,
+      "end": 496.62
+    },
+    {
+      "word": " a",
+      "start": 496.62,
+      "end": 497.44
+    },
+    {
+      "word": " commencé",
+      "start": 497.44,
+      "end": 497.84
+    },
+    {
+      "word": " à",
+      "start": 497.84,
+      "end": 498.04
+    },
+    {
+      "word": " financer",
+      "start": 498.04,
+      "end": 498.58
+    },
+    {
+      "word": " des",
+      "start": 498.58,
+      "end": 499.14
+    },
+    {
+      "word": " plans",
+      "start": 499.14,
+      "end": 499.48
+    },
+    {
+      "word": " de",
+      "start": 499.48,
+      "end": 499.64
+    },
+    {
+      "word": " réponse",
+      "start": 499.64,
+      "end": 500.08
+    },
+    {
+      "word": " aux",
+      "start": 500.08,
+      "end": 500.86
+    },
+    {
+      "word": " événements",
+      "start": 500.86,
+      "end": 501.46
+    },
+    {
+      "word": " astrophysiques",
+      "start": 501.46,
+      "end": 502.4
+    },
+    {
+      "word": " extrême.",
+      "start": 502.4,
+      "end": 503.06
+    },
+    {
+      "word": " Autrefois,",
+      "start": 504.36,
+      "end": 505.16
+    },
+    {
+      "word": " cela",
+      "start": 505.38,
+      "end": 505.94
+    },
+    {
+      "word": " sonnait",
+      "start": 505.94,
+      "end": 506.32
+    },
+    {
+      "word": " comme",
+      "start": 506.32,
+      "end": 506.48
+    },
+    {
+      "word": " de",
+      "start": 506.48,
+      "end": 506.6
+    },
+    {
+      "word": " la",
+      "start": 506.6,
+      "end": 506.72
+    },
+    {
+      "word": " science",
+      "start": 506.72,
+      "end": 507.04
+    },
+    {
+      "word": "-fiction.",
+      "start": 507.04,
+      "end": 507.4
+    },
+    {
+      "word": " Mais",
+      "start": 507.94,
+      "end": 508.74
+    },
+    {
+      "word": " notre",
+      "start": 508.74,
+      "end": 509.0
+    },
+    {
+      "word": " dépendance",
+      "start": 509.0,
+      "end": 509.66
+    },
+    {
+      "word": " aux",
+      "start": 509.66,
+      "end": 509.78
+    },
+    {
+      "word": " satellites,",
+      "start": 509.78,
+      "end": 510.32
+    },
+    {
+      "word": " à",
+      "start": 510.72,
+      "end": 511.18
+    },
+    {
+      "word": " l",
+      "start": 511.18,
+      "end": 511.3
+    },
+    {
+      "word": "'automatisation,",
+      "start": 511.3,
+      "end": 512.08
+    },
+    {
+      "word": " au",
+      "start": 512.68,
+      "end": 513.12
+    },
+    {
+      "word": " système",
+      "start": 513.12,
+      "end": 513.48
+    },
+    {
+      "word": " quantique",
+      "start": 513.48,
+      "end": 514.16
+    },
+    {
+      "word": " et",
+      "start": 514.16,
+      "end": 514.72
+    },
+    {
+      "word": " au",
+      "start": 514.72,
+      "end": 514.88
+    },
+    {
+      "word": " chiffrement",
+      "start": 514.88,
+      "end": 515.44
+    },
+    {
+      "word": " d",
+      "start": 515.44,
+      "end": 515.64
+    },
+    {
+      "word": "'états",
+      "start": 515.64,
+      "end": 515.94
+    },
+    {
+      "word": " fait",
+      "start": 515.94,
+      "end": 516.86
+    },
+    {
+      "word": " des",
+      "start": 516.86,
+      "end": 517.06
+    },
+    {
+      "word": " menaces",
+      "start": 517.06,
+      "end": 517.46
+    },
+    {
+      "word": " cosmiques",
+      "start": 517.46,
+      "end": 518.12
+    },
+    {
+      "word": " un",
+      "start": 518.12,
+      "end": 518.78
+    },
+    {
+      "word": " enjeu",
+      "start": 518.78,
+      "end": 519.22
+    },
+    {
+      "word": " de",
+      "start": 519.22,
+      "end": 519.36
+    },
+    {
+      "word": " sécurité",
+      "start": 519.36,
+      "end": 519.9
+    },
+    {
+      "word": " nationale.",
+      "start": 519.9,
+      "end": 520.62
+    },
+    {
+      "word": " Bethelgeuse",
+      "start": 522.56,
+      "end": 523.36
+    },
+    {
+      "word": " est",
+      "start": 523.36,
+      "end": 523.84
+    },
+    {
+      "word": " devenue",
+      "start": 523.84,
+      "end": 524.2
+    },
+    {
+      "word": " une",
+      "start": 524.2,
+      "end": 524.4
+    },
+    {
+      "word": " telle",
+      "start": 524.4,
+      "end": 524.68
+    },
+    {
+      "word": " menace,",
+      "start": 524.68,
+      "end": 525.18
+    },
+    {
+      "word": " même",
+      "start": 525.5,
+      "end": 526.16
+    },
+    {
+      "word": " sans",
+      "start": 526.16,
+      "end": 526.4
+    },
+    {
+      "word": " avoir",
+      "start": 526.4,
+      "end": 526.74
+    },
+    {
+      "word": " encore",
+      "start": 526.74,
+      "end": 527.02
+    },
+    {
+      "word": " explosé.",
+      "start": 527.02,
+      "end": 527.62
+    },
+    {
+      "word": " C",
+      "start": 528.34,
+      "end": 529.14
+    },
+    {
+      "word": "'est",
+      "start": 529.14,
+      "end": 529.24
+    },
+    {
+      "word": " là",
+      "start": 529.24,
+      "end": 529.4
+    },
+    {
+      "word": " que",
+      "start": 529.4,
+      "end": 529.6
+    },
+    {
+      "word": " réside",
+      "start": 529.6,
+      "end": 530.0
+    },
+    {
+      "word": " la",
+      "start": 530.0,
+      "end": 530.16
+    },
+    {
+      "word": " fracture",
+      "start": 530.16,
+      "end": 530.48
+    },
+    {
+      "word": " majeure",
+      "start": 530.48,
+      "end": 531.18
+    },
+    {
+      "word": " de",
+      "start": 531.18,
+      "end": 531.34
+    },
+    {
+      "word": " notre",
+      "start": 531.34,
+      "end": 531.54
+    },
+    {
+      "word": " époque.",
+      "start": 531.54,
+      "end": 532.0
+    },
+    {
+      "word": " une",
+      "start": 532.4,
+      "end": 533.4
+    },
+    {
+      "word": " étoile",
+      "start": 533.4,
+      "end": 533.78
+    },
+    {
+      "word": " mourante",
+      "start": 533.78,
+      "end": 534.38
+    },
+    {
+      "word": " ne",
+      "start": 534.38,
+      "end": 535.0
+    },
+    {
+      "word": " brûlera",
+      "start": 535.0,
+      "end": 535.52
+    },
+    {
+      "word": " peut",
+      "start": 535.52,
+      "end": 535.8
+    },
+    {
+      "word": "-être",
+      "start": 535.8,
+      "end": 535.94
+    },
+    {
+      "word": " pas",
+      "start": 535.94,
+      "end": 536.2
+    },
+    {
+      "word": " la",
+      "start": 536.2,
+      "end": 536.34
+    },
+    {
+      "word": " terre",
+      "start": 536.34,
+      "end": 536.7
+    },
+    {
+      "word": " mais",
+      "start": 536.7,
+      "end": 537.8
+    },
+    {
+      "word": " elle",
+      "start": 537.8,
+      "end": 538.0
+    },
+    {
+      "word": " peut",
+      "start": 538.0,
+      "end": 538.16
+    },
+    {
+      "word": " frapper",
+      "start": 538.16,
+      "end": 538.6
+    },
+    {
+      "word": " notre",
+      "start": 538.6,
+      "end": 538.84
+    },
+    {
+      "word": " point",
+      "start": 538.84,
+      "end": 539.2
+    },
+    {
+      "word": " le",
+      "start": 539.2,
+      "end": 539.36
+    },
+    {
+      "word": " plus",
+      "start": 539.36,
+      "end": 539.56
+    },
+    {
+      "word": " vulnérable",
+      "start": 539.56,
+      "end": 540.42
+    },
+    {
+      "word": " notre",
+      "start": 540.42,
+      "end": 541.56
+    },
+    {
+      "word": " illusion",
+      "start": 541.56,
+      "end": 542.16
+    },
+    {
+      "word": " de",
+      "start": 542.16,
+      "end": 542.46
+    },
+    {
+      "word": " contrôle",
+      "start": 542.46,
+      "end": 543.04
+    },
+    {
+      "word": " à",
+      "start": 543.04,
+      "end": 544.96
+    },
+    {
+      "word": " chaque",
+      "start": 544.96,
+      "end": 545.34
+    },
+    {
+      "word": " nouveau",
+      "start": 545.34,
+      "end": 545.68
+    },
+    {
+      "word": " lot",
+      "start": 545.68,
+      "end": 545.88
+    },
+    {
+      "word": " de",
+      "start": 545.88,
+      "end": 546.1
+    },
+    {
+      "word": " données",
+      "start": 546.1,
+      "end": 546.42
+    },
+    {
+      "word": " les",
+      "start": 546.42,
+      "end": 547.42
+    },
+    {
+      "word": " scientifiques",
+      "start": 547.42,
+      "end": 548.0
+    },
+    {
+      "word": " l",
+      "start": 548.0,
+      "end": 548.18
+    },
+    {
+      "word": "'admettent",
+      "start": 548.18,
+      "end": 548.72
+    },
+    {
+      "word": " nous",
+      "start": 548.72,
+      "end": 549.78
+    },
+    {
+      "word": " observons",
+      "start": 549.78,
+      "end": 550.52
+    },
+    {
+      "word": " une",
+      "start": 550.52,
+      "end": 550.72
+    },
+    {
+      "word": " mort",
+      "start": 550.72,
+      "end": 550.98
+    },
+    {
+      "word": " annoncée",
+      "start": 550.98,
+      "end": 551.66
+    },
+    {
+      "word": " nous",
+      "start": 551.66,
+      "end": 552.82
+    },
+    {
+      "word": " ignorons",
+      "start": 552.82,
+      "end": 553.4
+    },
+    {
+      "word": " simplement",
+      "start": 553.4,
+      "end": 553.98
+    },
+    {
+      "word": " quand",
+      "start": 553.98,
+      "end": 554.76
+    },
+    {
+      "word": " elle",
+      "start": 554.76,
+      "end": 555.14
+    },
+    {
+      "word": " surviendra.",
+      "start": 555.14,
+      "end": 555.8
+    },
+    {
+      "word": " Il",
+      "start": 556.68,
+      "end": 557.54
+    },
+    {
+      "word": " y",
+      "start": 557.54,
+      "end": 557.68
+    },
+    {
+      "word": " a",
+      "start": 557.68,
+      "end": 557.76
+    },
+    {
+      "word": " là",
+      "start": 557.76,
+      "end": 557.84
+    },
+    {
+      "word": " un",
+      "start": 557.84,
+      "end": 558.02
+    },
+    {
+      "word": " certain",
+      "start": 558.02,
+      "end": 558.28
+    },
+    {
+      "word": " symbolisme.",
+      "start": 558.28,
+      "end": 559.08
+    },
+    {
+      "word": " Bethelgeuse",
+      "start": 560.22,
+      "end": 560.8
+    },
+    {
+      "word": " se",
+      "start": 560.8,
+      "end": 561.0
+    },
+    {
+      "word": " meurt",
+      "start": 561.0,
+      "end": 561.5
+    },
+    {
+      "word": " et",
+      "start": 561.5,
+      "end": 562.5
+    },
+    {
+      "word": " nous",
+      "start": 562.5,
+      "end": 562.64
+    },
+    {
+      "word": " l",
+      "start": 562.64,
+      "end": 562.78
+    },
+    {
+      "word": "'observons",
+      "start": 562.78,
+      "end": 563.32
+    },
+    {
+      "word": " à",
+      "start": 563.32,
+      "end": 563.46
+    },
+    {
+      "word": " travers",
+      "start": 563.46,
+      "end": 563.74
+    },
+    {
+      "word": " des",
+      "start": 563.74,
+      "end": 563.94
+    },
+    {
+      "word": " caméras",
+      "start": 563.94,
+      "end": 564.38
+    },
+    {
+      "word": " thermiques,",
+      "start": 564.38,
+      "end": 565.0
+    },
+    {
+      "word": " des",
+      "start": 565.38,
+      "end": 565.8
+    },
+    {
+      "word": " spectromètres,",
+      "start": 565.8,
+      "end": 566.62
+    },
+    {
+      "word": " des",
+      "start": 567.18,
+      "end": 567.6
+    },
+    {
+      "word": " détecteurs",
+      "start": 567.6,
+      "end": 568.2
+    },
+    {
+      "word": " de",
+      "start": 568.2,
+      "end": 568.4
+    },
+    {
+      "word": " neutrinos",
+      "start": 568.4,
+      "end": 568.92
+    },
+    {
+      "word": " et",
+      "start": 568.92,
+      "end": 569.86
+    },
+    {
+      "word": " des",
+      "start": 569.86,
+      "end": 570.02
+    },
+    {
+      "word": " réseaux",
+      "start": 570.02,
+      "end": 570.44
+    },
+    {
+      "word": " mondiaux",
+      "start": 570.44,
+      "end": 571.04
+    },
+    {
+      "word": " de",
+      "start": 571.04,
+      "end": 571.2
+    },
+    {
+      "word": " données.",
+      "start": 571.2,
+      "end": 571.5
+    },
+    {
+      "word": " Nous",
+      "start": 572.3,
+      "end": 573.16
+    },
+    {
+      "word": " n",
+      "start": 573.16,
+      "end": 573.28
+    },
+    {
+      "word": "'avons",
+      "start": 573.28,
+      "end": 573.52
+    },
+    {
+      "word": " jamais",
+      "start": 573.52,
+      "end": 573.96
+    },
+    {
+      "word": " été",
+      "start": 573.96,
+      "end": 574.32
+    },
+    {
+      "word": " aussi",
+      "start": 574.32,
+      "end": 574.76
+    },
+    {
+      "word": " prêts",
+      "start": 574.76,
+      "end": 575.12
+    },
+    {
+      "word": " à",
+      "start": 575.12,
+      "end": 575.36
+    },
+    {
+      "word": " observer",
+      "start": 575.36,
+      "end": 575.94
+    },
+    {
+      "word": " et",
+      "start": 575.94,
+      "end": 577.24
+    },
+    {
+      "word": " pourtant",
+      "start": 577.24,
+      "end": 577.74
+    },
+    {
+      "word": " si",
+      "start": 577.74,
+      "end": 578.5
+    },
+    {
+      "word": " peu",
+      "start": 578.5,
+      "end": 578.7
+    },
+    {
+      "word": " prêts",
+      "start": 578.7,
+      "end": 579.12
+    },
+    {
+      "word": " à",
+      "start": 579.12,
+      "end": 579.7
+    },
+    {
+      "word": " réaliser",
+      "start": 579.7,
+      "end": 580.32
+    },
+    {
+      "word": " ce",
+      "start": 580.32,
+      "end": 580.52
+    },
+    {
+      "word": " que",
+      "start": 580.52,
+      "end": 580.64
+    },
+    {
+      "word": " nous",
+      "start": 580.64,
+      "end": 580.78
+    },
+    {
+      "word": " allons",
+      "start": 580.78,
+      "end": 580.98
+    },
+    {
+      "word": " voir.",
+      "start": 580.98,
+      "end": 581.48
+    },
+    {
+      "word": " Une",
+      "start": 582.8,
+      "end": 583.36
+    },
+    {
+      "word": " question",
+      "start": 583.36,
+      "end": 583.66
+    },
+    {
+      "word": " se",
+      "start": 583.66,
+      "end": 583.9
+    },
+    {
+      "word": " pose",
+      "start": 583.9,
+      "end": 584.16
+    },
+    {
+      "word": " alors,",
+      "start": 584.16,
+      "end": 584.44
+    },
+    {
+      "word": " non",
+      "start": 585.02,
+      "end": 585.52
+    },
+    {
+      "word": " pas",
+      "start": 585.52,
+      "end": 585.72
+    },
+    {
+      "word": " dans",
+      "start": 585.72,
+      "end": 585.86
+    },
+    {
+      "word": " les",
+      "start": 585.86,
+      "end": 586.04
+    },
+    {
+      "word": " amphithéâtres,",
+      "start": 586.04,
+      "end": 586.88
+    },
+    {
+      "word": " mais",
+      "start": 586.98,
+      "end": 587.72
+    },
+    {
+      "word": " dans",
+      "start": 587.72,
+      "end": 587.84
+    },
+    {
+      "word": " le",
+      "start": 587.84,
+      "end": 588.0
+    },
+    {
+      "word": " silence",
+      "start": 588.0,
+      "end": 588.42
+    },
+    {
+      "word": " de",
+      "start": 588.42,
+      "end": 588.84
+    },
+    {
+      "word": " tous",
+      "start": 588.84,
+      "end": 589.1
+    },
+    {
+      "word": " ceux",
+      "start": 589.1,
+      "end": 589.36
+    },
+    {
+      "word": " qui",
+      "start": 589.36,
+      "end": 589.56
+    },
+    {
+      "word": " scrutent",
+      "start": 589.56,
+      "end": 590.02
+    },
+    {
+      "word": " le",
+      "start": 590.02,
+      "end": 590.16
+    },
+    {
+      "word": " ciel.",
+      "start": 590.16,
+      "end": 590.48
+    },
+    {
+      "word": " Que",
+      "start": 591.6,
+      "end": 592.16
+    },
+    {
+      "word": " ferons",
+      "start": 592.16,
+      "end": 592.56
+    },
+    {
+      "word": "-nous",
+      "start": 592.56,
+      "end": 592.8
+    },
+    {
+      "word": " quand",
+      "start": 592.8,
+      "end": 593.56
+    },
+    {
+      "word": " le",
+      "start": 593.56,
+      "end": 593.74
+    },
+    {
+      "word": " ciel",
+      "start": 593.74,
+      "end": 594.14
+    },
+    {
+      "word": " changera",
+      "start": 594.14,
+      "end": 594.66
+    },
+    {
+      "word": " de",
+      "start": 594.66,
+      "end": 594.84
+    },
+    {
+      "word": " couleur",
+      "start": 594.84,
+      "end": 595.24
+    },
+    {
+      "word": " ?",
+      "start": 595.24,
+      "end": 595.74
+    },
+    {
+      "word": " Il",
+      "start": 595.74,
+      "end": 597.14
+    },
+    {
+      "word": " ne",
+      "start": 597.14,
+      "end": 597.26
+    },
+    {
+      "word": " s",
+      "start": 597.26,
+      "end": 597.4
+    },
+    {
+      "word": "'agit",
+      "start": 597.4,
+      "end": 597.56
+    },
+    {
+      "word": " pas",
+      "start": 597.56,
+      "end": 597.74
+    },
+    {
+      "word": " seulement",
+      "start": 597.74,
+      "end": 598.06
+    },
+    {
+      "word": " de",
+      "start": 598.06,
+      "end": 598.26
+    },
+    {
+      "word": " la",
+      "start": 598.26,
+      "end": 598.4
+    },
+    {
+      "word": " fin",
+      "start": 598.4,
+      "end": 598.6
+    },
+    {
+      "word": " d",
+      "start": 598.6,
+      "end": 598.74
+    },
+    {
+      "word": "'une",
+      "start": 598.74,
+      "end": 598.82
+    },
+    {
+      "word": " étoile,",
+      "start": 598.82,
+      "end": 599.26
+    },
+    {
+      "word": " mais",
+      "start": 600.04,
+      "end": 600.32
+    },
+    {
+      "word": " d",
+      "start": 600.32,
+      "end": 600.46
+    },
+    {
+      "word": "'un",
+      "start": 600.46,
+      "end": 600.54
+    },
+    {
+      "word": " point",
+      "start": 600.54,
+      "end": 600.76
+    },
+    {
+      "word": " de",
+      "start": 600.76,
+      "end": 600.92
+    },
+    {
+      "word": " bascule",
+      "start": 600.92,
+      "end": 601.56
+    },
+    {
+      "word": " touchant",
+      "start": 601.56,
+      "end": 602.56
+    },
+    {
+      "word": " la",
+      "start": 602.56,
+      "end": 602.7
+    },
+    {
+      "word": " structure",
+      "start": 602.7,
+      "end": 603.18
+    },
+    {
+      "word": " en",
+      "start": 603.18,
+      "end": 603.58
+    },
+    {
+      "word": " même",
+      "start": 603.58,
+      "end": 603.8
+    },
+    {
+      "word": " de",
+      "start": 603.8,
+      "end": 604.5
+    },
+    {
+      "word": " notre",
+      "start": 604.5,
+      "end": 604.76
+    },
+    {
+      "word": " civilisation",
+      "start": 604.76,
+      "end": 605.64
+    },
+    {
+      "word": " interconnectée.",
+      "start": 605.64,
+      "end": 606.92
+    },
+    {
+      "word": " Si",
+      "start": 606.92,
+      "end": 608.12
+    },
+    {
+      "word": " vous",
+      "start": 608.12,
+      "end": 608.26
+    },
+    {
+      "word": " avez",
+      "start": 608.26,
+      "end": 608.5
+    },
+    {
+      "word": " regardé",
+      "start": 608.5,
+      "end": 608.94
+    },
+    {
+      "word": " jusqu",
+      "start": 608.94,
+      "end": 609.16
+    },
+    {
+      "word": "'ici,",
+      "start": 609.16,
+      "end": 609.52
+    },
+    {
+      "word": " c",
+      "start": 609.76,
+      "end": 610.18
+    },
+    {
+      "word": "'est",
+      "start": 610.18,
+      "end": 610.22
+    },
+    {
+      "word": " que",
+      "start": 610.22,
+      "end": 610.32
+    },
+    {
+      "word": " ce",
+      "start": 610.32,
+      "end": 610.48
+    },
+    {
+      "word": " sentiment",
+      "start": 610.48,
+      "end": 610.94
+    },
+    {
+      "word": " est",
+      "start": 610.94,
+      "end": 611.12
+    },
+    {
+      "word": " déjà",
+      "start": 611.12,
+      "end": 611.36
+    },
+    {
+      "word": " là,",
+      "start": 611.36,
+      "end": 611.54
+    },
+    {
+      "word": " une",
+      "start": 612.0,
+      "end": 612.38
+    },
+    {
+      "word": " sensation",
+      "start": 612.38,
+      "end": 612.8
+    },
+    {
+      "word": " diffuse,",
+      "start": 612.8,
+      "end": 613.38
+    },
+    {
+      "word": " inquiète,",
+      "start": 613.8,
+      "end": 614.42
+    },
+    {
+      "word": " mais",
+      "start": 614.74,
+      "end": 615.1
+    },
+    {
+      "word": " bien",
+      "start": 615.1,
+      "end": 615.34
+    },
+    {
+      "word": " réelle.",
+      "start": 615.34,
+      "end": 615.8
+    },
+    {
+      "word": " C",
+      "start": 616.38,
+      "end": 616.88
+    },
+    {
+      "word": "'est",
+      "start": 616.88,
+      "end": 616.94
+    },
+    {
+      "word": " pourquoi",
+      "start": 616.94,
+      "end": 617.2
+    },
+    {
+      "word": " il",
+      "start": 617.2,
+      "end": 617.38
+    },
+    {
+      "word": " est",
+      "start": 617.38,
+      "end": 617.52
+    },
+    {
+      "word": " essentiel",
+      "start": 617.52,
+      "end": 618.06
+    },
+    {
+      "word": " de",
+      "start": 618.06,
+      "end": 618.2
+    },
+    {
+      "word": " s",
+      "start": 618.2,
+      "end": 618.36
+    },
+    {
+      "word": "'abonner.",
+      "start": 618.36,
+      "end": 618.66
+    },
+    {
+      "word": " Nous",
+      "start": 619.02,
+      "end": 619.52
+    },
+    {
+      "word": " allons",
+      "start": 619.52,
+      "end": 619.76
+    },
+    {
+      "word": " suivre",
+      "start": 619.76,
+      "end": 620.14
+    },
+    {
+      "word": " de",
+      "start": 620.14,
+      "end": 620.38
+    },
+    {
+      "word": " près",
+      "start": 620.38,
+      "end": 620.64
+    },
+    {
+      "word": " les",
+      "start": 620.64,
+      "end": 620.82
+    },
+    {
+      "word": " nouvelles",
+      "start": 620.82,
+      "end": 621.06
+    },
+    {
+      "word": " données,",
+      "start": 621.06,
+      "end": 621.42
+    },
+    {
+      "word": " les",
+      "start": 622.04,
+      "end": 622.22
+    },
+    {
+      "word": " détails",
+      "start": 622.22,
+      "end": 622.78
+    },
+    {
+      "word": " et",
+      "start": 622.78,
+      "end": 623.48
+    },
+    {
+      "word": " le",
+      "start": 623.48,
+      "end": 623.64
+    },
+    {
+      "word": " silence",
+      "start": 623.64,
+      "end": 624.02
+    },
+    {
+      "word": " des",
+      "start": 624.02,
+      "end": 624.3
+    },
+    {
+      "word": " institutions",
+      "start": 624.3,
+      "end": 624.88
+    },
+    {
+      "word": " qui",
+      "start": 624.88,
+      "end": 625.62
+    },
+    {
+      "word": " ont",
+      "start": 625.62,
+      "end": 625.74
+    },
+    {
+      "word": " le",
+      "start": 625.74,
+      "end": 625.9
+    },
+    {
+      "word": " devoir",
+      "start": 625.9,
+      "end": 626.34
+    },
+    {
+      "word": " de",
+      "start": 626.34,
+      "end": 626.6
+    },
+    {
+      "word": " nous",
+      "start": 626.6,
+      "end": 626.78
+    },
+    {
+      "word": " informer.",
+      "start": 626.78,
+      "end": 627.28
+    },
+    {
+      "word": " Mais",
+      "start": 628.3,
+      "end": 628.94
+    },
+    {
+      "word": " que",
+      "start": 628.94,
+      "end": 629.14
+    },
+    {
+      "word": " se",
+      "start": 629.14,
+      "end": 629.32
+    },
+    {
+      "word": " passerait",
+      "start": 629.32,
+      "end": 629.74
+    },
+    {
+      "word": "-il",
+      "start": 629.74,
+      "end": 629.96
+    },
+    {
+      "word": " réellement",
+      "start": 629.96,
+      "end": 630.58
+    },
+    {
+      "word": " si",
+      "start": 630.58,
+      "end": 631.24
+    },
+    {
+      "word": " une",
+      "start": 631.24,
+      "end": 631.44
+    },
+    {
+      "word": " supernova",
+      "start": 631.44,
+      "end": 631.98
+    },
+    {
+      "word": " comme",
+      "start": 631.98,
+      "end": 632.3
+    },
+    {
+      "word": " Bethelgeuse",
+      "start": 632.3,
+      "end": 633.04
+    },
+    {
+      "word": " s",
+      "start": 633.04,
+      "end": 633.32
+    },
+    {
+      "word": "'illuminait",
+      "start": 633.32,
+      "end": 633.86
+    },
+    {
+      "word": " ?",
+      "start": 633.86,
+      "end": 634.26
+    },
+    {
+      "word": " Fin",
+      "start": 634.26,
+      "end": 635.48
+    },
+    {
+      "word": " 2023,",
+      "start": 635.48,
+      "end": 636.0
+    },
+    {
+      "word": " un",
+      "start": 636.58,
+      "end": 637.0
+    },
+    {
+      "word": " rapport",
+      "start": 637.0,
+      "end": 637.32
+    },
+    {
+      "word": " interne",
+      "start": 637.32,
+      "end": 637.86
+    },
+    {
+      "word": " de",
+      "start": 637.86,
+      "end": 637.98
+    },
+    {
+      "word": " l",
+      "start": 637.98,
+      "end": 638.06
+    },
+    {
+      "word": "'Observatoire",
+      "start": 638.06,
+      "end": 638.7
+    },
+    {
+      "word": " européen",
+      "start": 638.7,
+      "end": 639.34
+    },
+    {
+      "word": " Austral",
+      "start": 639.34,
+      "end": 639.76
+    },
+    {
+      "word": " a",
+      "start": 639.76,
+      "end": 640.62
+    },
+    {
+      "word": " été",
+      "start": 640.62,
+      "end": 640.84
+    },
+    {
+      "word": " discrètement",
+      "start": 640.84,
+      "end": 641.5
+    },
+    {
+      "word": " envoyé",
+      "start": 641.5,
+      "end": 642.18
+    },
+    {
+      "word": " aux",
+      "start": 642.18,
+      "end": 642.78
+    },
+    {
+      "word": " instituts",
+      "start": 642.78,
+      "end": 643.38
+    },
+    {
+      "word": " ayant",
+      "start": 643.38,
+      "end": 643.76
+    },
+    {
+      "word": " accès",
+      "start": 643.76,
+      "end": 644.18
+    },
+    {
+      "word": " aux",
+      "start": 644.18,
+      "end": 644.32
+    },
+    {
+      "word": " télescopes",
+      "start": 644.32,
+      "end": 644.92
+    },
+    {
+      "word": " les",
+      "start": 644.92,
+      "end": 645.02
+    },
+    {
+      "word": " plus",
+      "start": 645.02,
+      "end": 645.2
+    },
+    {
+      "word": " sensibles.",
+      "start": 645.2,
+      "end": 645.82
+    },
+    {
+      "word": " Il",
+      "start": 646.96,
+      "end": 647.38
+    },
+    {
+      "word": " mentionnait",
+      "start": 647.38,
+      "end": 647.96
+    },
+    {
+      "word": " une",
+      "start": 647.96,
+      "end": 648.18
+    },
+    {
+      "word": " instabilité",
+      "start": 648.18,
+      "end": 648.9
+    },
+    {
+      "word": " du",
+      "start": 648.9,
+      "end": 649.06
+    },
+    {
+      "word": " rayonnement",
+      "start": 649.06,
+      "end": 649.58
+    },
+    {
+      "word": " dans",
+      "start": 649.58,
+      "end": 649.72
+    },
+    {
+      "word": " l",
+      "start": 649.72,
+      "end": 649.88
+    },
+    {
+      "word": "'infrarouge",
+      "start": 649.88,
+      "end": 650.44
+    },
+    {
+      "word": " moyen",
+      "start": 650.44,
+      "end": 650.82
+    },
+    {
+      "word": " et",
+      "start": 650.82,
+      "end": 651.64
+    },
+    {
+      "word": " des",
+      "start": 651.64,
+      "end": 651.8
+    },
+    {
+      "word": " sursauts",
+      "start": 651.8,
+      "end": 652.52
+    },
+    {
+      "word": " irréguliers",
+      "start": 652.52,
+      "end": 653.14
+    },
+    {
+      "word": " liés",
+      "start": 653.14,
+      "end": 653.98
+    },
+    {
+      "word": " à",
+      "start": 653.98,
+      "end": 654.08
+    },
+    {
+      "word": " des",
+      "start": 654.08,
+      "end": 654.28
+    },
+    {
+      "word": " éjections",
+      "start": 654.28,
+      "end": 654.84
+    },
+    {
+      "word": " de",
+      "start": 654.84,
+      "end": 655.02
+    },
+    {
+      "word": " matière.",
+      "start": 655.02,
+      "end": 655.34
+    },
+    {
+      "word": " Les",
+      "start": 656.34,
+      "end": 657.16
+    },
+    {
+      "word": " supergéantes",
+      "start": 657.16,
+      "end": 657.88
+    },
+    {
+      "word": " rouges",
+      "start": 657.88,
+      "end": 658.3
+    },
+    {
+      "word": " ont",
+      "start": 658.3,
+      "end": 658.52
+    },
+    {
+      "word": " toujours",
+      "start": 658.52,
+      "end": 658.82
+    },
+    {
+      "word": " été",
+      "start": 658.82,
+      "end": 659.08
+    },
+    {
+      "word": " instables,",
+      "start": 659.08,
+      "end": 659.64
+    },
+    {
+      "word": " mais",
+      "start": 659.9,
+      "end": 660.54
+    },
+    {
+      "word": " un",
+      "start": 660.54,
+      "end": 660.76
+    },
+    {
+      "word": " élément",
+      "start": 660.76,
+      "end": 661.12
+    },
+    {
+      "word": " nouveau",
+      "start": 661.12,
+      "end": 661.5
+    },
+    {
+      "word": " est",
+      "start": 661.5,
+      "end": 661.82
+    },
+    {
+      "word": " apparu.",
+      "start": 661.82,
+      "end": 662.24
+    },
+    {
+      "word": " Les",
+      "start": 663.06,
+      "end": 663.42
+    },
+    {
+      "word": " intervalles",
+      "start": 663.42,
+      "end": 664.14
+    },
+    {
+      "word": " entre",
+      "start": 664.14,
+      "end": 664.42
+    },
+    {
+      "word": " les",
+      "start": 664.42,
+      "end": 664.64
+    },
+    {
+      "word": " fluctuations",
+      "start": 664.64,
+      "end": 665.18
+    },
+    {
+      "word": " ont",
+      "start": 665.18,
+      "end": 666.06
+    },
+    {
+      "word": " commencé",
+      "start": 666.06,
+      "end": 666.56
+    },
+    {
+      "word": " à",
+      "start": 666.56,
+      "end": 666.76
+    },
+    {
+      "word": " se",
+      "start": 666.76,
+      "end": 666.92
+    },
+    {
+      "word": " réduire,",
+      "start": 666.92,
+      "end": 667.52
+    },
+    {
+      "word": " comme",
+      "start": 667.94,
+      "end": 668.52
+    },
+    {
+      "word": " si",
+      "start": 668.52,
+      "end": 668.7
+    },
+    {
+      "word": " un",
+      "start": 668.7,
+      "end": 668.84
+    },
+    {
+      "word": " mécanisme",
+      "start": 668.84,
+      "end": 669.54
+    },
+    {
+      "word": " s",
+      "start": 669.54,
+      "end": 669.82
+    },
+    {
+      "word": "'emballait",
+      "start": 669.82,
+      "end": 670.2
+    },
+    {
+      "word": " avant",
+      "start": 670.2,
+      "end": 670.84
+    },
+    {
+      "word": " l",
+      "start": 670.84,
+      "end": 671.02
+    },
+    {
+      "word": "'arrêt",
+      "start": 671.02,
+      "end": 671.26
+    },
+    {
+      "word": " final.",
+      "start": 671.26,
+      "end": 671.58
+    },
+    {
+      "word": " Ces",
+      "start": 672.78,
+      "end": 673.5
+    },
+    {
+      "word": " données",
+      "start": 673.5,
+      "end": 673.82
+    },
+    {
+      "word": " ont",
+      "start": 673.82,
+      "end": 674.02
+    },
+    {
+      "word": " été",
+      "start": 674.02,
+      "end": 674.26
+    },
+    {
+      "word": " confrontées",
+      "start": 674.26,
+      "end": 674.88
+    },
+    {
+      "word": " au",
+      "start": 674.88,
+      "end": 675.0
+    },
+    {
+      "word": " modèle",
+      "start": 675.0,
+      "end": 675.34
+    },
+    {
+      "word": " d",
+      "start": 675.34,
+      "end": 675.56
+    },
+    {
+      "word": "'effondrement",
+      "start": 675.56,
+      "end": 676.04
+    },
+    {
+      "word": " stellaire,",
+      "start": 676.04,
+      "end": 676.68
+    },
+    {
+      "word": " notamment",
+      "start": 676.94,
+      "end": 677.58
+    },
+    {
+      "word": " MESA.",
+      "start": 677.58,
+      "end": 678.1
+    },
+    {
+      "word": " Les",
+      "start": 678.78,
+      "end": 679.5
+    },
+    {
+      "word": " conclusions",
+      "start": 679.5,
+      "end": 679.92
+    },
+    {
+      "word": " ne",
+      "start": 679.92,
+      "end": 680.14
+    },
+    {
+      "word": " sont",
+      "start": 680.14,
+      "end": 680.26
+    },
+    {
+      "word": " pas",
+      "start": 680.26,
+      "end": 680.46
+    },
+    {
+      "word": " définitives,",
+      "start": 680.46,
+      "end": 681.22
+    },
+    {
+      "word": " mais",
+      "start": 681.46,
+      "end": 682.06
+    },
+    {
+      "word": " elles",
+      "start": 682.06,
+      "end": 682.28
+    },
+    {
+      "word": " pointent",
+      "start": 682.28,
+      "end": 682.8
+    },
+    {
+      "word": " vers",
+      "start": 682.8,
+      "end": 683.0
+    },
+    {
+      "word": " un",
+      "start": 683.0,
+      "end": 683.18
+    },
+    {
+      "word": " scénario",
+      "start": 683.18,
+      "end": 683.76
+    },
+    {
+      "word": " alarmant.",
+      "start": 683.76,
+      "end": 684.46
+    },
+    {
+      "word": " Bételgeuse",
+      "start": 685.76,
+      "end": 686.48
+    },
+    {
+      "word": " pourrait",
+      "start": 686.48,
+      "end": 686.92
+    },
+    {
+      "word": " être",
+      "start": 686.92,
+      "end": 687.22
+    },
+    {
+      "word": " entrée",
+      "start": 687.22,
+      "end": 687.72
+    },
+    {
+      "word": " dans",
+      "start": 687.72,
+      "end": 687.84
+    },
+    {
+      "word": " la",
+      "start": 687.84,
+      "end": 688.02
+    },
+    {
+      "word": " phase",
+      "start": 688.02,
+      "end": 688.3
+    },
+    {
+      "word": " de",
+      "start": 688.3,
+      "end": 688.5
+    },
+    {
+      "word": " combustion",
+      "start": 688.5,
+      "end": 689.02
+    },
+    {
+      "word": " de",
+      "start": 689.02,
+      "end": 689.26
+    },
+    {
+      "word": " l",
+      "start": 689.26,
+      "end": 689.36
+    },
+    {
+      "word": "'oxygène,",
+      "start": 689.36,
+      "end": 689.96
+    },
+    {
+      "word": " l",
+      "start": 689.96,
+      "end": 690.94
+    },
+    {
+      "word": "'ultime",
+      "start": 690.94,
+      "end": 691.4
+    },
+    {
+      "word": " étape",
+      "start": 691.4,
+      "end": 691.86
+    },
+    {
+      "word": " avant",
+      "start": 691.86,
+      "end": 692.46
+    },
+    {
+      "word": " l",
+      "start": 692.46,
+      "end": 692.68
+    },
+    {
+      "word": "'effondrement",
+      "start": 692.68,
+      "end": 693.22
+    },
+    {
+      "word": " du",
+      "start": 693.22,
+      "end": 693.44
+    },
+    {
+      "word": " noyau",
+      "start": 693.44,
+      "end": 693.88
+    },
+    {
+      "word": " si",
+      "start": 693.88,
+      "end": 695.52
+    },
+    {
+      "word": " c",
+      "start": 695.52,
+      "end": 695.7
+    },
+    {
+      "word": "'est",
+      "start": 695.7,
+      "end": 695.76
+    },
+    {
+      "word": " le",
+      "start": 695.76,
+      "end": 695.86
+    },
+    {
+      "word": " cas",
+      "start": 695.86,
+      "end": 696.1
+    },
+    {
+      "word": " pour",
+      "start": 696.1,
+      "end": 696.88
+    },
+    {
+      "word": " la",
+      "start": 696.88,
+      "end": 697.04
+    },
+    {
+      "word": " première",
+      "start": 697.04,
+      "end": 697.38
+    },
+    {
+      "word": " fois",
+      "start": 697.38,
+      "end": 697.58
+    },
+    {
+      "word": " dans",
+      "start": 697.58,
+      "end": 697.76
+    },
+    {
+      "word": " l",
+      "start": 697.76,
+      "end": 697.88
+    },
+    {
+      "word": "'histoire",
+      "start": 697.88,
+      "end": 698.22
+    },
+    {
+      "word": " nous",
+      "start": 698.22,
+      "end": 699.1
+    },
+    {
+      "word": " observons",
+      "start": 699.1,
+      "end": 699.72
+    },
+    {
+      "word": " les",
+      "start": 699.72,
+      "end": 699.88
+    },
+    {
+      "word": " derniers",
+      "start": 699.88,
+      "end": 700.44
+    },
+    {
+      "word": " battements",
+      "start": 700.44,
+      "end": 701.12
+    },
+    {
+      "word": " de",
+      "start": 701.12,
+      "end": 701.3
+    },
+    {
+      "word": " coeur",
+      "start": 701.3,
+      "end": 701.56
+    },
+    {
+      "word": " d",
+      "start": 701.56,
+      "end": 702.3
+    },
+    {
+      "word": "'une",
+      "start": 702.3,
+      "end": 702.4
+    },
+    {
+      "word": " étoile",
+      "start": 702.4,
+      "end": 702.8
+    },
+    {
+      "word": " géante",
+      "start": 702.8,
+      "end": 703.38
+    },
+    {
+      "word": " même",
+      "start": 703.38,
+      "end": 704.5
+    },
+    {
+      "word": " si",
+      "start": 704.5,
+      "end": 704.72
+    },
+    {
+      "word": " la",
+      "start": 704.72,
+      "end": 704.88
+    },
+    {
+      "word": " science",
+      "start": 704.88,
+      "end": 705.18
+    },
+    {
+      "word": " ne",
+      "start": 705.18,
+      "end": 705.48
+    },
+    {
+      "word": " sait",
+      "start": 705.48,
+      "end": 705.62
+    },
+    {
+      "word": " toujours",
+      "start": 705.62,
+      "end": 705.9
+    },
+    {
+      "word": " pas",
+      "start": 705.9,
+      "end": 706.1
+    },
+    {
+      "word": " prédire",
+      "start": 706.1,
+      "end": 706.66
+    },
+    {
+      "word": " avec",
+      "start": 706.66,
+      "end": 707.02
+    },
+    {
+      "word": " exactitude",
+      "start": 707.02,
+      "end": 707.9
+    },
+    {
+      "word": " le",
+      "start": 707.9,
+      "end": 708.64
+    },
+    {
+      "word": " moment",
+      "start": 708.64,
+      "end": 708.94
+    },
+    {
+      "word": " de",
+      "start": 708.94,
+      "end": 709.14
+    },
+    {
+      "word": " l",
+      "start": 709.14,
+      "end": 709.22
+    },
+    {
+      "word": "'explosion",
+      "start": 709.22,
+      "end": 709.7
+    },
+    {
+      "word": " parallèlement",
+      "start": 709.7,
+      "end": 711.88
+    },
+    {
+      "word": " un",
+      "start": 711.88,
+      "end": 712.58
+    },
+    {
+      "word": " groupe",
+      "start": 712.58,
+      "end": 712.82
+    },
+    {
+      "word": " croissant",
+      "start": 712.82,
+      "end": 713.38
+    },
+    {
+      "word": " de",
+      "start": 713.38,
+      "end": 713.58
+    },
+    {
+      "word": " scientifiques",
+      "start": 713.58,
+      "end": 714.36
+    },
+    {
+      "word": " voit",
+      "start": 714.36,
+      "end": 715.14
+    },
+    {
+      "word": " cette",
+      "start": 715.14,
+      "end": 715.38
+    },
+    {
+      "word": " explosion",
+      "start": 715.38,
+      "end": 715.88
+    },
+    {
+      "word": " potentielle",
+      "start": 715.88,
+      "end": 716.7
+    },
+    {
+      "word": " non",
+      "start": 716.7,
+      "end": 717.4
+    },
+    {
+      "word": " pas",
+      "start": 717.4,
+      "end": 717.6
+    },
+    {
+      "word": " comme",
+      "start": 717.6,
+      "end": 717.82
+    },
+    {
+      "word": " une",
+      "start": 717.82,
+      "end": 717.96
+    },
+    {
+      "word": " catastrophe",
+      "start": 717.96,
+      "end": 718.44
+    },
+    {
+      "word": " mais",
+      "start": 718.44,
+      "end": 719.38
+    },
+    {
+      "word": " comme",
+      "start": 719.38,
+      "end": 719.58
+    },
+    {
+      "word": " une",
+      "start": 719.58,
+      "end": 719.74
+    },
+    {
+      "word": " chance",
+      "start": 719.74,
+      "end": 720.08
+    },
+    {
+      "word": " unique.",
+      "start": 720.08,
+      "end": 720.66
+    },
+    {
+      "word": " Des",
+      "start": 721.4,
+      "end": 722.16
+    },
+    {
+      "word": " laboratoires",
+      "start": 722.16,
+      "end": 722.96
+    },
+    {
+      "word": " préparent",
+      "start": 722.96,
+      "end": 723.46
+    },
+    {
+      "word": " des",
+      "start": 723.46,
+      "end": 723.64
+    },
+    {
+      "word": " protocoles",
+      "start": 723.64,
+      "end": 724.22
+    },
+    {
+      "word": " de",
+      "start": 724.22,
+      "end": 724.36
+    },
+    {
+      "word": " collecte",
+      "start": 724.36,
+      "end": 724.9
+    },
+    {
+      "word": " de",
+      "start": 724.9,
+      "end": 725.04
+    },
+    {
+      "word": " données",
+      "start": 725.04,
+      "end": 725.4
+    },
+    {
+      "word": " en",
+      "start": 725.4,
+      "end": 725.74
+    },
+    {
+      "word": " temps",
+      "start": 725.74,
+      "end": 725.96
+    },
+    {
+      "word": " réel.",
+      "start": 725.96,
+      "end": 726.44
+    },
+    {
+      "word": " Télescopes",
+      "start": 727.32,
+      "end": 728.08
+    },
+    {
+      "word": " optiques,",
+      "start": 728.08,
+      "end": 728.66
+    },
+    {
+      "word": " radios,",
+      "start": 729.1,
+      "end": 729.7
+    },
+    {
+      "word": " infrarouges,",
+      "start": 730.24,
+      "end": 730.98
+    },
+    {
+      "word": " détecteurs",
+      "start": 731.48,
+      "end": 732.04
+    },
+    {
+      "word": " de",
+      "start": 732.04,
+      "end": 732.2
+    },
+    {
+      "word": " particules.",
+      "start": 732.2,
+      "end": 732.84
+    },
+    {
+      "word": " Un",
+      "start": 733.44,
+      "end": 734.2
+    },
+    {
+      "word": " tel",
+      "start": 734.2,
+      "end": 734.4
+    },
+    {
+      "word": " éclat",
+      "start": 734.4,
+      "end": 734.86
+    },
+    {
+      "word": " permettrait",
+      "start": 734.86,
+      "end": 735.6
+    },
+    {
+      "word": " de",
+      "start": 735.6,
+      "end": 735.74
+    },
+    {
+      "word": " valider",
+      "start": 735.74,
+      "end": 736.14
+    },
+    {
+      "word": " les",
+      "start": 736.14,
+      "end": 736.34
+    },
+    {
+      "word": " modèles",
+      "start": 736.34,
+      "end": 736.74
+    },
+    {
+      "word": " de",
+      "start": 736.74,
+      "end": 736.9
+    },
+    {
+      "word": " nucléosynthèse,",
+      "start": 736.9,
+      "end": 737.98
+    },
+    {
+      "word": " la",
+      "start": 738.36,
+      "end": 738.9
+    },
+    {
+      "word": " naissance",
+      "start": 738.9,
+      "end": 739.38
+    },
+    {
+      "word": " des",
+      "start": 739.38,
+      "end": 739.6
+    },
+    {
+      "word": " trous",
+      "start": 739.6,
+      "end": 739.84
+    },
+    {
+      "word": " noirs",
+      "start": 739.84,
+      "end": 740.38
+    },
+    {
+      "word": " et,",
+      "start": 740.38,
+      "end": 741.16
+    },
+    {
+      "word": " peut",
+      "start": 741.3,
+      "end": 741.64
+    },
+    {
+      "word": "-être,",
+      "start": 741.64,
+      "end": 741.96
+    },
+    {
+      "word": " la",
+      "start": 742.3,
+      "end": 742.74
+    },
+    {
+      "word": " nature",
+      "start": 742.74,
+      "end": 743.1
+    },
+    {
+      "word": " de",
+      "start": 743.1,
+      "end": 743.36
+    },
+    {
+      "word": " la",
+      "start": 743.36,
+      "end": 743.5
+    },
+    {
+      "word": " matière",
+      "start": 743.5,
+      "end": 743.88
+    },
+    {
+      "word": " noire.",
+      "start": 743.88,
+      "end": 744.34
+    },
+    {
+      "word": " Mais",
+      "start": 744.96,
+      "end": 745.72
+    },
+    {
+      "word": " et",
+      "start": 745.72,
+      "end": 746.02
+    },
+    {
+      "word": " si",
+      "start": 746.02,
+      "end": 746.12
+    },
+    {
+      "word": " l",
+      "start": 746.12,
+      "end": 746.24
+    },
+    {
+      "word": "'effet",
+      "start": 746.24,
+      "end": 746.42
+    },
+    {
+      "word": " principal",
+      "start": 746.42,
+      "end": 746.94
+    },
+    {
+      "word": " n",
+      "start": 746.94,
+      "end": 747.14
+    },
+    {
+      "word": "'était",
+      "start": 747.14,
+      "end": 747.24
+    },
+    {
+      "word": " pas",
+      "start": 747.24,
+      "end": 747.42
+    },
+    {
+      "word": " technique",
+      "start": 747.42,
+      "end": 747.9
+    },
+    {
+      "word": " mais",
+      "start": 747.9,
+      "end": 748.46
+    },
+    {
+      "word": " cognitif",
+      "start": 748.46,
+      "end": 749.16
+    },
+    {
+      "word": " ?",
+      "start": 749.16,
+      "end": 749.3
+    },
+    {
+      "word": " L",
+      "start": 749.94,
+      "end": 750.56
+    },
+    {
+      "word": "'explosion",
+      "start": 750.56,
+      "end": 750.92
+    },
+    {
+      "word": " d",
+      "start": 750.92,
+      "end": 751.14
+    },
+    {
+      "word": "'une",
+      "start": 751.14,
+      "end": 751.2
+    },
+    {
+      "word": " étoile",
+      "start": 751.2,
+      "end": 751.5
+    },
+    {
+      "word": " proche",
+      "start": 751.5,
+      "end": 751.96
+    },
+    {
+      "word": " pourrait",
+      "start": 751.96,
+      "end": 752.64
+    },
+    {
+      "word": " changer",
+      "start": 752.64,
+      "end": 753.02
+    },
+    {
+      "word": " notre",
+      "start": 753.02,
+      "end": 753.26
+    },
+    {
+      "word": " perception",
+      "start": 753.26,
+      "end": 753.84
+    },
+    {
+      "word": " de",
+      "start": 753.84,
+      "end": 754.06
+    },
+    {
+      "word": " l",
+      "start": 754.06,
+      "end": 754.14
+    },
+    {
+      "word": "'univers,",
+      "start": 754.14,
+      "end": 754.46
+    },
+    {
+      "word": " tout",
+      "start": 755.14,
+      "end": 755.62
+    },
+    {
+      "word": " comme",
+      "start": 755.62,
+      "end": 755.8
+    },
+    {
+      "word": " la",
+      "start": 755.8,
+      "end": 755.94
+    },
+    {
+      "word": " photo",
+      "start": 755.94,
+      "end": 756.22
+    },
+    {
+      "word": " de",
+      "start": 756.22,
+      "end": 756.36
+    },
+    {
+      "word": " la",
+      "start": 756.36,
+      "end": 756.54
+    },
+    {
+      "word": " Terre",
+      "start": 756.54,
+      "end": 756.74
+    },
+    {
+      "word": " vue",
+      "start": 756.74,
+      "end": 757.0
+    },
+    {
+      "word": " de",
+      "start": 757.0,
+      "end": 757.12
+    },
+    {
+      "word": " l",
+      "start": 757.12,
+      "end": 757.22
+    },
+    {
+      "word": "'espace",
+      "start": 757.22,
+      "end": 757.52
+    },
+    {
+      "word": " a",
+      "start": 757.52,
+      "end": 758.38
+    },
+    {
+      "word": " transformé",
+      "start": 758.38,
+      "end": 759.02
+    },
+    {
+      "word": " la",
+      "start": 759.02,
+      "end": 759.16
+    },
+    {
+      "word": " pensée",
+      "start": 759.16,
+      "end": 759.52
+    },
+    {
+      "word": " écologique.",
+      "start": 759.52,
+      "end": 760.14
+    },
+    {
+      "word": " Certains",
+      "start": 761.26,
+      "end": 761.88
+    },
+    {
+      "word": " y",
+      "start": 761.88,
+      "end": 762.02
+    },
+    {
+      "word": " verront",
+      "start": 762.02,
+      "end": 762.24
+    },
+    {
+      "word": " un",
+      "start": 762.24,
+      "end": 762.46
+    },
+    {
+      "word": " signe,",
+      "start": 762.46,
+      "end": 762.82
+    },
+    {
+      "word": " d",
+      "start": 763.12,
+      "end": 763.6
+    },
+    {
+      "word": "'autres",
+      "start": 763.6,
+      "end": 763.86
+    },
+    {
+      "word": " des",
+      "start": 763.86,
+      "end": 764.18
+    },
+    {
+      "word": " probabilités.",
+      "start": 764.18,
+      "end": 765.0
+    },
+    {
+      "word": " Les",
+      "start": 765.94,
+      "end": 766.56
+    },
+    {
+      "word": " enfants",
+      "start": 766.56,
+      "end": 766.88
+    },
+    {
+      "word": " poseront",
+      "start": 766.88,
+      "end": 767.28
+    },
+    {
+      "word": " des",
+      "start": 767.28,
+      "end": 767.4
+    },
+    {
+      "word": " questions",
+      "start": 767.4,
+      "end": 767.84
+    },
+    {
+      "word": " auxquelles",
+      "start": 767.84,
+      "end": 768.58
+    },
+    {
+      "word": " il",
+      "start": 768.58,
+      "end": 768.68
+    },
+    {
+      "word": " faudra",
+      "start": 768.68,
+      "end": 769.0
+    },
+    {
+      "word": " répondre",
+      "start": 769.0,
+      "end": 769.4
+    },
+    {
+      "word": " de",
+      "start": 769.4,
+      "end": 769.64
+    },
+    {
+      "word": " manière",
+      "start": 769.64,
+      "end": 769.92
+    },
+    {
+      "word": " claire",
+      "start": 769.92,
+      "end": 770.5
+    },
+    {
+      "word": " et",
+      "start": 770.5,
+      "end": 770.78
+    },
+    {
+      "word": " rapide.",
+      "start": 770.78,
+      "end": 771.24
+    },
+    {
+      "word": " Bethelgeuse",
+      "start": 772.6,
+      "end": 773.22
+    },
+    {
+      "word": " devient",
+      "start": 773.22,
+      "end": 773.48
+    },
+    {
+      "word": " la",
+      "start": 773.48,
+      "end": 773.64
+    },
+    {
+      "word": " frontière",
+      "start": 773.64,
+      "end": 774.18
+    },
+    {
+      "word": " entre",
+      "start": 774.18,
+      "end": 774.44
+    },
+    {
+      "word": " le",
+      "start": 774.44,
+      "end": 774.62
+    },
+    {
+      "word": " prévisible",
+      "start": 774.62,
+      "end": 775.26
+    },
+    {
+      "word": " et",
+      "start": 775.26,
+      "end": 775.86
+    },
+    {
+      "word": " l",
+      "start": 775.86,
+      "end": 776.04
+    },
+    {
+      "word": "'incontrôlable,",
+      "start": 776.04,
+      "end": 776.8
+    },
+    {
+      "word": " entre",
+      "start": 777.08,
+      "end": 777.84
+    },
+    {
+      "word": " la",
+      "start": 777.84,
+      "end": 778.06
+    },
+    {
+      "word": " donné",
+      "start": 778.06,
+      "end": 778.42
+    },
+    {
+      "word": " et",
+      "start": 778.42,
+      "end": 778.98
+    },
+    {
+      "word": " l",
+      "start": 778.98,
+      "end": 779.12
+    },
+    {
+      "word": "'inconnu,",
+      "start": 779.12,
+      "end": 779.54
+    },
+    {
+      "word": " nous",
+      "start": 780.26,
+      "end": 780.7
+    },
+    {
+      "word": " forçant",
+      "start": 780.7,
+      "end": 781.2
+    },
+    {
+      "word": " à",
+      "start": 781.2,
+      "end": 781.36
+    },
+    {
+      "word": " revoir",
+      "start": 781.36,
+      "end": 781.82
+    },
+    {
+      "word": " la",
+      "start": 781.82,
+      "end": 782.08
+    },
+    {
+      "word": " notion",
+      "start": 782.08,
+      "end": 782.42
+    },
+    {
+      "word": " même",
+      "start": 782.42,
+      "end": 782.76
+    },
+    {
+      "word": " de",
+      "start": 782.76,
+      "end": 782.98
+    },
+    {
+      "word": " stabilité.",
+      "start": 782.98,
+      "end": 783.68
+    },
+    {
+      "word": " Le",
+      "start": 784.64,
+      "end": 785.32
+    },
+    {
+      "word": " paradoxe",
+      "start": 785.32,
+      "end": 786.1
+    },
+    {
+      "word": " est",
+      "start": 786.1,
+      "end": 786.58
+    },
+    {
+      "word": " que",
+      "start": 786.58,
+      "end": 786.72
+    },
+    {
+      "word": " plus",
+      "start": 786.72,
+      "end": 787.0
+    },
+    {
+      "word": " nous",
+      "start": 787.0,
+      "end": 787.14
+    },
+    {
+      "word": " en",
+      "start": 787.14,
+      "end": 787.32
+    },
+    {
+      "word": " apprenons,",
+      "start": 787.32,
+      "end": 787.82
+    },
+    {
+      "word": " moins",
+      "start": 788.32,
+      "end": 788.98
+    },
+    {
+      "word": " nous",
+      "start": 788.98,
+      "end": 789.18
+    },
+    {
+      "word": " nous",
+      "start": 789.18,
+      "end": 789.3
+    },
+    {
+      "word": " sentons",
+      "start": 789.3,
+      "end": 789.66
+    },
+    {
+      "word": " en",
+      "start": 789.66,
+      "end": 789.8
+    },
+    {
+      "word": " sécurité.",
+      "start": 789.8,
+      "end": 790.34
+    },
+    {
+      "word": " Cette",
+      "start": 791.34,
+      "end": 792.02
+    },
+    {
+      "word": " étoile",
+      "start": 792.02,
+      "end": 792.36
+    },
+    {
+      "word": " rouge,",
+      "start": 792.36,
+      "end": 792.8
+    },
+    {
+      "word": " visible",
+      "start": 793.06,
+      "end": 793.62
+    },
+    {
+      "word": " à",
+      "start": 793.62,
+      "end": 793.76
+    },
+    {
+      "word": " l",
+      "start": 793.76,
+      "end": 793.84
+    },
+    {
+      "word": "'œil",
+      "start": 793.84,
+      "end": 794.0
+    },
+    {
+      "word": " nu,",
+      "start": 794.0,
+      "end": 794.16
+    },
+    {
+      "word": " nous",
+      "start": 794.72,
+      "end": 795.1
+    },
+    {
+      "word": " rappelle",
+      "start": 795.1,
+      "end": 795.42
+    },
+    {
+      "word": " que",
+      "start": 795.42,
+      "end": 795.68
+    },
+    {
+      "word": " les",
+      "start": 795.68,
+      "end": 795.82
+    },
+    {
+      "word": " processus",
+      "start": 795.82,
+      "end": 796.64
+    },
+    {
+      "word": " ne",
+      "start": 796.64,
+      "end": 797.1
+    },
+    {
+      "word": " se",
+      "start": 797.1,
+      "end": 797.26
+    },
+    {
+      "word": " déroulent",
+      "start": 797.26,
+      "end": 797.6
+    },
+    {
+      "word": " pas",
+      "start": 797.6,
+      "end": 797.74
+    },
+    {
+      "word": " seulement",
+      "start": 797.74,
+      "end": 798.14
+    },
+    {
+      "word": " là",
+      "start": 798.14,
+      "end": 798.76
+    },
+    {
+      "word": "-haut,",
+      "start": 798.76,
+      "end": 798.96
+    },
+    {
+      "word": " mais",
+      "start": 799.34,
+      "end": 799.98
+    },
+    {
+      "word": " aussi",
+      "start": 799.98,
+      "end": 800.32
+    },
+    {
+      "word": " à",
+      "start": 800.32,
+      "end": 800.52
+    },
+    {
+      "word": " l",
+      "start": 800.52,
+      "end": 800.64
+    },
+    {
+      "word": "'intérieur",
+      "start": 800.64,
+      "end": 800.98
+    },
+    {
+      "word": " de",
+      "start": 800.98,
+      "end": 801.32
+    },
+    {
+      "word": " nos",
+      "start": 801.32,
+      "end": 801.48
+    },
+    {
+      "word": " propres",
+      "start": 801.48,
+      "end": 801.92
+    },
+    {
+      "word": " systèmes.",
+      "start": 801.92,
+      "end": 802.5
+    },
+    {
+      "word": " Les",
+      "start": 803.16,
+      "end": 804.04
+    },
+    {
+      "word": " signaux",
+      "start": 804.04,
+      "end": 804.48
+    },
+    {
+      "word": " de",
+      "start": 804.48,
+      "end": 804.6
+    },
+    {
+      "word": " la",
+      "start": 804.6,
+      "end": 804.72
+    },
+    {
+      "word": " nature",
+      "start": 804.72,
+      "end": 805.08
+    },
+    {
+      "word": " que",
+      "start": 805.08,
+      "end": 805.38
+    },
+    {
+      "word": " nous",
+      "start": 805.38,
+      "end": 805.52
+    },
+    {
+      "word": " ignorons",
+      "start": 805.52,
+      "end": 806.14
+    },
+    {
+      "word": " deviennent",
+      "start": 806.14,
+      "end": 807.12
+    },
+    {
+      "word": " le",
+      "start": 807.12,
+      "end": 807.28
+    },
+    {
+      "word": " miroir",
+      "start": 807.28,
+      "end": 807.96
+    },
+    {
+      "word": " de",
+      "start": 807.96,
+      "end": 808.42
+    },
+    {
+      "word": " notre",
+      "start": 808.42,
+      "end": 808.66
+    },
+    {
+      "word": " refus",
+      "start": 808.66,
+      "end": 809.3
+    },
+    {
+      "word": " de",
+      "start": 809.3,
+      "end": 809.8
+    },
+    {
+      "word": " voir",
+      "start": 809.8,
+      "end": 810.02
+    },
+    {
+      "word": " les",
+      "start": 810.02,
+      "end": 810.2
+    },
+    {
+      "word": " signes",
+      "start": 810.2,
+      "end": 810.6
+    },
+    {
+      "word": " de",
+      "start": 810.6,
+      "end": 810.72
+    },
+    {
+      "word": " défaillance",
+      "start": 810.72,
+      "end": 811.3
+    },
+    {
+      "word": " de",
+      "start": 811.3,
+      "end": 812.08
+    },
+    {
+      "word": " nos",
+      "start": 812.08,
+      "end": 812.26
+    },
+    {
+      "word": " propres",
+      "start": 812.26,
+      "end": 812.7
+    },
+    {
+      "word": " structures.",
+      "start": 812.7,
+      "end": 813.16
+    },
+    {
+      "word": " Béthelgeuse",
+      "start": 814.88,
+      "end": 815.76
+    },
+    {
+      "word": " ne",
+      "start": 815.76,
+      "end": 815.92
+    },
+    {
+      "word": " crie",
+      "start": 815.92,
+      "end": 816.18
+    },
+    {
+      "word": " pas,",
+      "start": 816.18,
+      "end": 816.4
+    },
+    {
+      "word": " elle",
+      "start": 816.98,
+      "end": 817.42
+    },
+    {
+      "word": " faiblit,",
+      "start": 817.42,
+      "end": 817.98
+    },
+    {
+      "word": " elle",
+      "start": 818.58,
+      "end": 818.68
+    },
+    {
+      "word": " pulse,",
+      "start": 818.68,
+      "end": 819.18
+    },
+    {
+      "word": " elle",
+      "start": 819.86,
+      "end": 819.94
+    },
+    {
+      "word": " devient",
+      "start": 819.94,
+      "end": 820.28
+    },
+    {
+      "word": " chaotique.",
+      "start": 820.28,
+      "end": 821.0
+    },
+    {
+      "word": " Nous",
+      "start": 821.8,
+      "end": 822.44
+    },
+    {
+      "word": " restons",
+      "start": 822.44,
+      "end": 822.82
+    },
+    {
+      "word": " branchés",
+      "start": 822.82,
+      "end": 823.28
+    },
+    {
+      "word": " sur",
+      "start": 823.28,
+      "end": 823.46
+    },
+    {
+      "word": " nos",
+      "start": 823.46,
+      "end": 823.68
+    },
+    {
+      "word": " écrans",
+      "start": 823.68,
+      "end": 824.08
+    },
+    {
+      "word": " mais",
+      "start": 824.08,
+      "end": 824.8
+    },
+    {
+      "word": " déconnecté",
+      "start": 824.8,
+      "end": 825.52
+    },
+    {
+      "word": " des",
+      "start": 825.52,
+      "end": 825.7
+    },
+    {
+      "word": " signaux.",
+      "start": 825.7,
+      "end": 826.14
+    },
+    {
+      "word": " Même",
+      "start": 826.92,
+      "end": 827.74
+    },
+    {
+      "word": " avec",
+      "start": 827.74,
+      "end": 828.02
+    },
+    {
+      "word": " des",
+      "start": 828.02,
+      "end": 828.18
+    },
+    {
+      "word": " dégâts",
+      "start": 828.18,
+      "end": 828.5
+    },
+    {
+      "word": " physiques",
+      "start": 828.5,
+      "end": 829.04
+    },
+    {
+      "word": " minimes,",
+      "start": 829.04,
+      "end": 829.66
+    },
+    {
+      "word": " l",
+      "start": 830.48,
+      "end": 830.54
+    },
+    {
+      "word": "'impact",
+      "start": 830.54,
+      "end": 830.94
+    },
+    {
+      "word": " symbolique",
+      "start": 830.94,
+      "end": 831.66
+    },
+    {
+      "word": " serait",
+      "start": 831.66,
+      "end": 831.98
+    },
+    {
+      "word": " immense.",
+      "start": 831.98,
+      "end": 832.5
+    },
+    {
+      "word": " Le",
+      "start": 833.38,
+      "end": 833.94
+    },
+    {
+      "word": " ciel",
+      "start": 833.94,
+      "end": 834.28
+    },
+    {
+      "word": " changera,",
+      "start": 834.28,
+      "end": 834.88
+    },
+    {
+      "word": " la",
+      "start": 835.68,
+      "end": 835.9
+    },
+    {
+      "word": " science",
+      "start": 835.9,
+      "end": 836.3
+    },
+    {
+      "word": " changera",
+      "start": 836.3,
+      "end": 837.06
+    },
+    {
+      "word": " et",
+      "start": 837.06,
+      "end": 838.12
+    },
+    {
+      "word": " notre",
+      "start": 838.12,
+      "end": 838.36
+    },
+    {
+      "word": " rapport",
+      "start": 838.36,
+      "end": 838.82
+    },
+    {
+      "word": " à",
+      "start": 838.82,
+      "end": 839.0
+    },
+    {
+      "word": " l",
+      "start": 839.0,
+      "end": 839.08
+    },
+    {
+      "word": "'inconnu",
+      "start": 839.08,
+      "end": 839.52
+    },
+    {
+      "word": " aussi.",
+      "start": 839.52,
+      "end": 840.14
+    },
+    {
+      "word": " L",
+      "start": 841.22,
+      "end": 841.98
+    },
+    {
+      "word": "'ironie,",
+      "start": 841.98,
+      "end": 842.44
+    },
+    {
+      "word": " c",
+      "start": 842.7,
+      "end": 843.26
+    },
+    {
+      "word": "'est",
+      "start": 843.26,
+      "end": 843.3
+    },
+    {
+      "word": " que",
+      "start": 843.3,
+      "end": 843.42
+    },
+    {
+      "word": " nous",
+      "start": 843.42,
+      "end": 843.54
+    },
+    {
+      "word": " avons",
+      "start": 843.54,
+      "end": 843.78
+    },
+    {
+      "word": " des",
+      "start": 843.78,
+      "end": 843.96
+    },
+    {
+      "word": " algorithmes",
+      "start": 843.96,
+      "end": 844.62
+    },
+    {
+      "word": " pour",
+      "start": 844.62,
+      "end": 844.84
+    },
+    {
+      "word": " prédire",
+      "start": 844.84,
+      "end": 845.38
+    },
+    {
+      "word": " le",
+      "start": 845.38,
+      "end": 845.56
+    },
+    {
+      "word": " comportement",
+      "start": 845.56,
+      "end": 846.16
+    },
+    {
+      "word": " humain,",
+      "start": 846.16,
+      "end": 846.52
+    },
+    {
+      "word": " mais",
+      "start": 846.6,
+      "end": 847.62
+    },
+    {
+      "word": " nous",
+      "start": 847.62,
+      "end": 847.78
+    },
+    {
+      "word": " sommes",
+      "start": 847.78,
+      "end": 848.08
+    },
+    {
+      "word": " incapables",
+      "start": 848.08,
+      "end": 848.84
+    },
+    {
+      "word": " de",
+      "start": 848.84,
+      "end": 849.02
+    },
+    {
+      "word": " dire",
+      "start": 849.02,
+      "end": 849.44
+    },
+    {
+      "word": " quand",
+      "start": 849.44,
+      "end": 850.08
+    },
+    {
+      "word": " une",
+      "start": 850.08,
+      "end": 850.38
+    },
+    {
+      "word": " étoile",
+      "start": 850.38,
+      "end": 850.8
+    },
+    {
+      "word": " mourra.",
+      "start": 850.8,
+      "end": 851.42
+    },
+    {
+      "word": " Et",
+      "start": 852.08,
+      "end": 852.64
+    },
+    {
+      "word": " cela",
+      "start": 852.64,
+      "end": 852.92
+    },
+    {
+      "word": " en",
+      "start": 852.92,
+      "end": 853.1
+    },
+    {
+      "word": " dit",
+      "start": 853.1,
+      "end": 853.22
+    },
+    {
+      "word": " plus",
+      "start": 853.22,
+      "end": 853.54
+    },
+    {
+      "word": " sur",
+      "start": 853.54,
+      "end": 853.78
+    },
+    {
+      "word": " nos",
+      "start": 853.78,
+      "end": 853.94
+    },
+    {
+      "word": " priorités",
+      "start": 853.94,
+      "end": 854.64
+    },
+    {
+      "word": " que",
+      "start": 854.64,
+      "end": 855.38
+    },
+    {
+      "word": " sur",
+      "start": 855.38,
+      "end": 855.6
+    },
+    {
+      "word": " nos",
+      "start": 855.6,
+      "end": 855.78
+    },
+    {
+      "word": " limites.",
+      "start": 855.78,
+      "end": 856.32
+    },
+    {
+      "word": " Si",
+      "start": 857.6,
+      "end": 858.16
+    },
+    {
+      "word": " cette",
+      "start": 858.16,
+      "end": 858.38
+    },
+    {
+      "word": " nouvelle",
+      "start": 858.38,
+      "end": 858.66
+    },
+    {
+      "word": " vous",
+      "start": 858.66,
+      "end": 858.82
+    },
+    {
+      "word": " a",
+      "start": 858.82,
+      "end": 858.98
+    },
+    {
+      "word": " interpellé,",
+      "start": 858.98,
+      "end": 859.56
+    },
+    {
+      "word": " abonnez",
+      "start": 859.82,
+      "end": 860.66
+    },
+    {
+      "word": "-vous",
+      "start": 860.66,
+      "end": 860.74
+    },
+    {
+      "word": " à",
+      "start": 860.74,
+      "end": 860.88
+    },
+    {
+      "word": " la",
+      "start": 860.88,
+      "end": 860.98
+    },
+    {
+      "word": " chaîne,",
+      "start": 860.98,
+      "end": 861.32
+    },
+    {
+      "word": " aimez",
+      "start": 862.02,
+      "end": 862.26
+    },
+    {
+      "word": " la",
+      "start": 862.26,
+      "end": 862.34
+    },
+    {
+      "word": " vidéo",
+      "start": 862.34,
+      "end": 862.72
+    },
+    {
+      "word": " et",
+      "start": 862.72,
+      "end": 863.44
+    },
+    {
+      "word": " partagez",
+      "start": 863.44,
+      "end": 864.06
+    },
+    {
+      "word": " en",
+      "start": 864.06,
+      "end": 864.18
+    },
+    {
+      "word": " commentaire",
+      "start": 864.18,
+      "end": 864.92
+    },
+    {
+      "word": " ce",
+      "start": 864.92,
+      "end": 865.42
+    },
+    {
+      "word": " qui",
+      "start": 865.42,
+      "end": 865.54
+    },
+    {
+      "word": " vous",
+      "start": 865.54,
+      "end": 865.68
+    },
+    {
+      "word": " a",
+      "start": 865.68,
+      "end": 865.82
+    },
+    {
+      "word": " le",
+      "start": 865.82,
+      "end": 865.92
+    },
+    {
+      "word": " plus",
+      "start": 865.92,
+      "end": 866.16
+    },
+    {
+      "word": " frappé.",
+      "start": 866.16,
+      "end": 866.64
+    },
+    {
+      "word": " Nous",
+      "start": 867.58,
+      "end": 868.14
+    },
+    {
+      "word": " formons",
+      "start": 868.14,
+      "end": 868.56
+    },
+    {
+      "word": " une",
+      "start": 868.56,
+      "end": 868.76
+    },
+    {
+      "word": " communauté",
+      "start": 868.76,
+      "end": 869.22
+    },
+    {
+      "word": " de",
+      "start": 869.22,
+      "end": 869.42
+    },
+    {
+      "word": " personnes",
+      "start": 869.42,
+      "end": 869.88
+    },
+    {
+      "word": " qui",
+      "start": 869.88,
+      "end": 870.54
+    },
+    {
+      "word": " n",
+      "start": 870.54,
+      "end": 870.72
+    },
+    {
+      "word": "'acceptent",
+      "start": 870.72,
+      "end": 871.28
+    },
+    {
+      "word": " pas",
+      "start": 871.28,
+      "end": 871.46
+    },
+    {
+      "word": " les",
+      "start": 871.46,
+      "end": 871.64
+    },
+    {
+      "word": " réponses",
+      "start": 871.64,
+      "end": 872.12
+    },
+    {
+      "word": " toutes",
+      "start": 872.12,
+      "end": 872.28
+    },
+    {
+      "word": " faites.",
+      "start": 872.28,
+      "end": 872.54
+    }
+  ]
+}

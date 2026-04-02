@@ -1,0 +1,10837 @@
+{
+  "ffmpeg_verified": true,
+  "total_duration": 1018.58,
+  "coverage": 1018.0,
+  "gap": 0.58,
+  "segments": [
+    {
+      "id": 1,
+      "start": 0,
+      "end": 4,
+      "text": "Titan belügt uns. Aus der Ferne sieht er aus wie die Erde."
+    },
+    {
+      "id": 2,
+      "start": 4,
+      "end": 6,
+      "text": "Flüsse, Seen,"
+    },
+    {
+      "id": 3,
+      "start": 6,
+      "end": 9,
+      "text": "Küstenlinien, Regen, Wolken, Jahreszeiten"
+    },
+    {
+      "id": 4,
+      "start": 9,
+      "end": 11,
+      "text": "und eine dichte Atmosphäre."
+    },
+    {
+      "id": 5,
+      "start": 11,
+      "end": 13,
+      "text": "Doch genau diese Ähnlichkeit"
+    },
+    {
+      "id": 6,
+      "start": 13,
+      "end": 17,
+      "text": "ist die Falle. Denn Titan ist nicht die Erde."
+    },
+    {
+      "id": 7,
+      "start": 17,
+      "end": 19,
+      "text": "Titan ist eine"
+    },
+    {
+      "id": 8,
+      "start": 19,
+      "end": 22,
+      "text": "eisige, giftige Parodie der Erde."
+    },
+    {
+      "id": 9,
+      "start": 22,
+      "end": 24,
+      "text": "Eine Welt, die sich das"
+    },
+    {
+      "id": 10,
+      "start": 24,
+      "end": 28,
+      "text": "Antlitz unseres Planeten geliehen und es mit Gift gefüllt hat."
+    },
+    {
+      "id": 11,
+      "start": 28,
+      "end": 32,
+      "text": "Er umkreist den Saturn in einer Entfernung von"
+    },
+    {
+      "id": 12,
+      "start": 32,
+      "end": 35,
+      "text": "etwa 1,2 Milliarden Kilometern zur Sonne."
+    },
+    {
+      "id": 13,
+      "start": 35,
+      "end": 39,
+      "text": "Zehnmal weiter entfernt als die Erde."
+    },
+    {
+      "id": 14,
+      "start": 39,
+      "end": 41,
+      "text": "In dieser Distanz schrumpft"
+    },
+    {
+      "id": 15,
+      "start": 41,
+      "end": 44,
+      "text": "die Sonne zu einem schwachen Lichtpunkt, kaum"
+    },
+    {
+      "id": 16,
+      "start": 44,
+      "end": 47,
+      "text": "heller als der Vollmond in einer klaren Nacht."
+    },
+    {
+      "id": 17,
+      "start": 47,
+      "end": 51,
+      "text": "Die Oberflächentemperatur liegt bei etwa"
+    },
+    {
+      "id": 18,
+      "start": 51,
+      "end": 54,
+      "text": "minus 179 Grad Celsius."
+    },
+    {
+      "id": 19,
+      "start": 54,
+      "end": 57,
+      "text": "Das reicht aus, um Stahl spröde wie Glas"
+    },
+    {
+      "id": 20,
+      "start": 57,
+      "end": 60,
+      "text": "werden zu lassen und Methan, das wir nur"
+    },
+    {
+      "id": 21,
+      "start": 60,
+      "end": 63,
+      "text": "als Gas kennen, in eine Flüssigkeit zu verwandeln."
+    },
+    {
+      "id": 22,
+      "start": 63,
+      "end": 66,
+      "text": "Und genau dieses flüssige Methan"
+    },
+    {
+      "id": 23,
+      "start": 66,
+      "end": 70,
+      "text": "füllt die Seen und Flüsse des Titan."
+    },
+    {
+      "id": 24,
+      "start": 70,
+      "end": 73,
+      "text": "Kein Wasser, sondern Methan."
+    },
+    {
+      "id": 25,
+      "start": 73,
+      "end": 75,
+      "text": "Als die Raumsonde Cassini"
+    },
+    {
+      "id": 26,
+      "start": 75,
+      "end": 77,
+      "text": "im Jahr 2004 den"
+    },
+    {
+      "id": 27,
+      "start": 77,
+      "end": 81,
+      "text": "Saturn erreichte, hatte sie den Lander Huygens an Bord."
+    },
+    {
+      "id": 28,
+      "start": 81,
+      "end": 83,
+      "text": "ein Projekt der"
+    },
+    {
+      "id": 29,
+      "start": 83,
+      "end": 87,
+      "text": "Europäischen Weltraumorganisation. Am 14. Januar 2005"
+    },
+    {
+      "id": 30,
+      "start": 87,
+      "end": 90,
+      "text": "trennte sich Huygens ab und"
+    },
+    {
+      "id": 31,
+      "start": 90,
+      "end": 93,
+      "text": "begann den Abstieg zur Oberfläche des"
+    },
+    {
+      "id": 32,
+      "start": 93,
+      "end": 97,
+      "text": "Titan. Der Sinkflug durch die Atmosphäre dauerte etwa"
+    },
+    {
+      "id": 33,
+      "start": 97,
+      "end": 101,
+      "text": "zwei Stunden. Und alles, was die Sonde auf"
+    },
+    {
+      "id": 34,
+      "start": 101,
+      "end": 104,
+      "text": "ihrem Wege nach unten registrierte, veränderte unsere"
+    },
+    {
+      "id": 35,
+      "start": 104,
+      "end": 108,
+      "text": "Vorstellung davon, wie Planeten und Monde beschaffen sein"
+    },
+    {
+      "id": 36,
+      "start": 108,
+      "end": 110,
+      "text": "können und was es bedeutet,"
+    },
+    {
+      "id": 37,
+      "start": 110,
+      "end": 113,
+      "text": "eine vertraute Welt vor sich zu haben."
+    },
+    {
+      "id": 38,
+      "start": 113,
+      "end": 116,
+      "text": "Das Erste, worauf sie"
+    },
+    {
+      "id": 39,
+      "start": 116,
+      "end": 118,
+      "text": "stieß, war die Atmosphäre."
+    },
+    {
+      "id": 40,
+      "start": 118,
+      "end": 120,
+      "text": "Sie ist etwa anderthalb"
+    },
+    {
+      "id": 41,
+      "start": 120,
+      "end": 123,
+      "text": "Mal so dicht wie die der Erde."
+    },
+    {
+      "id": 42,
+      "start": 123,
+      "end": 125,
+      "text": "Damit ist Titan der"
+    },
+    {
+      "id": 43,
+      "start": 125,
+      "end": 128,
+      "text": "einzige Mond mit einer wirklich massiven Gashülle."
+    },
+    {
+      "id": 44,
+      "start": 128,
+      "end": 132,
+      "text": "Die Basis bildet Stickstoff, etwa 95 Prozent, genau"
+    },
+    {
+      "id": 45,
+      "start": 132,
+      "end": 134,
+      "text": "wie auf der Erde."
+    },
+    {
+      "id": 46,
+      "start": 134,
+      "end": 136,
+      "text": "Doch die Ähnlichkeit trügt."
+    },
+    {
+      "id": 47,
+      "start": 136,
+      "end": 139,
+      "text": "Die restlichen 5% bestehen aus"
+    },
+    {
+      "id": 48,
+      "start": 139,
+      "end": 141,
+      "text": "einer Mischung aus"
+    },
+    {
+      "id": 49,
+      "start": 141,
+      "end": 145,
+      "text": "Methan, Wasserstoff und organischen Verbindungen, die mit"
+    },
+    {
+      "id": 50,
+      "start": 145,
+      "end": 147,
+      "text": "dem ultravioletten Licht reagieren"
+    },
+    {
+      "id": 51,
+      "start": 147,
+      "end": 150,
+      "text": "und einen dichten orangefarbenen Smog erzeugen."
+    },
+    {
+      "id": 52,
+      "start": 150,
+      "end": 154,
+      "text": "Er ist so dick, dass das Sonnenlicht"
+    },
+    {
+      "id": 53,
+      "start": 154,
+      "end": 156,
+      "text": "die Oberfläche kaum erreicht."
+    },
+    {
+      "id": 54,
+      "start": 156,
+      "end": 160,
+      "text": "Selbst am Tag ist es dort etwa tausendmal dunkler"
+    },
+    {
+      "id": 55,
+      "start": 160,
+      "end": 163,
+      "text": "als auf der Erde. Ein ewiges Zwielicht."
+    },
+    {
+      "id": 56,
+      "start": 163,
+      "end": 165,
+      "text": "Man sieht die eigenen"
+    },
+    {
+      "id": 57,
+      "start": 165,
+      "end": 168,
+      "text": "Hände vor Augen, aber den Himmel"
+    },
+    {
+      "id": 58,
+      "start": 168,
+      "end": 170,
+      "text": "sieht man nicht mehr."
+    },
+    {
+      "id": 59,
+      "start": 170,
+      "end": 174,
+      "text": "Huygens zeichnete auch die Geräusche des Abstiegs auf."
+    },
+    {
+      "id": 60,
+      "start": 174,
+      "end": 177,
+      "text": "Windböen, die gegen die Hülle peitschten."
+    },
+    {
+      "id": 61,
+      "start": 177,
+      "end": 179,
+      "text": "Auf dem Titan gibt"
+    },
+    {
+      "id": 62,
+      "start": 179,
+      "end": 182,
+      "text": "es echtes Wetter und einen hydrologischen Zyklus."
+    },
+    {
+      "id": 63,
+      "start": 182,
+      "end": 185,
+      "text": "Methan verdunstet, steigt auf, bildet"
+    },
+    {
+      "id": 64,
+      "start": 185,
+      "end": 187,
+      "text": "Wolken und regnet ab."
+    },
+    {
+      "id": 65,
+      "start": 187,
+      "end": 190,
+      "text": "Die Niederschläge formen Flussbetten und"
+    },
+    {
+      "id": 66,
+      "start": 190,
+      "end": 194,
+      "text": "speisen Ströme, die in Seen und Meere münden."
+    },
+    {
+      "id": 67,
+      "start": 194,
+      "end": 197,
+      "text": "Ligeia Mare am Nordpol umfasst"
+    },
+    {
+      "id": 68,
+      "start": 197,
+      "end": 201,
+      "text": "etwa 50.000 Quadratkilometer, größer als der"
+    },
+    {
+      "id": 69,
+      "start": 201,
+      "end": 203,
+      "text": "obere See in Nordamerika."
+    },
+    {
+      "id": 70,
+      "start": 203,
+      "end": 206,
+      "text": "Krakenmare ist noch gewaltiger."
+    },
+    {
+      "id": 71,
+      "start": 206,
+      "end": 208,
+      "text": "Mit rund 400.000"
+    },
+    {
+      "id": 72,
+      "start": 208,
+      "end": 212,
+      "text": "Quadratkilometer ist es vergleichbar mit dem Kaspischen Meer."
+    },
+    {
+      "id": 73,
+      "start": 212,
+      "end": 216,
+      "text": "Aus dem Orbit wirken diese Strukturen wie irdische Küstenlinien."
+    },
+    {
+      "id": 74,
+      "start": 216,
+      "end": 219,
+      "text": "Fjorde, Inseln,"
+    },
+    {
+      "id": 75,
+      "start": 219,
+      "end": 221,
+      "text": "Buchten, Einzugsgebiete."
+    },
+    {
+      "id": 76,
+      "start": 221,
+      "end": 225,
+      "text": "Und genau hier liegt die große Täuschung des Titan."
+    },
+    {
+      "id": 77,
+      "start": 225,
+      "end": 227,
+      "text": "Die Geografie"
+    },
+    {
+      "id": 78,
+      "start": 227,
+      "end": 230,
+      "text": "erscheint vertraut, ebenso die Prozesse."
+    },
+    {
+      "id": 79,
+      "start": 230,
+      "end": 233,
+      "text": "Verdunstung, Kondensation,"
+    },
+    {
+      "id": 80,
+      "start": 233,
+      "end": 235,
+      "text": "Niederschlag, Erosion."
+    },
+    {
+      "id": 81,
+      "start": 235,
+      "end": 239,
+      "text": "Alles funktioniert wie auf der Erde."
+    },
+    {
+      "id": 82,
+      "start": 239,
+      "end": 242,
+      "text": "Der einzige Unterschied ist die chemische Zusammensetzung."
+    },
+    {
+      "id": 83,
+      "start": 242,
+      "end": 244,
+      "text": "Die Mechanik ist dieselbe,"
+    },
+    {
+      "id": 84,
+      "start": 244,
+      "end": 247,
+      "text": "aber die Stoffe sind vollkommen fremd."
+    },
+    {
+      "id": 85,
+      "start": 247,
+      "end": 250,
+      "text": "Methanregen auf dem Titan fällt anders"
+    },
+    {
+      "id": 86,
+      "start": 250,
+      "end": 252,
+      "text": "als Regen auf der Erde."
+    },
+    {
+      "id": 87,
+      "start": 252,
+      "end": 254,
+      "text": "Die Schwerkraft beträgt hier"
+    },
+    {
+      "id": 88,
+      "start": 254,
+      "end": 257,
+      "text": "nur etwa 14% der irdischen, während"
+    },
+    {
+      "id": 89,
+      "start": 257,
+      "end": 259,
+      "text": "die Atmosphäre dichter ist."
+    },
+    {
+      "id": 90,
+      "start": 259,
+      "end": 261,
+      "text": "Deshalb erreichen die"
+    },
+    {
+      "id": 91,
+      "start": 261,
+      "end": 264,
+      "text": "Tropfen enorme Größen bis zu einem"
+    },
+    {
+      "id": 92,
+      "start": 264,
+      "end": 267,
+      "text": "Zentimeter im Durchmesser und sinken langsam"
+    },
+    {
+      "id": 93,
+      "start": 267,
+      "end": 269,
+      "text": "herab, wie in Zeitlupe."
+    },
+    {
+      "id": 94,
+      "start": 269,
+      "end": 271,
+      "text": "Würde ein solcher"
+    },
+    {
+      "id": 95,
+      "start": 271,
+      "end": 274,
+      "text": "Tropfen auf einen Raumanzug treffen, würde"
+    },
+    {
+      "id": 96,
+      "start": 274,
+      "end": 277,
+      "text": "er nicht zerplatzen, sondern zäh zerfließen."
+    },
+    {
+      "id": 97,
+      "start": 277,
+      "end": 280,
+      "text": "Kalt und Viskos."
+    },
+    {
+      "id": 98,
+      "start": 280,
+      "end": 282,
+      "text": "Methan wirkt dabei als Lösungsmittel."
+    },
+    {
+      "id": 99,
+      "start": 282,
+      "end": 286,
+      "text": "Es kann bestimmte Arten von Kunststoff und Gummi zersetzen."
+    },
+    {
+      "id": 100,
+      "start": 286,
+      "end": 290,
+      "text": "Die falschen Dichtungen würden bedeuten, dass der Regen die"
+    },
+    {
+      "id": 101,
+      "start": 290,
+      "end": 294,
+      "text": "Ausrüstung nicht nur nass macht, sondern sie förmlich zerfrisst."
+    },
+    {
+      "id": 102,
+      "start": 294,
+      "end": 297,
+      "text": "Die Oberfläche, auf der Eigens"
+    },
+    {
+      "id": 103,
+      "start": 297,
+      "end": 300,
+      "text": "landete, war nicht weniger überraschend."
+    },
+    {
+      "id": 104,
+      "start": 300,
+      "end": 305,
+      "text": "Die Sonde prallte nicht ab, sondern sank leicht ein und stabilisierte sich."
+    },
+    {
+      "id": 105,
+      "start": 305,
+      "end": 310,
+      "text": "Die Daten zeigten eine dünne, feste Kruste über einer weicheren Schicht, die an feuchten Sand oder Ton erinnerte."
+    },
+    {
+      "id": 106,
+      "start": 310,
+      "end": 315,
+      "text": "Nur dass die Rolle der Feuchtigkeit hier von flüssigen Kohlenwasserstoffen übernommen wurde."
+    },
+    {
+      "id": 107,
+      "start": 315,
+      "end": 320,
+      "text": "Die Kamera des Landers schoss ein einziges Foto."
+    },
+    {
+      "id": 108,
+      "start": 320,
+      "end": 325,
+      "text": "Es zeigt eine flache Ebene mit abgerundeten Steinen und Kieselwälzungen."
+    },
+    {
+      "id": 109,
+      "start": 325,
+      "end": 330,
+      "text": "Sie sahen aus wie gewöhnliche Flusssteine auf der Erde, glatt geschliffen durch eine Strömung."
+    },
+    {
+      "id": 110,
+      "start": 330,
+      "end": 335,
+      "text": "Die Ähnlichkeit war so verblüffend, dass ein Forscher sie mit einem ausgetrockneten Flussbett in Arizona verglich."
+    },
+    {
+      "id": 111,
+      "start": 335,
+      "end": 340,
+      "text": "Doch es ist nicht die Erde."
+    },
+    {
+      "id": 112,
+      "start": 340,
+      "end": 345,
+      "text": "Die Steine bestehen aus Wassereis, das bei diesen Temperaturen hart wie Fels ist"
+    },
+    {
+      "id": 113,
+      "start": 345,
+      "end": 350,
+      "text": "und von Strömen aus flüssigem Methan geformt wurde."
+    },
+    {
+      "id": 114,
+      "start": 350,
+      "end": 355,
+      "text": "Das ist der Kern des Titan."
+    },
+    {
+      "id": 115,
+      "start": 355,
+      "end": 360,
+      "text": "Er zeigt uns vertraute Formen, nur um dann ihre wahre Natur zu offenbaren."
+    },
+    {
+      "id": 116,
+      "start": 360,
+      "end": 365,
+      "text": "Und das macht das Bild nur noch beunruhigender."
+    },
+    {
+      "id": 117,
+      "start": 365,
+      "end": 370,
+      "text": "Die Dünen sind ein weiteres Beispiel."
+    },
+    {
+      "id": 118,
+      "start": 370,
+      "end": 375,
+      "text": "Das Radar von Cassini entdeckte am Äquator riesige Felder,"
+    },
+    {
+      "id": 119,
+      "start": 375,
+      "end": 380,
+      "text": "die sich über hunderte Kilometer in parallelen Linien erstrecken."
+    },
+    {
+      "id": 120,
+      "start": 380,
+      "end": 385,
+      "text": "In Form und Ausmaß sind sie kaum von irdischen Wüsten zu unterscheiden."
+    },
+    {
+      "id": 121,
+      "start": 385,
+      "end": 390,
+      "text": "Aber ihr Sand ist kein Silikat."
+    },
+    {
+      "id": 122,
+      "start": 390,
+      "end": 395,
+      "text": "Er besteht aus Tolinen, komplexen organischen Molekülen,"
+    },
+    {
+      "id": 123,
+      "start": 395,
+      "end": 400,
+      "text": "die entstehen, wenn ultraviolette Strahlung auf Methan und Stickstoff in der Atmosphäre trifft."
+    },
+    {
+      "id": 124,
+      "start": 400,
+      "end": 405,
+      "text": "Diese Partikel verkleben, werden schwerer und sinken langsam wie Schnee auf die Oberfläche,"
+    },
+    {
+      "id": 125,
+      "start": 405,
+      "end": 410,
+      "text": "wo sie über Millionen von Jahren Dünen formen."
+    },
+    {
+      "id": 126,
+      "start": 410,
+      "end": 415,
+      "text": "Das ist eine fremde Chemie, gefährlich und absolut unvergleichbar mit gewöhnlichen irdischen Materialien."
+    },
+    {
+      "id": 127,
+      "start": 415,
+      "end": 420,
+      "text": "Es gibt ein Detail dieser Dünen, das oft übersehen wird."
+    },
+    {
+      "id": 128,
+      "start": 420,
+      "end": 425,
+      "text": "Sie zeigen in die falsche Richtung."
+    },
+    {
+      "id": 129,
+      "start": 425,
+      "end": 430,
+      "text": "Die vorherrschenden Winde am Äquator des Titan wehen von Ost nach West, was bei seiner langsamen Rotation logisch erscheint."
+    },
+    {
+      "id": 130,
+      "start": 430,
+      "end": 435,
+      "text": "Doch die Dünen selbst sind von West nach Ost ausgerichtet."
+    },
+    {
+      "id": 131,
+      "start": 435,
+      "end": 440,
+      "text": "Lange Zeit blieb dies ein Rätsel."
+    },
+    {
+      "id": 132,
+      "start": 440,
+      "end": 445,
+      "text": "Später schlugen Forscher basierend auf Cassini-Daten eine Erklärung vor."
+    },
+    {
+      "id": 133,
+      "start": 445,
+      "end": 450,
+      "text": "Auf dem Titan entstehen gelegentlich gewaltige Äquatorialstürme, kurze aber extrem intensive Methan-Sindfluten."
+    },
+    {
+      "id": 134,
+      "start": 450,
+      "end": 455,
+      "text": "Sie erzeugen starke Bodenwinde, die in die entgegengesetzte Richtung wehen."
+    },
+    {
+      "id": 135,
+      "start": 455,
+      "end": 460,
+      "text": "Diese seltenen Ereignisse sind stark genug, um den Einfluss der normalen Winde zu überlagern und den Sand zu verschieben."
+    },
+    {
+      "id": 136,
+      "start": 460,
+      "end": 465,
+      "text": "In ruhigen Phasen wachsen die Dünen langsam, doch Stürme können sie innerhalb von Stunden umgestalten."
+    },
+    {
+      "id": 137,
+      "start": 465,
+      "end": 470,
+      "text": "Ihre Form wird also nicht nur durch stetige Strömungen bestimmt, sondern durch plötzliche Ausbrüche gewaltiger Aktivität."
+    },
+    {
+      "id": 138,
+      "start": 470,
+      "end": 475,
+      "text": "Unter dieser Oberfläche verbirgt sich eine noch ungewöhnlichere Struktur."
+    },
+    {
+      "id": 139,
+      "start": 475,
+      "end": 480,
+      "text": "Bei Vorbeiflügen zwischen 2006 und 2012 registrierte Cassini winzige Veränderungen im Gravitationsfeld des Titan."
+    },
+    {
+      "id": 140,
+      "start": 480,
+      "end": 485,
+      "text": "Diese Daten bewiesen, dass seine Oberfläche nicht auf festem Gestein ruht, sondern auf einem Eispanzer."
+    },
+    {
+      "id": 141,
+      "start": 485,
+      "end": 490,
+      "text": "Und darunter befindet sich mit an Sicherheit grenzender Wahrscheinlichkeit ein globaler Ozean aus flüssigem Wasser,"
+    },
+    {
+      "id": 142,
+      "start": 490,
+      "end": 495,
+      "text": "möglicherweise mit Ammoniak versetzt, verborgen unter einer Schicht von 50 bis 100 Kilometern Dicke."
+    },
+    {
+      "id": 143,
+      "start": 495,
+      "end": 500,
+      "text": "Titan hat also zwei Ebenen."
+    },
+    {
+      "id": 144,
+      "start": 500,
+      "end": 505,
+      "text": "Oben die kalte Methanwelt, die äußerlich der Erde ähnelt."
+    },
+    {
+      "id": 145,
+      "start": 505,
+      "end": 510,
+      "text": "Darunter der verborgene Wasserozean, der jedem direkten Blick entzogen ist."
+    },
+    {
+      "id": 146,
+      "start": 510,
+      "end": 515,
+      "text": "Und genau dieser Ozean weckt das größte Interesse."
+    },
+    {
+      "id": 147,
+      "start": 515,
+      "end": 520,
+      "text": "Falls es dort Kontakt zwischen dem Wasser und einem Gesteinskern gibt, könnte hydrothermale Aktivität entstehen."
+    },
+    {
+      "id": 148,
+      "start": 520,
+      "end": 525,
+      "text": "Das ist einer der Schlüsselmechanismen für die Entstehung von Leben."
+    },
+    {
+      "id": 149,
+      "start": 525,
+      "end": 530,
+      "text": "Auf der Erde speisen solche Prozesse Ökosysteme in der Tiefsee, die völlig unabhängig vom Sonnenlicht existieren."
+    },
+    {
+      "id": 150,
+      "start": 530,
+      "end": 535,
+      "text": "Auf dem Titan könnte etwas Ähnliches genau jetzt geschehen, tief unter der Oberfläche, in totaler Dunkelheit und unter gewaltigem Druck."
+    },
+    {
+      "id": 151,
+      "start": 535,
+      "end": 540,
+      "text": "Aber auch an der Oberfläche gibt es eine höchst ungewöhnliche Theorie."
+    },
+    {
+      "id": 152,
+      "start": 540,
+      "end": 545,
+      "text": "Im Jahr 2015 versuchten Forscher der Cornell University zu modellieren, wie eine Zellmembran aussehen könnte, die nicht in Wasser, sondern in flüssigem Methan funktioniert."
+    },
+    {
+      "id": 153,
+      "start": 545,
+      "end": 550,
+      "text": "Auf der Erde nutzen Zellen Lipid-Doppelschichten, dünne Strukturen aus Fettmolekülen, die in wässriger Umgebung eine Barriere bilden."
+    },
+    {
+      "id": 154,
+      "start": 550,
+      "end": 555,
+      "text": "In Methan funktioniert diese Chemie nicht. Die Temperaturen sind zu niedrig. Das Verhalten der Moleküle ist anders."
+    },
+    {
+      "id": 155,
+      "start": 555,
+      "end": 560,
+      "text": "Man schlug eine alternative Struktur vor. Das Azotosom."
+    },
+    {
+      "id": 156,
+      "start": 560,
+      "end": 565,
+      "text": "Es besteht aus stickstoffhaltigen Verbindungen und wäre theoretisch in der Lage, unter Titanbedingungen stabile und flexible Hüllen zu bilden."
+    },
+    {
+      "id": 157,
+      "start": 565,
+      "end": 570,
+      "text": "Bisher ist das nur ein Modell, solche Strukturen wurden noch nicht nachgewiesen, doch allein die Möglichkeit bedeutet, dass Titan eine grundlegend andere Art von Biologie beherbergen könnte. Ohne Wasser. Das wäre nicht mehr nur ein Analogon zu irdischen Prozessen, sondern eine potenziell völlig fremde Lebensform."
+    },
+    {
+      "id": 158,
+      "start": 570,
+      "end": 575,
+      "text": "Es gibt Beobachtungen, die diese Frage weiter anheizen."
+    },
+    {
+      "id": 159,
+      "start": 575,
+      "end": 580,
+      "text": "Im Jahr 2010 zeigten zwei unabhängige Analysen der Cassini-Daten Merkwürdigkeiten in der bodennahen Atmosphäre."
+    },
+    {
+      "id": 160,
+      "start": 580,
+      "end": 585,
+      "text": "Die erste Studie ergab, dass Wasserstoff, der von außen einströmt, nach unten sinkt und dort verschwindet, ohne zurückzukehren."
+    },
+    {
+      "id": 161,
+      "start": 585,
+      "end": 590,
+      "text": "Das bedeutet, irgendetwas an oder nahe der Oberfläche absorbiert ihn."
+    },
+    {
+      "id": 162,
+      "start": 590,
+      "end": 595,
+      "text": "Die zweite Studie entdeckte ein Defizit an Acetylen, einem Stoff, der sich laut Berechnungen eigentlich ansammeln müsste, es aber nicht tut."
+    },
+    {
+      "id": 163,
+      "start": 595,
+      "end": 600,
+      "text": "Schon Jahre zuvor hatte der Astrobiologe Chris McKay vermutet, falls auf dem Titan methanogenes Leben existiert, könnte es Wasserstoff, Atmen und Acetylen als Energiequelle nutzen, wobei Methan freigesetzt wird."
+    },
+    {
+      "id": 164,
+      "start": 600,
+      "end": 605,
+      "text": "Und die Beobachtungen deckten sich exakt mit diesem Szenario."
+    },
+    {
+      "id": 165,
+      "start": 605,
+      "end": 610,
+      "text": "Wasserstoff verschwindet. Acetylen fehlt."
+    },
+    {
+      "id": 166,
+      "start": 610,
+      "end": 615,
+      "text": "Das gilt nicht als Beweis für Leben, solche Effekte könnten auch nicht biologische Ursachen haben."
+    },
+    {
+      "id": 167,
+      "start": 615,
+      "end": 620,
+      "text": "Aber dass zwei unabhängige Ergebnisse so genau mit einer Vorhersage übereinstimmen, ist zu präzise, um es zu ignorieren."
+    },
+    {
+      "id": 168,
+      "start": 620,
+      "end": 625,
+      "text": "Genau das erzeugt dieses Gefühl von gleichzeitigem Interesse und Unbehagen."
+    },
+    {
+      "id": 169,
+      "start": 625,
+      "end": 630,
+      "text": "Titan besitzt all diese Komplexität, diese Aktivität."
+    },
+    {
+      "id": 170,
+      "start": 630,
+      "end": 635,
+      "text": "Regen, Flüsse, Meere, Wetter, verborgene Ozeane."
+    },
+    {
+      "id": 171,
+      "start": 635,
+      "end": 640,
+      "text": "Und doch haben wir fast keine Daten von der Oberfläche."
+    },
+    {
+      "id": 172,
+      "start": 640,
+      "end": 645,
+      "text": "Huygens hielt nach der Landung nur 72 Minuten durch."
+    },
+    {
+      "id": 173,
+      "start": 645,
+      "end": 650,
+      "text": "Ein einziges Bild, eine Hand voll Messwerte."
+    },
+    {
+      "id": 174,
+      "start": 650,
+      "end": 655,
+      "text": "Alles andere stammt aus dem Orbit, Radar, Infrarot und Gravitationsdaten von Cassini."
+    },
+    {
+      "id": 175,
+      "start": 655,
+      "end": 660,
+      "text": "Wir haben den Titan kartografiert wie eine Stadt, über die man nachts mit einer Taschenlampe hinweggeflogen ist."
+    },
+    {
+      "id": 176,
+      "start": 660,
+      "end": 665,
+      "text": "Wir sahen Umrisse, vermuteten die Zusammensetzung, modellierten Prozesse, aber wir haben die Oberfläche nur ein einziges Mal berührt."
+    },
+    {
+      "id": 177,
+      "start": 665,
+      "end": 670,
+      "text": "An einem einzigen Punkt. Für kaum mehr als eine Stunde."
+    },
+    {
+      "id": 178,
+      "start": 670,
+      "end": 675,
+      "text": "Die NASA kehrt zurück. Die Mission Dragonfly."
+    },
+    {
+      "id": 179,
+      "start": 675,
+      "end": 680,
+      "text": "Ein atomgetriebener Quadrokopter. Start 2028. Ankunft Mitte der 2030er Jahre."
+    },
+    {
+      "id": 180,
+      "start": 680,
+      "end": 685,
+      "text": "Er wird nicht an einem Ort bleiben. Er wird fliegen."
+    },
+    {
+      "id": 181,
+      "start": 685,
+      "end": 690,
+      "text": "Die dichte Atmosphäre und die schwache Schwerkraft machen Titan zum idealen Ort für Fluggeräte."
+    },
+    {
+      "id": 182,
+      "start": 690,
+      "end": 695,
+      "text": "Dragonfly wird über die äquatorialen Dünenfelder zum Selk-Krater fliegen,"
+    },
+    {
+      "id": 183,
+      "start": 695,
+      "end": 700,
+      "text": "einem Einschlagsort, an dem flüssiges Wasser für kurze Zeit an die Oberfläche gelangt sein könnte"
+    },
+    {
+      "id": 184,
+      "start": 700,
+      "end": 705,
+      "text": "und sich mit organischer Materie vermischte."
+    },
+    {
+      "id": 185,
+      "start": 705,
+      "end": 710,
+      "text": "Eine Zone, in der Wasser- und Methanchemie aufeinander getroffen sein könnten."
+    },
+    {
+      "id": 186,
+      "start": 710,
+      "end": 715,
+      "text": "Die Ingenieurskunst dahinter grenzt an Wahnsinn."
+    },
+    {
+      "id": 187,
+      "start": 715,
+      "end": 720,
+      "text": "Die Rotoren arbeiten in einer Atmosphäre, die dichter als die der Erde ist, aber bei Temperaturen, bei denen sich Schmiermittel und Elektronik völlig anders verhalten."
+    },
+    {
+      "id": 188,
+      "start": 720,
+      "end": 725,
+      "text": "Und die Energiequelle ist der Zerfall von Plutonium. 238."
+    },
+    {
+      "id": 189,
+      "start": 725,
+      "end": 730,
+      "text": "Die Sonde wird etwa 30 Minuten lang fliegen und bis zu 8 Kilometer pro Sprung zurücklegen."
+    },
+    {
+      "id": 190,
+      "start": 730,
+      "end": 735,
+      "text": "dann landen, die Batterien laden, den Boden analysieren und auf das nächste Fenster warten."
+    },
+    {
+      "id": 191,
+      "start": 735,
+      "end": 740,
+      "text": "Sie navigiert nach den Daten von Cassini, einer Sonde, die 2017 zerstört wurde."
+    },
+    {
+      "id": 192,
+      "start": 740,
+      "end": 745,
+      "text": "Im Grunde fliegt sie nach einer Karte, die von einem Geist gezeichnet wurde."
+    },
+    {
+      "id": 193,
+      "start": 745,
+      "end": 750,
+      "text": "Und was sie finden wird, könnte unser Verständnis von Leben verändern."
+    },
+    {
+      "id": 194,
+      "start": 750,
+      "end": 755,
+      "text": "ändern. Sollten komplexe organische Strukturen entdeckt werden, wäre das noch kein Beweis für"
+    },
+    {
+      "id": 195,
+      "start": 755,
+      "end": 760,
+      "text": "Leben. Es wäre ein zweites Beispiel für eine Welt, in der die Chemie versucht, zur Biologie zu"
+    },
+    {
+      "id": 196,
+      "start": 760,
+      "end": 765,
+      "text": "werden. Eines ist ein Zufall. Zwei sind eine Gesetzmäßigkeit. Bis dahin wartet Titan. Methan"
+    },
+    {
+      "id": 197,
+      "start": 765,
+      "end": 770,
+      "text": "regnet weiterhin in dunkle Flüsse, die in Meere münden, die noch niemand direkt gesehen hat. Ein"
+    },
+    {
+      "id": 198,
+      "start": 770,
+      "end": 775,
+      "text": "Ozean aus Wasser liegt verborgen unter hunderten Kilometern Eis. Titan trägt noch immer das Gesicht"
+    },
+    {
+      "id": 199,
+      "start": 775,
+      "end": 780,
+      "text": "der Erde über einem Körper aus Gift, Kälte und Fremdartigkeit. Andere gefährliche Welten sind"
+    },
+    {
+      "id": 200,
+      "start": 780,
+      "end": 785,
+      "text": "ehrlich. Die Venus ist ein glühender Ofen, der Jupiter eine Wand aus Strahlung. Sie verstellen"
+    },
+    {
+      "id": 201,
+      "start": 785,
+      "end": 790,
+      "text": "Titan schon."
+    },
+    {
+      "id": 202,
+      "start": 790,
+      "end": 795,
+      "text": "Ähnlichkeit. Er kopiert die Form der Erde, füllt sie aber mit fremdem Inhalt."
+    },
+    {
+      "id": 203,
+      "start": 795,
+      "end": 800,
+      "text": "Wir sehen ein Spiegelbild, fast exakt, aber leicht verschoben."
+    },
+    {
+      "id": 204,
+      "start": 800,
+      "end": 805,
+      "text": "Und es braucht Zeit, um das zu bemerken."
+    },
+    {
+      "id": 205,
+      "start": 805,
+      "end": 810,
+      "text": "Und noch mehr Zeit, um es zu begreifen."
+    },
+    {
+      "id": 206,
+      "start": 810,
+      "end": 815,
+      "text": "Vielen Dank fürs Zuschauen."
+    },
+    {
+      "id": 207,
+      "start": 815,
+      "end": 820,
+      "text": "Unterstützt uns gerne mit einem Abo und einem Like."
+    },
+    {
+      "id": 208,
+      "start": 820,
+      "end": 825,
+      "text": "Ich hoffe, das Video hat euch gefallen."
+    },
+    {
+      "id": 209,
+      "start": 825,
+      "end": 830,
+      "text": "Wir"
+    },
+    {
+      "id": 210,
+      "start": 830,
+      "end": 835,
+      "text": "sehen"
+    },
+    {
+      "id": 211,
+      "start": 835,
+      "end": 840,
+      "text": "uns"
+    },
+    {
+      "id": 212,
+      "start": 840,
+      "end": 845,
+      "text": "im"
+    },
+    {
+      "id": 213,
+      "start": 845,
+      "end": 850,
+      "text": "nächsten."
+    },
+    {
+      "id": 214,
+      "start": 850,
+      "end": 855,
+      "text": "[конец]"
+    },
+    {
+      "id": 215,
+      "start": 855,
+      "end": 860,
+      "text": "[конец]"
+    },
+    {
+      "id": 216,
+      "start": 860,
+      "end": 865,
+      "text": "[конец]"
+    },
+    {
+      "id": 217,
+      "start": 865,
+      "end": 870,
+      "text": "[конец]"
+    },
+    {
+      "id": 218,
+      "start": 870,
+      "end": 875,
+      "text": "[конец]"
+    },
+    {
+      "id": 219,
+      "start": 875,
+      "end": 880,
+      "text": "[конец]"
+    },
+    {
+      "id": 220,
+      "start": 880,
+      "end": 885,
+      "text": "[конец]"
+    },
+    {
+      "id": 221,
+      "start": 885,
+      "end": 890,
+      "text": "[конец]"
+    },
+    {
+      "id": 222,
+      "start": 890,
+      "end": 895,
+      "text": "[конец]"
+    },
+    {
+      "id": 223,
+      "start": 895,
+      "end": 900,
+      "text": "[конец]"
+    },
+    {
+      "id": 224,
+      "start": 900,
+      "end": 905,
+      "text": "[конец]"
+    },
+    {
+      "id": 225,
+      "start": 905,
+      "end": 910,
+      "text": "[конец]"
+    },
+    {
+      "id": 226,
+      "start": 910,
+      "end": 915,
+      "text": "[конец]"
+    },
+    {
+      "id": 227,
+      "start": 915,
+      "end": 920,
+      "text": "[конец]"
+    },
+    {
+      "id": 228,
+      "start": 920,
+      "end": 925,
+      "text": "[конец]"
+    },
+    {
+      "id": 229,
+      "start": 925,
+      "end": 930,
+      "text": "[конец]"
+    },
+    {
+      "id": 230,
+      "start": 930,
+      "end": 935,
+      "text": "[конец]"
+    },
+    {
+      "id": 231,
+      "start": 935,
+      "end": 940,
+      "text": "[конец]"
+    },
+    {
+      "id": 232,
+      "start": 940,
+      "end": 945,
+      "text": "[конец]"
+    },
+    {
+      "id": 233,
+      "start": 945,
+      "end": 950,
+      "text": "[конец]"
+    },
+    {
+      "id": 234,
+      "start": 950,
+      "end": 955,
+      "text": "[конец]"
+    },
+    {
+      "id": 235,
+      "start": 955,
+      "end": 960,
+      "text": "[конец]"
+    },
+    {
+      "id": 236,
+      "start": 960,
+      "end": 965,
+      "text": "[конец]"
+    },
+    {
+      "id": 237,
+      "start": 965,
+      "end": 970,
+      "text": "[конец]"
+    },
+    {
+      "id": 238,
+      "start": 970,
+      "end": 975,
+      "text": "[конец]"
+    },
+    {
+      "id": 239,
+      "start": 975,
+      "end": 980,
+      "text": "[конец]"
+    },
+    {
+      "id": 240,
+      "start": 980,
+      "end": 985,
+      "text": "[конец]"
+    },
+    {
+      "id": 241,
+      "start": 985,
+      "end": 990,
+      "text": "[конец]"
+    },
+    {
+      "id": 242,
+      "start": 990,
+      "end": 995,
+      "text": "[конец]"
+    },
+    {
+      "id": 243,
+      "start": 995,
+      "end": 1000,
+      "text": "[конец]"
+    },
+    {
+      "id": 244,
+      "start": 1000,
+      "end": 1005,
+      "text": "[конец]"
+    },
+    {
+      "id": 245,
+      "start": 1005,
+      "end": 1010,
+      "text": "[конец]"
+    },
+    {
+      "id": 246,
+      "start": 1010,
+      "end": 1015,
+      "text": "[конец]"
+    },
+    {
+      "id": 247,
+      "start": 1015,
+      "end": 1018,
+      "text": "[конец]"
+    }
+  ],
+  "words": [
+    {
+      "word": " Titan",
+      "start": 0.0,
+      "end": 0.3
+    },
+    {
+      "word": " belügt",
+      "start": 0.3,
+      "end": 0.86
+    },
+    {
+      "word": " uns.",
+      "start": 0.86,
+      "end": 1.18
+    },
+    {
+      "word": " Aus",
+      "start": 1.52,
+      "end": 1.78
+    },
+    {
+      "word": " der",
+      "start": 1.78,
+      "end": 1.86
+    },
+    {
+      "word": " Ferne",
+      "start": 1.86,
+      "end": 2.16
+    },
+    {
+      "word": " sieht",
+      "start": 2.16,
+      "end": 2.36
+    },
+    {
+      "word": " er",
+      "start": 2.36,
+      "end": 2.42
+    },
+    {
+      "word": " aus",
+      "start": 2.42,
+      "end": 2.72
+    },
+    {
+      "word": " wie",
+      "start": 2.72,
+      "end": 2.86
+    },
+    {
+      "word": " die",
+      "start": 2.86,
+      "end": 3.0
+    },
+    {
+      "word": " Erde.",
+      "start": 3.0,
+      "end": 3.32
+    },
+    {
+      "word": " Flüsse,",
+      "start": 3.64,
+      "end": 4.3
+    },
+    {
+      "word": " Seen,",
+      "start": 4.66,
+      "end": 5.02
+    },
+    {
+      "word": " Küstenlinien,",
+      "start": 5.36,
+      "end": 6.1
+    },
+    {
+      "word": " Regen,",
+      "start": 6.5,
+      "end": 6.86
+    },
+    {
+      "word": " Wolken,",
+      "start": 7.22,
+      "end": 7.64
+    },
+    {
+      "word": " Jahreszeiten",
+      "start": 8.06,
+      "end": 8.84
+    },
+    {
+      "word": " und",
+      "start": 8.84,
+      "end": 9.34
+    },
+    {
+      "word": " eine",
+      "start": 9.34,
+      "end": 9.66
+    },
+    {
+      "word": " dichte",
+      "start": 9.66,
+      "end": 9.96
+    },
+    {
+      "word": " Atmosphäre.",
+      "start": 9.96,
+      "end": 10.6
+    },
+    {
+      "word": " Doch",
+      "start": 10.96,
+      "end": 11.24
+    },
+    {
+      "word": " genau",
+      "start": 11.24,
+      "end": 11.46
+    },
+    {
+      "word": " diese",
+      "start": 11.46,
+      "end": 11.88
+    },
+    {
+      "word": " Ähnlichkeit",
+      "start": 11.88,
+      "end": 12.56
+    },
+    {
+      "word": " ist",
+      "start": 12.56,
+      "end": 13.12
+    },
+    {
+      "word": " die",
+      "start": 13.12,
+      "end": 13.38
+    },
+    {
+      "word": " Falle.",
+      "start": 13.38,
+      "end": 13.8
+    },
+    {
+      "word": " Denn",
+      "start": 14.08,
+      "end": 14.34
+    },
+    {
+      "word": " Titan",
+      "start": 14.34,
+      "end": 14.66
+    },
+    {
+      "word": " ist",
+      "start": 14.66,
+      "end": 15.46
+    },
+    {
+      "word": " nicht",
+      "start": 15.46,
+      "end": 15.7
+    },
+    {
+      "word": " die",
+      "start": 15.7,
+      "end": 15.88
+    },
+    {
+      "word": " Erde.",
+      "start": 15.88,
+      "end": 16.22
+    },
+    {
+      "word": " Titan",
+      "start": 16.86,
+      "end": 17.14
+    },
+    {
+      "word": " ist",
+      "start": 17.14,
+      "end": 17.8
+    },
+    {
+      "word": " eine",
+      "start": 17.8,
+      "end": 18.02
+    },
+    {
+      "word": " eisige,",
+      "start": 18.02,
+      "end": 18.62
+    },
+    {
+      "word": " giftige",
+      "start": 19.14,
+      "end": 19.56
+    },
+    {
+      "word": " Parodie",
+      "start": 19.56,
+      "end": 20.14
+    },
+    {
+      "word": " der",
+      "start": 20.14,
+      "end": 20.88
+    },
+    {
+      "word": " Erde.",
+      "start": 20.88,
+      "end": 21.32
+    },
+    {
+      "word": " Eine",
+      "start": 21.72,
+      "end": 22.28
+    },
+    {
+      "word": " Welt,",
+      "start": 22.28,
+      "end": 22.64
+    },
+    {
+      "word": " die",
+      "start": 22.82,
+      "end": 23.12
+    },
+    {
+      "word": " sich",
+      "start": 23.12,
+      "end": 23.38
+    },
+    {
+      "word": " das",
+      "start": 23.38,
+      "end": 23.64
+    },
+    {
+      "word": " Antlitz",
+      "start": 23.64,
+      "end": 24.38
+    },
+    {
+      "word": " unseres",
+      "start": 24.38,
+      "end": 24.82
+    },
+    {
+      "word": " Planeten",
+      "start": 24.82,
+      "end": 25.44
+    },
+    {
+      "word": " geliehen",
+      "start": 25.44,
+      "end": 26.0
+    },
+    {
+      "word": " und",
+      "start": 26.0,
+      "end": 26.46
+    },
+    {
+      "word": " es",
+      "start": 26.46,
+      "end": 26.62
+    },
+    {
+      "word": " mit",
+      "start": 26.62,
+      "end": 26.84
+    },
+    {
+      "word": " Gift",
+      "start": 26.84,
+      "end": 27.2
+    },
+    {
+      "word": " gefüllt",
+      "start": 27.2,
+      "end": 27.7
+    },
+    {
+      "word": " hat.",
+      "start": 27.7,
+      "end": 27.98
+    },
+    {
+      "word": " Er",
+      "start": 27.98,
+      "end": 28.78
+    },
+    {
+      "word": " umkreist",
+      "start": 28.78,
+      "end": 29.36
+    },
+    {
+      "word": " den",
+      "start": 29.36,
+      "end": 29.5
+    },
+    {
+      "word": " Saturn",
+      "start": 29.5,
+      "end": 29.98
+    },
+    {
+      "word": " in",
+      "start": 29.98,
+      "end": 30.2
+    },
+    {
+      "word": " einer",
+      "start": 30.2,
+      "end": 30.38
+    },
+    {
+      "word": " Entfernung",
+      "start": 30.38,
+      "end": 31.0
+    },
+    {
+      "word": " von",
+      "start": 31.0,
+      "end": 31.18
+    },
+    {
+      "word": " etwa",
+      "start": 31.18,
+      "end": 31.42
+    },
+    {
+      "word": " 1",
+      "start": 31.42,
+      "end": 31.82
+    },
+    {
+      "word": ",2",
+      "start": 31.82,
+      "end": 32.56
+    },
+    {
+      "word": " Milliarden",
+      "start": 32.56,
+      "end": 33.04
+    },
+    {
+      "word": " Kilometern",
+      "start": 33.04,
+      "end": 33.94
+    },
+    {
+      "word": " zur",
+      "start": 33.94,
+      "end": 34.18
+    },
+    {
+      "word": " Sonne.",
+      "start": 34.18,
+      "end": 34.58
+    },
+    {
+      "word": " Zehnmal",
+      "start": 35.0,
+      "end": 35.8
+    },
+    {
+      "word": " weiter",
+      "start": 35.8,
+      "end": 36.14
+    },
+    {
+      "word": " entfernt",
+      "start": 36.14,
+      "end": 36.76
+    },
+    {
+      "word": " als",
+      "start": 36.76,
+      "end": 37.38
+    },
+    {
+      "word": " die",
+      "start": 37.38,
+      "end": 37.6
+    },
+    {
+      "word": " Erde.",
+      "start": 37.6,
+      "end": 38.06
+    },
+    {
+      "word": " In",
+      "start": 38.72,
+      "end": 39.12
+    },
+    {
+      "word": " dieser",
+      "start": 39.12,
+      "end": 39.4
+    },
+    {
+      "word": " Distanz",
+      "start": 39.4,
+      "end": 40.08
+    },
+    {
+      "word": " schrumpft",
+      "start": 40.08,
+      "end": 40.6
+    },
+    {
+      "word": " die",
+      "start": 40.6,
+      "end": 40.82
+    },
+    {
+      "word": " Sonne",
+      "start": 40.82,
+      "end": 41.12
+    },
+    {
+      "word": " zu",
+      "start": 41.12,
+      "end": 41.3
+    },
+    {
+      "word": " einem",
+      "start": 41.3,
+      "end": 41.52
+    },
+    {
+      "word": " schwachen",
+      "start": 41.52,
+      "end": 41.98
+    },
+    {
+      "word": " Lichtpunkt,",
+      "start": 41.98,
+      "end": 42.64
+    },
+    {
+      "word": " kaum",
+      "start": 42.84,
+      "end": 43.36
+    },
+    {
+      "word": " heller",
+      "start": 43.36,
+      "end": 43.7
+    },
+    {
+      "word": " als",
+      "start": 43.7,
+      "end": 44.0
+    },
+    {
+      "word": " der",
+      "start": 44.0,
+      "end": 44.22
+    },
+    {
+      "word": " Vollmond",
+      "start": 44.22,
+      "end": 44.84
+    },
+    {
+      "word": " in",
+      "start": 44.84,
+      "end": 45.32
+    },
+    {
+      "word": " einer",
+      "start": 45.32,
+      "end": 45.54
+    },
+    {
+      "word": " klaren",
+      "start": 45.54,
+      "end": 46.14
+    },
+    {
+      "word": " Nacht.",
+      "start": 46.14,
+      "end": 46.5
+    },
+    {
+      "word": " Die",
+      "start": 47.24,
+      "end": 47.64
+    },
+    {
+      "word": " Oberflächentemperatur",
+      "start": 47.64,
+      "end": 49.06
+    },
+    {
+      "word": " liegt",
+      "start": 49.06,
+      "end": 49.72
+    },
+    {
+      "word": " bei",
+      "start": 49.72,
+      "end": 49.96
+    },
+    {
+      "word": " etwa",
+      "start": 49.96,
+      "end": 50.28
+    },
+    {
+      "word": " minus",
+      "start": 50.28,
+      "end": 50.66
+    },
+    {
+      "word": " 179",
+      "start": 50.66,
+      "end": 52.56
+    },
+    {
+      "word": " Grad",
+      "start": 52.56,
+      "end": 52.92
+    },
+    {
+      "word": " Celsius.",
+      "start": 52.92,
+      "end": 53.52
+    },
+    {
+      "word": " Das",
+      "start": 53.52,
+      "end": 54.66
+    },
+    {
+      "word": " reicht",
+      "start": 54.66,
+      "end": 54.96
+    },
+    {
+      "word": " aus,",
+      "start": 54.96,
+      "end": 55.32
+    },
+    {
+      "word": " um",
+      "start": 55.46,
+      "end": 55.5
+    },
+    {
+      "word": " Stahl",
+      "start": 55.5,
+      "end": 55.9
+    },
+    {
+      "word": " spröde",
+      "start": 55.9,
+      "end": 56.44
+    },
+    {
+      "word": " wie",
+      "start": 56.44,
+      "end": 56.6
+    },
+    {
+      "word": " Glas",
+      "start": 56.6,
+      "end": 57.0
+    },
+    {
+      "word": " werden",
+      "start": 57.0,
+      "end": 57.32
+    },
+    {
+      "word": " zu",
+      "start": 57.32,
+      "end": 57.52
+    },
+    {
+      "word": " lassen",
+      "start": 57.52,
+      "end": 57.9
+    },
+    {
+      "word": " und",
+      "start": 57.9,
+      "end": 58.54
+    },
+    {
+      "word": " Methan,",
+      "start": 58.54,
+      "end": 59.2
+    },
+    {
+      "word": " das",
+      "start": 59.26,
+      "end": 59.42
+    },
+    {
+      "word": " wir",
+      "start": 59.42,
+      "end": 59.6
+    },
+    {
+      "word": " nur",
+      "start": 59.6,
+      "end": 59.82
+    },
+    {
+      "word": " als",
+      "start": 59.82,
+      "end": 60.14
+    },
+    {
+      "word": " Gas",
+      "start": 60.14,
+      "end": 60.5
+    },
+    {
+      "word": " kennen,",
+      "start": 60.5,
+      "end": 60.84
+    },
+    {
+      "word": " in",
+      "start": 61.06,
+      "end": 61.46
+    },
+    {
+      "word": " eine",
+      "start": 61.46,
+      "end": 61.66
+    },
+    {
+      "word": " Flüssigkeit",
+      "start": 61.66,
+      "end": 62.36
+    },
+    {
+      "word": " zu",
+      "start": 62.36,
+      "end": 62.6
+    },
+    {
+      "word": " verwandeln.",
+      "start": 62.6,
+      "end": 63.2
+    },
+    {
+      "word": " Und",
+      "start": 63.42,
+      "end": 63.98
+    },
+    {
+      "word": " genau",
+      "start": 63.98,
+      "end": 64.3
+    },
+    {
+      "word": " dieses",
+      "start": 64.3,
+      "end": 64.96
+    },
+    {
+      "word": " flüssige",
+      "start": 64.96,
+      "end": 65.54
+    },
+    {
+      "word": " Methan",
+      "start": 65.54,
+      "end": 66.1
+    },
+    {
+      "word": " füllt",
+      "start": 66.1,
+      "end": 66.78
+    },
+    {
+      "word": " die",
+      "start": 66.78,
+      "end": 67.04
+    },
+    {
+      "word": " Seen",
+      "start": 67.04,
+      "end": 67.5
+    },
+    {
+      "word": " und",
+      "start": 67.5,
+      "end": 67.72
+    },
+    {
+      "word": " Flüsse",
+      "start": 67.72,
+      "end": 68.24
+    },
+    {
+      "word": " des",
+      "start": 68.24,
+      "end": 68.64
+    },
+    {
+      "word": " Titan.",
+      "start": 68.64,
+      "end": 69.0
+    },
+    {
+      "word": " Kein",
+      "start": 69.66,
+      "end": 70.24
+    },
+    {
+      "word": " Wasser,",
+      "start": 70.24,
+      "end": 70.58
+    },
+    {
+      "word": " sondern",
+      "start": 71.1,
+      "end": 71.5
+    },
+    {
+      "word": " Methan.",
+      "start": 71.5,
+      "end": 72.14
+    },
+    {
+      "word": " Als",
+      "start": 72.68,
+      "end": 73.18
+    },
+    {
+      "word": " die",
+      "start": 73.18,
+      "end": 73.36
+    },
+    {
+      "word": " Raumsonde",
+      "start": 73.36,
+      "end": 73.9
+    },
+    {
+      "word": " Cassini",
+      "start": 73.9,
+      "end": 74.56
+    },
+    {
+      "word": " im",
+      "start": 74.56,
+      "end": 75.02
+    },
+    {
+      "word": " Jahr",
+      "start": 75.02,
+      "end": 75.22
+    },
+    {
+      "word": " 2004",
+      "start": 75.22,
+      "end": 76.26
+    },
+    {
+      "word": " den",
+      "start": 76.26,
+      "end": 76.9
+    },
+    {
+      "word": " Saturn",
+      "start": 76.9,
+      "end": 77.32
+    },
+    {
+      "word": " erreichte,",
+      "start": 77.32,
+      "end": 77.92
+    },
+    {
+      "word": " hatte",
+      "start": 78.42,
+      "end": 78.6
+    },
+    {
+      "word": " sie",
+      "start": 78.6,
+      "end": 78.76
+    },
+    {
+      "word": " den",
+      "start": 78.76,
+      "end": 78.96
+    },
+    {
+      "word": " Lander",
+      "start": 78.96,
+      "end": 79.4
+    },
+    {
+      "word": " Huygens",
+      "start": 79.4,
+      "end": 80.24
+    },
+    {
+      "word": " an",
+      "start": 80.24,
+      "end": 80.62
+    },
+    {
+      "word": " Bord.",
+      "start": 80.62,
+      "end": 80.96
+    },
+    {
+      "word": " ein",
+      "start": 80.96,
+      "end": 81.46
+    },
+    {
+      "word": " Projekt",
+      "start": 81.46,
+      "end": 81.9
+    },
+    {
+      "word": " der",
+      "start": 81.9,
+      "end": 82.2
+    },
+    {
+      "word": " Europäischen",
+      "start": 82.2,
+      "end": 82.92
+    },
+    {
+      "word": " Weltraumorganisation.",
+      "start": 82.92,
+      "end": 84.28
+    },
+    {
+      "word": " Am",
+      "start": 84.94,
+      "end": 85.38
+    },
+    {
+      "word": " 14.",
+      "start": 85.38,
+      "end": 85.78
+    },
+    {
+      "word": " Januar",
+      "start": 85.94,
+      "end": 86.36
+    },
+    {
+      "word": " 2005",
+      "start": 86.36,
+      "end": 87.44
+    },
+    {
+      "word": " trennte",
+      "start": 87.44,
+      "end": 88.3
+    },
+    {
+      "word": " sich",
+      "start": 88.3,
+      "end": 88.56
+    },
+    {
+      "word": " Huygens",
+      "start": 88.56,
+      "end": 88.98
+    },
+    {
+      "word": " ab",
+      "start": 88.98,
+      "end": 89.28
+    },
+    {
+      "word": " und",
+      "start": 89.28,
+      "end": 89.54
+    },
+    {
+      "word": " begann",
+      "start": 89.54,
+      "end": 90.06
+    },
+    {
+      "word": " den",
+      "start": 90.06,
+      "end": 90.32
+    },
+    {
+      "word": " Abstieg",
+      "start": 90.32,
+      "end": 90.86
+    },
+    {
+      "word": " zur",
+      "start": 90.86,
+      "end": 91.1
+    },
+    {
+      "word": " Oberfläche",
+      "start": 91.1,
+      "end": 91.9
+    },
+    {
+      "word": " des",
+      "start": 91.9,
+      "end": 92.68
+    },
+    {
+      "word": " Titan.",
+      "start": 92.68,
+      "end": 93.08
+    },
+    {
+      "word": " Der",
+      "start": 93.86,
+      "end": 94.28
+    },
+    {
+      "word": " Sinkflug",
+      "start": 94.28,
+      "end": 94.96
+    },
+    {
+      "word": " durch",
+      "start": 94.96,
+      "end": 95.24
+    },
+    {
+      "word": " die",
+      "start": 95.24,
+      "end": 95.42
+    },
+    {
+      "word": " Atmosphäre",
+      "start": 95.42,
+      "end": 96.14
+    },
+    {
+      "word": " dauerte",
+      "start": 96.14,
+      "end": 96.6
+    },
+    {
+      "word": " etwa",
+      "start": 96.6,
+      "end": 96.96
+    },
+    {
+      "word": " zwei",
+      "start": 96.96,
+      "end": 97.44
+    },
+    {
+      "word": " Stunden.",
+      "start": 97.44,
+      "end": 98.04
+    },
+    {
+      "word": " Und",
+      "start": 98.3,
+      "end": 98.86
+    },
+    {
+      "word": " alles,",
+      "start": 98.86,
+      "end": 99.14
+    },
+    {
+      "word": " was",
+      "start": 99.24,
+      "end": 99.34
+    },
+    {
+      "word": " die",
+      "start": 99.34,
+      "end": 99.54
+    },
+    {
+      "word": " Sonde",
+      "start": 99.54,
+      "end": 99.92
+    },
+    {
+      "word": " auf",
+      "start": 99.92,
+      "end": 100.14
+    },
+    {
+      "word": " ihrem",
+      "start": 100.14,
+      "end": 100.4
+    },
+    {
+      "word": " Wege",
+      "start": 100.4,
+      "end": 100.8
+    },
+    {
+      "word": " nach",
+      "start": 100.8,
+      "end": 101.04
+    },
+    {
+      "word": " unten",
+      "start": 101.04,
+      "end": 101.52
+    },
+    {
+      "word": " registrierte,",
+      "start": 101.52,
+      "end": 102.34
+    },
+    {
+      "word": " veränderte",
+      "start": 102.9,
+      "end": 103.54
+    },
+    {
+      "word": " unsere",
+      "start": 103.54,
+      "end": 103.88
+    },
+    {
+      "word": " Vorstellung",
+      "start": 103.88,
+      "end": 104.52
+    },
+    {
+      "word": " davon,",
+      "start": 104.52,
+      "end": 104.88
+    },
+    {
+      "word": " wie",
+      "start": 105.3,
+      "end": 105.56
+    },
+    {
+      "word": " Planeten",
+      "start": 105.56,
+      "end": 106.22
+    },
+    {
+      "word": " und",
+      "start": 106.22,
+      "end": 106.44
+    },
+    {
+      "word": " Monde",
+      "start": 106.44,
+      "end": 106.86
+    },
+    {
+      "word": " beschaffen",
+      "start": 106.86,
+      "end": 107.4
+    },
+    {
+      "word": " sein",
+      "start": 107.4,
+      "end": 107.64
+    },
+    {
+      "word": " können",
+      "start": 107.64,
+      "end": 108.0
+    },
+    {
+      "word": " und",
+      "start": 108.0,
+      "end": 108.74
+    },
+    {
+      "word": " was",
+      "start": 108.74,
+      "end": 108.98
+    },
+    {
+      "word": " es",
+      "start": 108.98,
+      "end": 109.14
+    },
+    {
+      "word": " bedeutet,",
+      "start": 109.14,
+      "end": 109.66
+    },
+    {
+      "word": " eine",
+      "start": 109.66,
+      "end": 110.22
+    },
+    {
+      "word": " vertraute",
+      "start": 110.22,
+      "end": 111.04
+    },
+    {
+      "word": " Welt",
+      "start": 111.04,
+      "end": 111.52
+    },
+    {
+      "word": " vor",
+      "start": 111.52,
+      "end": 112.24
+    },
+    {
+      "word": " sich",
+      "start": 112.24,
+      "end": 112.46
+    },
+    {
+      "word": " zu",
+      "start": 112.46,
+      "end": 112.68
+    },
+    {
+      "word": " haben.",
+      "start": 112.68,
+      "end": 113.02
+    },
+    {
+      "word": " Das",
+      "start": 113.38,
+      "end": 114.04
+    },
+    {
+      "word": " Erste,",
+      "start": 114.04,
+      "end": 114.46
+    },
+    {
+      "word": " worauf",
+      "start": 114.54,
+      "end": 114.86
+    },
+    {
+      "word": " sie",
+      "start": 114.86,
+      "end": 115.04
+    },
+    {
+      "word": " stieß,",
+      "start": 115.04,
+      "end": 115.5
+    },
+    {
+      "word": " war",
+      "start": 116.12,
+      "end": 116.2
+    },
+    {
+      "word": " die",
+      "start": 116.2,
+      "end": 116.36
+    },
+    {
+      "word": " Atmosphäre.",
+      "start": 116.36,
+      "end": 117.18
+    },
+    {
+      "word": " Sie",
+      "start": 117.64,
+      "end": 118.16
+    },
+    {
+      "word": " ist",
+      "start": 118.16,
+      "end": 118.36
+    },
+    {
+      "word": " etwa",
+      "start": 118.36,
+      "end": 118.62
+    },
+    {
+      "word": " anderthalb",
+      "start": 118.62,
+      "end": 119.24
+    },
+    {
+      "word": " Mal",
+      "start": 119.24,
+      "end": 119.48
+    },
+    {
+      "word": " so",
+      "start": 119.48,
+      "end": 119.74
+    },
+    {
+      "word": " dicht",
+      "start": 119.74,
+      "end": 120.16
+    },
+    {
+      "word": " wie",
+      "start": 120.16,
+      "end": 120.86
+    },
+    {
+      "word": " die",
+      "start": 120.86,
+      "end": 121.06
+    },
+    {
+      "word": " der",
+      "start": 121.06,
+      "end": 121.32
+    },
+    {
+      "word": " Erde.",
+      "start": 121.32,
+      "end": 121.74
+    },
+    {
+      "word": " Damit",
+      "start": 122.6,
+      "end": 122.9
+    },
+    {
+      "word": " ist",
+      "start": 122.9,
+      "end": 123.16
+    },
+    {
+      "word": " Titan",
+      "start": 123.16,
+      "end": 123.56
+    },
+    {
+      "word": " der",
+      "start": 123.56,
+      "end": 123.82
+    },
+    {
+      "word": " einzige",
+      "start": 123.82,
+      "end": 124.32
+    },
+    {
+      "word": " Mond",
+      "start": 124.32,
+      "end": 124.74
+    },
+    {
+      "word": " mit",
+      "start": 124.74,
+      "end": 125.24
+    },
+    {
+      "word": " einer",
+      "start": 125.24,
+      "end": 125.44
+    },
+    {
+      "word": " wirklich",
+      "start": 125.44,
+      "end": 125.84
+    },
+    {
+      "word": " massiven",
+      "start": 125.84,
+      "end": 126.78
+    },
+    {
+      "word": " Gashülle.",
+      "start": 126.78,
+      "end": 127.44
+    },
+    {
+      "word": " Die",
+      "start": 127.72,
+      "end": 128.32
+    },
+    {
+      "word": " Basis",
+      "start": 128.32,
+      "end": 128.8
+    },
+    {
+      "word": " bildet",
+      "start": 128.8,
+      "end": 129.2
+    },
+    {
+      "word": " Stickstoff,",
+      "start": 129.2,
+      "end": 129.78
+    },
+    {
+      "word": " etwa",
+      "start": 130.12,
+      "end": 130.52
+    },
+    {
+      "word": " 95",
+      "start": 130.52,
+      "end": 131.44
+    },
+    {
+      "word": " Prozent,",
+      "start": 131.44,
+      "end": 131.94
+    },
+    {
+      "word": " genau",
+      "start": 132.56,
+      "end": 132.78
+    },
+    {
+      "word": " wie",
+      "start": 132.78,
+      "end": 133.08
+    },
+    {
+      "word": " auf",
+      "start": 133.08,
+      "end": 133.26
+    },
+    {
+      "word": " der",
+      "start": 133.26,
+      "end": 133.42
+    },
+    {
+      "word": " Erde.",
+      "start": 133.42,
+      "end": 133.76
+    },
+    {
+      "word": " Doch",
+      "start": 134.38,
+      "end": 134.66
+    },
+    {
+      "word": " die",
+      "start": 134.66,
+      "end": 134.84
+    },
+    {
+      "word": " Ähnlichkeit",
+      "start": 134.84,
+      "end": 135.64
+    },
+    {
+      "word": " trügt.",
+      "start": 135.64,
+      "end": 136.48
+    },
+    {
+      "word": " Die",
+      "start": 136.48,
+      "end": 137.34
+    },
+    {
+      "word": " restlichen",
+      "start": 137.34,
+      "end": 137.9
+    },
+    {
+      "word": " 5",
+      "start": 137.9,
+      "end": 138.22
+    },
+    {
+      "word": "%",
+      "start": 138.22,
+      "end": 138.56
+    },
+    {
+      "word": " bestehen",
+      "start": 138.56,
+      "end": 139.5
+    },
+    {
+      "word": " aus",
+      "start": 139.5,
+      "end": 139.66
+    },
+    {
+      "word": " einer",
+      "start": 139.66,
+      "end": 139.86
+    },
+    {
+      "word": " Mischung",
+      "start": 139.86,
+      "end": 140.24
+    },
+    {
+      "word": " aus",
+      "start": 140.24,
+      "end": 140.46
+    },
+    {
+      "word": " Methan,",
+      "start": 140.46,
+      "end": 141.04
+    },
+    {
+      "word": " Wasserstoff",
+      "start": 141.3,
+      "end": 142.0
+    },
+    {
+      "word": " und",
+      "start": 142.0,
+      "end": 142.54
+    },
+    {
+      "word": " organischen",
+      "start": 142.54,
+      "end": 143.3
+    },
+    {
+      "word": " Verbindungen,",
+      "start": 143.3,
+      "end": 144.04
+    },
+    {
+      "word": " die",
+      "start": 144.28,
+      "end": 144.58
+    },
+    {
+      "word": " mit",
+      "start": 144.58,
+      "end": 144.82
+    },
+    {
+      "word": " dem",
+      "start": 144.82,
+      "end": 144.98
+    },
+    {
+      "word": " ultravioletten",
+      "start": 144.98,
+      "end": 145.86
+    },
+    {
+      "word": " Licht",
+      "start": 145.86,
+      "end": 146.2
+    },
+    {
+      "word": " reagieren",
+      "start": 146.2,
+      "end": 146.9
+    },
+    {
+      "word": " und",
+      "start": 146.9,
+      "end": 147.42
+    },
+    {
+      "word": " einen",
+      "start": 147.42,
+      "end": 147.64
+    },
+    {
+      "word": " dichten",
+      "start": 147.64,
+      "end": 148.16
+    },
+    {
+      "word": " orangefarbenen",
+      "start": 148.16,
+      "end": 149.34
+    },
+    {
+      "word": " Smog",
+      "start": 149.34,
+      "end": 149.64
+    },
+    {
+      "word": " erzeugen.",
+      "start": 149.64,
+      "end": 150.34
+    },
+    {
+      "word": " Er",
+      "start": 150.44,
+      "end": 150.72
+    },
+    {
+      "word": " ist",
+      "start": 150.72,
+      "end": 150.9
+    },
+    {
+      "word": " so",
+      "start": 150.9,
+      "end": 151.1
+    },
+    {
+      "word": " dick,",
+      "start": 151.1,
+      "end": 151.52
+    },
+    {
+      "word": " dass",
+      "start": 151.86,
+      "end": 152.02
+    },
+    {
+      "word": " das",
+      "start": 152.02,
+      "end": 152.24
+    },
+    {
+      "word": " Sonnenlicht",
+      "start": 152.24,
+      "end": 152.9
+    },
+    {
+      "word": " die",
+      "start": 152.9,
+      "end": 153.32
+    },
+    {
+      "word": " Oberfläche",
+      "start": 153.32,
+      "end": 154.04
+    },
+    {
+      "word": " kaum",
+      "start": 154.04,
+      "end": 154.46
+    },
+    {
+      "word": " erreicht.",
+      "start": 154.46,
+      "end": 155.02
+    },
+    {
+      "word": " Selbst",
+      "start": 155.64,
+      "end": 156.36
+    },
+    {
+      "word": " am",
+      "start": 156.36,
+      "end": 156.58
+    },
+    {
+      "word": " Tag",
+      "start": 156.58,
+      "end": 156.86
+    },
+    {
+      "word": " ist",
+      "start": 156.86,
+      "end": 157.14
+    },
+    {
+      "word": " es",
+      "start": 157.14,
+      "end": 157.32
+    },
+    {
+      "word": " dort",
+      "start": 157.32,
+      "end": 157.72
+    },
+    {
+      "word": " etwa",
+      "start": 157.72,
+      "end": 158.08
+    },
+    {
+      "word": " tausendmal",
+      "start": 158.08,
+      "end": 158.96
+    },
+    {
+      "word": " dunkler",
+      "start": 158.96,
+      "end": 159.46
+    },
+    {
+      "word": " als",
+      "start": 159.46,
+      "end": 159.7
+    },
+    {
+      "word": " auf",
+      "start": 159.7,
+      "end": 159.84
+    },
+    {
+      "word": " der",
+      "start": 159.84,
+      "end": 159.98
+    },
+    {
+      "word": " Erde.",
+      "start": 159.98,
+      "end": 160.34
+    },
+    {
+      "word": " Ein",
+      "start": 160.6,
+      "end": 161.16
+    },
+    {
+      "word": " ewiges",
+      "start": 161.16,
+      "end": 161.78
+    },
+    {
+      "word": " Zwielicht.",
+      "start": 161.78,
+      "end": 162.56
+    },
+    {
+      "word": " Man",
+      "start": 162.56,
+      "end": 163.54
+    },
+    {
+      "word": " sieht",
+      "start": 163.54,
+      "end": 163.84
+    },
+    {
+      "word": " die",
+      "start": 163.84,
+      "end": 164.04
+    },
+    {
+      "word": " eigenen",
+      "start": 164.04,
+      "end": 164.48
+    },
+    {
+      "word": " Hände",
+      "start": 164.48,
+      "end": 164.88
+    },
+    {
+      "word": " vor",
+      "start": 164.88,
+      "end": 165.14
+    },
+    {
+      "word": " Augen,",
+      "start": 165.14,
+      "end": 165.52
+    },
+    {
+      "word": " aber",
+      "start": 165.78,
+      "end": 166.24
+    },
+    {
+      "word": " den",
+      "start": 166.24,
+      "end": 166.44
+    },
+    {
+      "word": " Himmel",
+      "start": 166.44,
+      "end": 166.82
+    },
+    {
+      "word": " sieht",
+      "start": 166.82,
+      "end": 167.76
+    },
+    {
+      "word": " man",
+      "start": 167.76,
+      "end": 167.94
+    },
+    {
+      "word": " nicht",
+      "start": 167.94,
+      "end": 168.22
+    },
+    {
+      "word": " mehr.",
+      "start": 168.22,
+      "end": 168.54
+    },
+    {
+      "word": " Huygens",
+      "start": 169.6,
+      "end": 170.32
+    },
+    {
+      "word": " zeichnete",
+      "start": 170.32,
+      "end": 171.04
+    },
+    {
+      "word": " auch",
+      "start": 171.04,
+      "end": 171.28
+    },
+    {
+      "word": " die",
+      "start": 171.28,
+      "end": 171.44
+    },
+    {
+      "word": " Geräusche",
+      "start": 171.44,
+      "end": 172.02
+    },
+    {
+      "word": " des",
+      "start": 172.02,
+      "end": 172.24
+    },
+    {
+      "word": " Abstiegs",
+      "start": 172.24,
+      "end": 172.88
+    },
+    {
+      "word": " auf.",
+      "start": 172.88,
+      "end": 173.2
+    },
+    {
+      "word": " Windböen,",
+      "start": 174.08,
+      "end": 174.8
+    },
+    {
+      "word": " die",
+      "start": 174.96,
+      "end": 175.26
+    },
+    {
+      "word": " gegen",
+      "start": 175.26,
+      "end": 175.48
+    },
+    {
+      "word": " die",
+      "start": 175.48,
+      "end": 175.64
+    },
+    {
+      "word": " Hülle",
+      "start": 175.64,
+      "end": 175.94
+    },
+    {
+      "word": " peitschten.",
+      "start": 175.94,
+      "end": 176.54
+    },
+    {
+      "word": " Auf",
+      "start": 176.84,
+      "end": 177.22
+    },
+    {
+      "word": " dem",
+      "start": 177.22,
+      "end": 177.38
+    },
+    {
+      "word": " Titan",
+      "start": 177.38,
+      "end": 177.74
+    },
+    {
+      "word": " gibt",
+      "start": 177.74,
+      "end": 178.12
+    },
+    {
+      "word": " es",
+      "start": 178.12,
+      "end": 178.3
+    },
+    {
+      "word": " echtes",
+      "start": 178.3,
+      "end": 178.86
+    },
+    {
+      "word": " Wetter",
+      "start": 178.86,
+      "end": 179.2
+    },
+    {
+      "word": " und",
+      "start": 179.2,
+      "end": 179.76
+    },
+    {
+      "word": " einen",
+      "start": 179.76,
+      "end": 180.0
+    },
+    {
+      "word": " hydrologischen",
+      "start": 180.0,
+      "end": 180.82
+    },
+    {
+      "word": " Zyklus.",
+      "start": 180.82,
+      "end": 181.4
+    },
+    {
+      "word": " Methan",
+      "start": 182.1,
+      "end": 182.52
+    },
+    {
+      "word": " verdunstet,",
+      "start": 182.52,
+      "end": 183.3
+    },
+    {
+      "word": " steigt",
+      "start": 183.72,
+      "end": 183.98
+    },
+    {
+      "word": " auf,",
+      "start": 183.98,
+      "end": 184.42
+    },
+    {
+      "word": " bildet",
+      "start": 184.78,
+      "end": 185.14
+    },
+    {
+      "word": " Wolken",
+      "start": 185.14,
+      "end": 185.64
+    },
+    {
+      "word": " und",
+      "start": 185.64,
+      "end": 186.2
+    },
+    {
+      "word": " regnet",
+      "start": 186.2,
+      "end": 186.64
+    },
+    {
+      "word": " ab.",
+      "start": 186.64,
+      "end": 187.0
+    },
+    {
+      "word": " Die",
+      "start": 187.0,
+      "end": 187.64
+    },
+    {
+      "word": " Niederschläge",
+      "start": 187.64,
+      "end": 188.36
+    },
+    {
+      "word": " formen",
+      "start": 188.36,
+      "end": 188.74
+    },
+    {
+      "word": " Flussbetten",
+      "start": 188.74,
+      "end": 189.48
+    },
+    {
+      "word": " und",
+      "start": 189.48,
+      "end": 189.98
+    },
+    {
+      "word": " speisen",
+      "start": 189.98,
+      "end": 190.56
+    },
+    {
+      "word": " Ströme,",
+      "start": 190.56,
+      "end": 191.14
+    },
+    {
+      "word": " die",
+      "start": 191.26,
+      "end": 191.32
+    },
+    {
+      "word": " in",
+      "start": 191.32,
+      "end": 191.5
+    },
+    {
+      "word": " Seen",
+      "start": 191.5,
+      "end": 191.96
+    },
+    {
+      "word": " und",
+      "start": 191.96,
+      "end": 192.16
+    },
+    {
+      "word": " Meere",
+      "start": 192.16,
+      "end": 192.58
+    },
+    {
+      "word": " münden.",
+      "start": 192.58,
+      "end": 193.12
+    },
+    {
+      "word": " Ligeia",
+      "start": 193.96,
+      "end": 194.48
+    },
+    {
+      "word": " Mare",
+      "start": 194.48,
+      "end": 194.82
+    },
+    {
+      "word": " am",
+      "start": 194.82,
+      "end": 195.06
+    },
+    {
+      "word": " Nordpol",
+      "start": 195.06,
+      "end": 195.7
+    },
+    {
+      "word": " umfasst",
+      "start": 195.7,
+      "end": 196.24
+    },
+    {
+      "word": " etwa",
+      "start": 196.24,
+      "end": 196.52
+    },
+    {
+      "word": " 50",
+      "start": 196.52,
+      "end": 197.04
+    },
+    {
+      "word": ".000",
+      "start": 197.04,
+      "end": 197.6
+    },
+    {
+      "word": " Quadratkilometer,",
+      "start": 197.6,
+      "end": 198.74
+    },
+    {
+      "word": " größer",
+      "start": 199.02,
+      "end": 199.8
+    },
+    {
+      "word": " als",
+      "start": 199.8,
+      "end": 200.0
+    },
+    {
+      "word": " der",
+      "start": 200.0,
+      "end": 200.18
+    },
+    {
+      "word": " obere",
+      "start": 200.18,
+      "end": 200.66
+    },
+    {
+      "word": " See",
+      "start": 200.66,
+      "end": 200.96
+    },
+    {
+      "word": " in",
+      "start": 200.96,
+      "end": 201.2
+    },
+    {
+      "word": " Nordamerika.",
+      "start": 201.2,
+      "end": 202.14
+    },
+    {
+      "word": " Krakenmare",
+      "start": 202.86,
+      "end": 203.82
+    },
+    {
+      "word": " ist",
+      "start": 203.82,
+      "end": 204.46
+    },
+    {
+      "word": " noch",
+      "start": 204.46,
+      "end": 204.76
+    },
+    {
+      "word": " gewaltiger.",
+      "start": 204.76,
+      "end": 205.5
+    },
+    {
+      "word": " Mit",
+      "start": 205.74,
+      "end": 206.34
+    },
+    {
+      "word": " rund",
+      "start": 206.34,
+      "end": 206.58
+    },
+    {
+      "word": " 400",
+      "start": 206.58,
+      "end": 207.06
+    },
+    {
+      "word": ".000",
+      "start": 207.06,
+      "end": 207.58
+    },
+    {
+      "word": " Quadratkilometer",
+      "start": 207.58,
+      "end": 208.68
+    },
+    {
+      "word": " ist",
+      "start": 208.68,
+      "end": 209.28
+    },
+    {
+      "word": " es",
+      "start": 209.28,
+      "end": 209.48
+    },
+    {
+      "word": " vergleichbar",
+      "start": 209.48,
+      "end": 210.24
+    },
+    {
+      "word": " mit",
+      "start": 210.24,
+      "end": 210.42
+    },
+    {
+      "word": " dem",
+      "start": 210.42,
+      "end": 210.6
+    },
+    {
+      "word": " Kaspischen",
+      "start": 210.6,
+      "end": 211.22
+    },
+    {
+      "word": " Meer.",
+      "start": 211.22,
+      "end": 211.52
+    },
+    {
+      "word": " Aus",
+      "start": 211.98,
+      "end": 212.48
+    },
+    {
+      "word": " dem",
+      "start": 212.48,
+      "end": 212.64
+    },
+    {
+      "word": " Orbit",
+      "start": 212.64,
+      "end": 213.06
+    },
+    {
+      "word": " wirken",
+      "start": 213.06,
+      "end": 213.66
+    },
+    {
+      "word": " diese",
+      "start": 213.66,
+      "end": 213.96
+    },
+    {
+      "word": " Strukturen",
+      "start": 213.96,
+      "end": 214.66
+    },
+    {
+      "word": " wie",
+      "start": 214.66,
+      "end": 214.84
+    },
+    {
+      "word": " irdische",
+      "start": 214.84,
+      "end": 215.46
+    },
+    {
+      "word": " Küstenlinien.",
+      "start": 215.46,
+      "end": 216.42
+    },
+    {
+      "word": " Fjorde,",
+      "start": 216.42,
+      "end": 217.28
+    },
+    {
+      "word": " Inseln,",
+      "start": 217.8,
+      "end": 218.4
+    },
+    {
+      "word": " Buchten,",
+      "start": 218.8,
+      "end": 219.28
+    },
+    {
+      "word": " Einzugsgebiete.",
+      "start": 219.84,
+      "end": 220.88
+    },
+    {
+      "word": " Und",
+      "start": 221.24,
+      "end": 221.66
+    },
+    {
+      "word": " genau",
+      "start": 221.66,
+      "end": 221.98
+    },
+    {
+      "word": " hier",
+      "start": 221.98,
+      "end": 222.32
+    },
+    {
+      "word": " liegt",
+      "start": 222.32,
+      "end": 222.58
+    },
+    {
+      "word": " die",
+      "start": 222.58,
+      "end": 222.72
+    },
+    {
+      "word": " große",
+      "start": 222.72,
+      "end": 223.18
+    },
+    {
+      "word": " Täuschung",
+      "start": 223.18,
+      "end": 223.84
+    },
+    {
+      "word": " des",
+      "start": 223.84,
+      "end": 224.06
+    },
+    {
+      "word": " Titan.",
+      "start": 224.06,
+      "end": 224.46
+    },
+    {
+      "word": " Die",
+      "start": 225.0,
+      "end": 225.62
+    },
+    {
+      "word": " Geografie",
+      "start": 225.62,
+      "end": 226.38
+    },
+    {
+      "word": " erscheint",
+      "start": 226.38,
+      "end": 226.96
+    },
+    {
+      "word": " vertraut,",
+      "start": 226.96,
+      "end": 227.62
+    },
+    {
+      "word": " ebenso",
+      "start": 228.0,
+      "end": 228.66
+    },
+    {
+      "word": " die",
+      "start": 228.66,
+      "end": 228.84
+    },
+    {
+      "word": " Prozesse.",
+      "start": 228.84,
+      "end": 229.5
+    },
+    {
+      "word": " Verdunstung,",
+      "start": 229.98,
+      "end": 230.8
+    },
+    {
+      "word": " Kondensation,",
+      "start": 231.34,
+      "end": 231.9
+    },
+    {
+      "word": " Niederschlag,",
+      "start": 232.84,
+      "end": 233.58
+    },
+    {
+      "word": " Erosion.",
+      "start": 234.24,
+      "end": 234.82
+    },
+    {
+      "word": " Alles",
+      "start": 235.1,
+      "end": 235.8
+    },
+    {
+      "word": " funktioniert",
+      "start": 235.8,
+      "end": 236.58
+    },
+    {
+      "word": " wie",
+      "start": 236.58,
+      "end": 237.5
+    },
+    {
+      "word": " auf",
+      "start": 237.5,
+      "end": 237.84
+    },
+    {
+      "word": " der",
+      "start": 237.84,
+      "end": 238.0
+    },
+    {
+      "word": " Erde.",
+      "start": 238.0,
+      "end": 238.38
+    },
+    {
+      "word": " Der",
+      "start": 238.78,
+      "end": 239.34
+    },
+    {
+      "word": " einzige",
+      "start": 239.34,
+      "end": 239.78
+    },
+    {
+      "word": " Unterschied",
+      "start": 239.78,
+      "end": 240.26
+    },
+    {
+      "word": " ist",
+      "start": 240.26,
+      "end": 240.6
+    },
+    {
+      "word": " die",
+      "start": 240.6,
+      "end": 240.76
+    },
+    {
+      "word": " chemische",
+      "start": 240.76,
+      "end": 241.24
+    },
+    {
+      "word": " Zusammensetzung.",
+      "start": 241.24,
+      "end": 242.16
+    },
+    {
+      "word": " Die",
+      "start": 242.16,
+      "end": 242.84
+    },
+    {
+      "word": " Mechanik",
+      "start": 242.84,
+      "end": 243.34
+    },
+    {
+      "word": " ist",
+      "start": 243.34,
+      "end": 243.5
+    },
+    {
+      "word": " dieselbe,",
+      "start": 243.5,
+      "end": 244.06
+    },
+    {
+      "word": " aber",
+      "start": 244.28,
+      "end": 244.62
+    },
+    {
+      "word": " die",
+      "start": 244.62,
+      "end": 244.78
+    },
+    {
+      "word": " Stoffe",
+      "start": 244.78,
+      "end": 245.16
+    },
+    {
+      "word": " sind",
+      "start": 245.16,
+      "end": 245.38
+    },
+    {
+      "word": " vollkommen",
+      "start": 245.38,
+      "end": 245.94
+    },
+    {
+      "word": " fremd.",
+      "start": 245.94,
+      "end": 246.44
+    },
+    {
+      "word": " Methanregen",
+      "start": 247.22,
+      "end": 247.92
+    },
+    {
+      "word": " auf",
+      "start": 247.92,
+      "end": 248.12
+    },
+    {
+      "word": " dem",
+      "start": 248.12,
+      "end": 248.28
+    },
+    {
+      "word": " Titan",
+      "start": 248.28,
+      "end": 248.6
+    },
+    {
+      "word": " fällt",
+      "start": 248.6,
+      "end": 249.02
+    },
+    {
+      "word": " anders",
+      "start": 249.02,
+      "end": 249.5
+    },
+    {
+      "word": " als",
+      "start": 249.5,
+      "end": 249.9
+    },
+    {
+      "word": " Regen",
+      "start": 249.9,
+      "end": 250.5
+    },
+    {
+      "word": " auf",
+      "start": 250.5,
+      "end": 250.66
+    },
+    {
+      "word": " der",
+      "start": 250.66,
+      "end": 250.82
+    },
+    {
+      "word": " Erde.",
+      "start": 250.82,
+      "end": 251.22
+    },
+    {
+      "word": " Die",
+      "start": 251.7,
+      "end": 252.2
+    },
+    {
+      "word": " Schwerkraft",
+      "start": 252.2,
+      "end": 252.9
+    },
+    {
+      "word": " beträgt",
+      "start": 252.9,
+      "end": 253.42
+    },
+    {
+      "word": " hier",
+      "start": 253.42,
+      "end": 253.6
+    },
+    {
+      "word": " nur",
+      "start": 253.6,
+      "end": 253.78
+    },
+    {
+      "word": " etwa",
+      "start": 253.78,
+      "end": 254.1
+    },
+    {
+      "word": " 14",
+      "start": 254.1,
+      "end": 254.66
+    },
+    {
+      "word": "%",
+      "start": 254.66,
+      "end": 255.12
+    },
+    {
+      "word": " der",
+      "start": 255.12,
+      "end": 255.6
+    },
+    {
+      "word": " irdischen,",
+      "start": 255.6,
+      "end": 256.28
+    },
+    {
+      "word": " während",
+      "start": 256.74,
+      "end": 257.12
+    },
+    {
+      "word": " die",
+      "start": 257.12,
+      "end": 257.28
+    },
+    {
+      "word": " Atmosphäre",
+      "start": 257.28,
+      "end": 257.98
+    },
+    {
+      "word": " dichter",
+      "start": 257.98,
+      "end": 258.44
+    },
+    {
+      "word": " ist.",
+      "start": 258.44,
+      "end": 258.74
+    },
+    {
+      "word": " Deshalb",
+      "start": 259.22,
+      "end": 259.66
+    },
+    {
+      "word": " erreichen",
+      "start": 259.66,
+      "end": 260.24
+    },
+    {
+      "word": " die",
+      "start": 260.24,
+      "end": 260.44
+    },
+    {
+      "word": " Tropfen",
+      "start": 260.44,
+      "end": 260.94
+    },
+    {
+      "word": " enorme",
+      "start": 260.94,
+      "end": 261.38
+    },
+    {
+      "word": " Größen",
+      "start": 261.38,
+      "end": 262.0
+    },
+    {
+      "word": " bis",
+      "start": 262.0,
+      "end": 262.72
+    },
+    {
+      "word": " zu",
+      "start": 262.72,
+      "end": 262.94
+    },
+    {
+      "word": " einem",
+      "start": 262.94,
+      "end": 263.18
+    },
+    {
+      "word": " Zentimeter",
+      "start": 263.18,
+      "end": 263.84
+    },
+    {
+      "word": " im",
+      "start": 263.84,
+      "end": 264.02
+    },
+    {
+      "word": " Durchmesser",
+      "start": 264.02,
+      "end": 264.66
+    },
+    {
+      "word": " und",
+      "start": 264.66,
+      "end": 265.4
+    },
+    {
+      "word": " sinken",
+      "start": 265.4,
+      "end": 265.88
+    },
+    {
+      "word": " langsam",
+      "start": 265.88,
+      "end": 266.34
+    },
+    {
+      "word": " herab,",
+      "start": 266.34,
+      "end": 266.86
+    },
+    {
+      "word": " wie",
+      "start": 267.04,
+      "end": 267.74
+    },
+    {
+      "word": " in",
+      "start": 267.74,
+      "end": 267.94
+    },
+    {
+      "word": " Zeitlupe.",
+      "start": 267.94,
+      "end": 268.4
+    },
+    {
+      "word": " Würde",
+      "start": 269.18,
+      "end": 269.9
+    },
+    {
+      "word": " ein",
+      "start": 269.9,
+      "end": 270.1
+    },
+    {
+      "word": " solcher",
+      "start": 270.1,
+      "end": 270.52
+    },
+    {
+      "word": " Tropfen",
+      "start": 270.52,
+      "end": 271.0
+    },
+    {
+      "word": " auf",
+      "start": 271.0,
+      "end": 271.16
+    },
+    {
+      "word": " einen",
+      "start": 271.16,
+      "end": 271.38
+    },
+    {
+      "word": " Raumanzug",
+      "start": 271.38,
+      "end": 272.2
+    },
+    {
+      "word": " treffen,",
+      "start": 272.2,
+      "end": 272.6
+    },
+    {
+      "word": " würde",
+      "start": 273.2,
+      "end": 273.34
+    },
+    {
+      "word": " er",
+      "start": 273.34,
+      "end": 273.52
+    },
+    {
+      "word": " nicht",
+      "start": 273.52,
+      "end": 273.76
+    },
+    {
+      "word": " zerplatzen,",
+      "start": 273.76,
+      "end": 274.5
+    },
+    {
+      "word": " sondern",
+      "start": 274.84,
+      "end": 275.18
+    },
+    {
+      "word": " zäh",
+      "start": 275.18,
+      "end": 275.5
+    },
+    {
+      "word": " zerfließen.",
+      "start": 275.5,
+      "end": 276.32
+    },
+    {
+      "word": " Kalt",
+      "start": 276.8,
+      "end": 277.38
+    },
+    {
+      "word": " und",
+      "start": 277.38,
+      "end": 278.12
+    },
+    {
+      "word": " Viskos.",
+      "start": 278.12,
+      "end": 278.92
+    },
+    {
+      "word": " Methan",
+      "start": 279.62,
+      "end": 280.34
+    },
+    {
+      "word": " wirkt",
+      "start": 280.34,
+      "end": 280.66
+    },
+    {
+      "word": " dabei",
+      "start": 280.66,
+      "end": 280.9
+    },
+    {
+      "word": " als",
+      "start": 280.9,
+      "end": 281.2
+    },
+    {
+      "word": " Lösungsmittel.",
+      "start": 281.2,
+      "end": 282.06
+    },
+    {
+      "word": " Es",
+      "start": 282.38,
+      "end": 282.86
+    },
+    {
+      "word": " kann",
+      "start": 282.86,
+      "end": 283.02
+    },
+    {
+      "word": " bestimmte",
+      "start": 283.02,
+      "end": 283.5
+    },
+    {
+      "word": " Arten",
+      "start": 283.5,
+      "end": 283.86
+    },
+    {
+      "word": " von",
+      "start": 283.86,
+      "end": 284.1
+    },
+    {
+      "word": " Kunststoff",
+      "start": 284.1,
+      "end": 284.82
+    },
+    {
+      "word": " und",
+      "start": 284.82,
+      "end": 285.06
+    },
+    {
+      "word": " Gummi",
+      "start": 285.06,
+      "end": 285.42
+    },
+    {
+      "word": " zersetzen.",
+      "start": 285.42,
+      "end": 286.1
+    },
+    {
+      "word": " Die",
+      "start": 286.3,
+      "end": 286.84
+    },
+    {
+      "word": " falschen",
+      "start": 286.84,
+      "end": 287.38
+    },
+    {
+      "word": " Dichtungen",
+      "start": 287.38,
+      "end": 287.86
+    },
+    {
+      "word": " würden",
+      "start": 287.86,
+      "end": 288.16
+    },
+    {
+      "word": " bedeuten,",
+      "start": 288.16,
+      "end": 288.74
+    },
+    {
+      "word": " dass",
+      "start": 288.96,
+      "end": 289.28
+    },
+    {
+      "word": " der",
+      "start": 289.28,
+      "end": 289.46
+    },
+    {
+      "word": " Regen",
+      "start": 289.46,
+      "end": 289.9
+    },
+    {
+      "word": " die",
+      "start": 289.9,
+      "end": 290.06
+    },
+    {
+      "word": " Ausrüstung",
+      "start": 290.06,
+      "end": 290.86
+    },
+    {
+      "word": " nicht",
+      "start": 290.86,
+      "end": 291.12
+    },
+    {
+      "word": " nur",
+      "start": 291.12,
+      "end": 291.4
+    },
+    {
+      "word": " nass",
+      "start": 291.4,
+      "end": 291.78
+    },
+    {
+      "word": " macht,",
+      "start": 291.78,
+      "end": 292.12
+    },
+    {
+      "word": " sondern",
+      "start": 292.56,
+      "end": 292.76
+    },
+    {
+      "word": " sie",
+      "start": 292.76,
+      "end": 293.0
+    },
+    {
+      "word": " förmlich",
+      "start": 293.0,
+      "end": 293.48
+    },
+    {
+      "word": " zerfrisst.",
+      "start": 293.48,
+      "end": 294.24
+    },
+    {
+      "word": " Die",
+      "start": 294.24,
+      "end": 294.98
+    },
+    {
+      "word": " Oberfläche,",
+      "start": 294.98,
+      "end": 295.68
+    },
+    {
+      "word": " auf",
+      "start": 295.86,
+      "end": 295.9
+    },
+    {
+      "word": " der",
+      "start": 295.9,
+      "end": 296.06
+    },
+    {
+      "word": " Eigens",
+      "start": 296.06,
+      "end": 296.72
+    },
+    {
+      "word": " landete,",
+      "start": 296.72,
+      "end": 297.32
+    },
+    {
+      "word": " war",
+      "start": 297.66,
+      "end": 297.9
+    },
+    {
+      "word": " nicht",
+      "start": 297.9,
+      "end": 298.12
+    },
+    {
+      "word": " weniger",
+      "start": 298.12,
+      "end": 298.58
+    },
+    {
+      "word": " überraschend.",
+      "start": 298.58,
+      "end": 299.34
+    },
+    {
+      "word": " Die",
+      "start": 299.52,
+      "end": 300.02
+    },
+    {
+      "word": " Sonde",
+      "start": 300.02,
+      "end": 300.46
+    },
+    {
+      "word": " prallte",
+      "start": 300.46,
+      "end": 301.04
+    },
+    {
+      "word": " nicht",
+      "start": 301.04,
+      "end": 301.24
+    },
+    {
+      "word": " ab,",
+      "start": 301.24,
+      "end": 301.54
+    },
+    {
+      "word": " sondern",
+      "start": 301.66,
+      "end": 301.88
+    },
+    {
+      "word": " sank",
+      "start": 301.88,
+      "end": 302.24
+    },
+    {
+      "word": " leicht",
+      "start": 302.24,
+      "end": 302.6
+    },
+    {
+      "word": " ein",
+      "start": 302.6,
+      "end": 302.96
+    },
+    {
+      "word": " und",
+      "start": 302.96,
+      "end": 303.18
+    },
+    {
+      "word": " stabilisierte",
+      "start": 303.18,
+      "end": 304.08
+    },
+    {
+      "word": " sich.",
+      "start": 304.08,
+      "end": 304.42
+    },
+    {
+      "word": " Die",
+      "start": 304.68,
+      "end": 305.12
+    },
+    {
+      "word": " Daten",
+      "start": 305.12,
+      "end": 305.48
+    },
+    {
+      "word": " zeigten",
+      "start": 305.48,
+      "end": 305.98
+    },
+    {
+      "word": " eine",
+      "start": 305.98,
+      "end": 306.28
+    },
+    {
+      "word": " dünne,",
+      "start": 306.28,
+      "end": 306.72
+    },
+    {
+      "word": " feste",
+      "start": 306.92,
+      "end": 307.32
+    },
+    {
+      "word": " Kruste",
+      "start": 307.32,
+      "end": 307.78
+    },
+    {
+      "word": " über",
+      "start": 307.78,
+      "end": 308.08
+    },
+    {
+      "word": " einer",
+      "start": 308.08,
+      "end": 308.34
+    },
+    {
+      "word": " weicheren",
+      "start": 308.34,
+      "end": 308.94
+    },
+    {
+      "word": " Schicht,",
+      "start": 308.94,
+      "end": 309.42
+    },
+    {
+      "word": " die",
+      "start": 309.6,
+      "end": 309.92
+    },
+    {
+      "word": " an",
+      "start": 309.92,
+      "end": 310.08
+    },
+    {
+      "word": " feuchten",
+      "start": 310.08,
+      "end": 310.64
+    },
+    {
+      "word": " Sand",
+      "start": 310.64,
+      "end": 310.98
+    },
+    {
+      "word": " oder",
+      "start": 310.98,
+      "end": 311.24
+    },
+    {
+      "word": " Ton",
+      "start": 311.24,
+      "end": 311.58
+    },
+    {
+      "word": " erinnerte.",
+      "start": 311.58,
+      "end": 312.22
+    },
+    {
+      "word": " Nur",
+      "start": 313.08,
+      "end": 313.44
+    },
+    {
+      "word": " dass",
+      "start": 313.44,
+      "end": 313.66
+    },
+    {
+      "word": " die",
+      "start": 313.66,
+      "end": 313.86
+    },
+    {
+      "word": " Rolle",
+      "start": 313.86,
+      "end": 314.12
+    },
+    {
+      "word": " der",
+      "start": 314.12,
+      "end": 314.34
+    },
+    {
+      "word": " Feuchtigkeit",
+      "start": 314.34,
+      "end": 315.16
+    },
+    {
+      "word": " hier",
+      "start": 315.16,
+      "end": 315.78
+    },
+    {
+      "word": " von",
+      "start": 315.78,
+      "end": 316.14
+    },
+    {
+      "word": " flüssigen",
+      "start": 316.14,
+      "end": 316.78
+    },
+    {
+      "word": " Kohlenwasserstoffen",
+      "start": 316.78,
+      "end": 317.9
+    },
+    {
+      "word": " übernommen",
+      "start": 317.9,
+      "end": 318.4
+    },
+    {
+      "word": " wurde.",
+      "start": 318.4,
+      "end": 318.82
+    },
+    {
+      "word": " Die",
+      "start": 319.52,
+      "end": 319.88
+    },
+    {
+      "word": " Kamera",
+      "start": 319.88,
+      "end": 320.22
+    },
+    {
+      "word": " des",
+      "start": 320.22,
+      "end": 320.48
+    },
+    {
+      "word": " Landers",
+      "start": 320.48,
+      "end": 321.04
+    },
+    {
+      "word": " schoss",
+      "start": 321.04,
+      "end": 321.66
+    },
+    {
+      "word": " ein",
+      "start": 321.66,
+      "end": 321.94
+    },
+    {
+      "word": " einziges",
+      "start": 321.94,
+      "end": 322.6
+    },
+    {
+      "word": " Foto.",
+      "start": 322.6,
+      "end": 323.06
+    },
+    {
+      "word": " Es",
+      "start": 323.06,
+      "end": 323.9
+    },
+    {
+      "word": " zeigt",
+      "start": 323.9,
+      "end": 324.26
+    },
+    {
+      "word": " eine",
+      "start": 324.26,
+      "end": 324.48
+    },
+    {
+      "word": " flache",
+      "start": 324.48,
+      "end": 324.88
+    },
+    {
+      "word": " Ebene",
+      "start": 324.88,
+      "end": 325.38
+    },
+    {
+      "word": " mit",
+      "start": 325.38,
+      "end": 325.58
+    },
+    {
+      "word": " abgerundeten",
+      "start": 325.58,
+      "end": 326.44
+    },
+    {
+      "word": " Steinen",
+      "start": 326.44,
+      "end": 327.0
+    },
+    {
+      "word": " und",
+      "start": 327.0,
+      "end": 327.62
+    },
+    {
+      "word": " Kieselwälzungen.",
+      "start": 327.62,
+      "end": 328.06
+    },
+    {
+      "word": " Sie",
+      "start": 329.04,
+      "end": 329.44
+    },
+    {
+      "word": " sahen",
+      "start": 329.44,
+      "end": 329.78
+    },
+    {
+      "word": " aus",
+      "start": 329.78,
+      "end": 330.12
+    },
+    {
+      "word": " wie",
+      "start": 330.12,
+      "end": 330.3
+    },
+    {
+      "word": " gewöhnliche",
+      "start": 330.3,
+      "end": 330.92
+    },
+    {
+      "word": " Flusssteine",
+      "start": 330.92,
+      "end": 331.6
+    },
+    {
+      "word": " auf",
+      "start": 331.6,
+      "end": 331.76
+    },
+    {
+      "word": " der",
+      "start": 331.76,
+      "end": 331.92
+    },
+    {
+      "word": " Erde,",
+      "start": 331.92,
+      "end": 332.3
+    },
+    {
+      "word": " glatt",
+      "start": 333.04,
+      "end": 333.34
+    },
+    {
+      "word": " geschliffen",
+      "start": 333.34,
+      "end": 334.02
+    },
+    {
+      "word": " durch",
+      "start": 334.02,
+      "end": 334.56
+    },
+    {
+      "word": " eine",
+      "start": 334.56,
+      "end": 334.82
+    },
+    {
+      "word": " Strömung.",
+      "start": 334.82,
+      "end": 335.52
+    },
+    {
+      "word": " Die",
+      "start": 336.15,
+      "end": 336.52
+    },
+    {
+      "word": " Ähnlichkeit",
+      "start": 336.52,
+      "end": 337.22
+    },
+    {
+      "word": " war",
+      "start": 337.22,
+      "end": 337.4
+    },
+    {
+      "word": " so",
+      "start": 337.4,
+      "end": 337.62
+    },
+    {
+      "word": " verblüffend,",
+      "start": 337.62,
+      "end": 338.32
+    },
+    {
+      "word": " dass",
+      "start": 338.52,
+      "end": 338.84
+    },
+    {
+      "word": " ein",
+      "start": 338.84,
+      "end": 339.02
+    },
+    {
+      "word": " Forscher",
+      "start": 339.02,
+      "end": 339.44
+    },
+    {
+      "word": " sie",
+      "start": 339.44,
+      "end": 339.62
+    },
+    {
+      "word": " mit",
+      "start": 339.62,
+      "end": 339.8
+    },
+    {
+      "word": " einem",
+      "start": 339.8,
+      "end": 340.02
+    },
+    {
+      "word": " ausgetrockneten",
+      "start": 340.02,
+      "end": 340.94
+    },
+    {
+      "word": " Flussbett",
+      "start": 340.94,
+      "end": 341.6
+    },
+    {
+      "word": " in",
+      "start": 341.6,
+      "end": 341.84
+    },
+    {
+      "word": " Arizona",
+      "start": 341.84,
+      "end": 342.48
+    },
+    {
+      "word": " verglich.",
+      "start": 342.48,
+      "end": 342.96
+    },
+    {
+      "word": " Doch",
+      "start": 343.75,
+      "end": 344.12
+    },
+    {
+      "word": " es",
+      "start": 344.12,
+      "end": 344.34
+    },
+    {
+      "word": " ist",
+      "start": 344.34,
+      "end": 344.56
+    },
+    {
+      "word": " nicht",
+      "start": 344.56,
+      "end": 344.76
+    },
+    {
+      "word": " die",
+      "start": 344.76,
+      "end": 344.94
+    },
+    {
+      "word": " Erde.",
+      "start": 344.94,
+      "end": 345.36
+    },
+    {
+      "word": " Die",
+      "start": 345.99,
+      "end": 346.36
+    },
+    {
+      "word": " Steine",
+      "start": 346.36,
+      "end": 346.8
+    },
+    {
+      "word": " bestehen",
+      "start": 346.8,
+      "end": 347.3
+    },
+    {
+      "word": " aus",
+      "start": 347.3,
+      "end": 347.54
+    },
+    {
+      "word": " Wassereis,",
+      "start": 347.54,
+      "end": 348.3
+    },
+    {
+      "word": " das",
+      "start": 348.72,
+      "end": 349.1
+    },
+    {
+      "word": " bei",
+      "start": 349.1,
+      "end": 349.28
+    },
+    {
+      "word": " diesen",
+      "start": 349.28,
+      "end": 349.62
+    },
+    {
+      "word": " Temperaturen",
+      "start": 349.62,
+      "end": 350.5
+    },
+    {
+      "word": " hart",
+      "start": 350.5,
+      "end": 350.84
+    },
+    {
+      "word": " wie",
+      "start": 350.84,
+      "end": 351.06
+    },
+    {
+      "word": " Fels",
+      "start": 351.06,
+      "end": 351.48
+    },
+    {
+      "word": " ist",
+      "start": 351.48,
+      "end": 351.84
+    },
+    {
+      "word": " und",
+      "start": 351.84,
+      "end": 352.5
+    },
+    {
+      "word": " von",
+      "start": 352.5,
+      "end": 352.78
+    },
+    {
+      "word": " Strömen",
+      "start": 352.78,
+      "end": 353.36
+    },
+    {
+      "word": " aus",
+      "start": 353.36,
+      "end": 353.62
+    },
+    {
+      "word": " flüssigem",
+      "start": 353.62,
+      "end": 354.26
+    },
+    {
+      "word": " Methan",
+      "start": 354.26,
+      "end": 354.72
+    },
+    {
+      "word": " geformt",
+      "start": 354.72,
+      "end": 355.26
+    },
+    {
+      "word": " wurde.",
+      "start": 355.26,
+      "end": 355.6
+    },
+    {
+      "word": " Das",
+      "start": 356.3,
+      "end": 356.68
+    },
+    {
+      "word": " ist",
+      "start": 356.68,
+      "end": 356.86
+    },
+    {
+      "word": " der",
+      "start": 356.86,
+      "end": 357.04
+    },
+    {
+      "word": " Kern",
+      "start": 357.04,
+      "end": 357.42
+    },
+    {
+      "word": " des",
+      "start": 357.42,
+      "end": 357.66
+    },
+    {
+      "word": " Titan.",
+      "start": 357.66,
+      "end": 358.06
+    },
+    {
+      "word": " Er",
+      "start": 358.82,
+      "end": 359.2
+    },
+    {
+      "word": " zeigt",
+      "start": 359.2,
+      "end": 359.6
+    },
+    {
+      "word": " uns",
+      "start": 359.6,
+      "end": 359.92
+    },
+    {
+      "word": " vertraute",
+      "start": 359.92,
+      "end": 360.64
+    },
+    {
+      "word": " Formen,",
+      "start": 360.64,
+      "end": 361.3
+    },
+    {
+      "word": " nur",
+      "start": 361.44,
+      "end": 362.04
+    },
+    {
+      "word": " um",
+      "start": 362.04,
+      "end": 362.28
+    },
+    {
+      "word": " dann",
+      "start": 362.28,
+      "end": 362.58
+    },
+    {
+      "word": " ihre",
+      "start": 362.58,
+      "end": 362.9
+    },
+    {
+      "word": " wahre",
+      "start": 362.9,
+      "end": 363.28
+    },
+    {
+      "word": " Natur",
+      "start": 363.28,
+      "end": 363.66
+    },
+    {
+      "word": " zu",
+      "start": 363.66,
+      "end": 363.9
+    },
+    {
+      "word": " offenbaren.",
+      "start": 363.9,
+      "end": 364.56
+    },
+    {
+      "word": " Und",
+      "start": 365.06,
+      "end": 365.44
+    },
+    {
+      "word": " das",
+      "start": 365.44,
+      "end": 365.66
+    },
+    {
+      "word": " macht",
+      "start": 365.66,
+      "end": 365.9
+    },
+    {
+      "word": " das",
+      "start": 365.9,
+      "end": 366.08
+    },
+    {
+      "word": " Bild",
+      "start": 366.08,
+      "end": 366.42
+    },
+    {
+      "word": " nur",
+      "start": 366.42,
+      "end": 367.2
+    },
+    {
+      "word": " noch",
+      "start": 367.2,
+      "end": 367.46
+    },
+    {
+      "word": " beunruhigender.",
+      "start": 367.46,
+      "end": 368.38
+    },
+    {
+      "word": " Die",
+      "start": 368.68,
+      "end": 369.26
+    },
+    {
+      "word": " Dünen",
+      "start": 369.26,
+      "end": 369.62
+    },
+    {
+      "word": " sind",
+      "start": 369.62,
+      "end": 370.32
+    },
+    {
+      "word": " ein",
+      "start": 370.32,
+      "end": 370.6
+    },
+    {
+      "word": " weiteres",
+      "start": 370.6,
+      "end": 371.14
+    },
+    {
+      "word": " Beispiel.",
+      "start": 371.14,
+      "end": 371.6
+    },
+    {
+      "word": " Das",
+      "start": 372.08,
+      "end": 372.48
+    },
+    {
+      "word": " Radar",
+      "start": 372.48,
+      "end": 372.88
+    },
+    {
+      "word": " von",
+      "start": 372.88,
+      "end": 373.12
+    },
+    {
+      "word": " Cassini",
+      "start": 373.12,
+      "end": 373.78
+    },
+    {
+      "word": " entdeckte",
+      "start": 373.78,
+      "end": 374.78
+    },
+    {
+      "word": " am",
+      "start": 374.78,
+      "end": 374.94
+    },
+    {
+      "word": " Äquator",
+      "start": 374.94,
+      "end": 375.66
+    },
+    {
+      "word": " riesige",
+      "start": 375.66,
+      "end": 376.62
+    },
+    {
+      "word": " Felder,",
+      "start": 376.62,
+      "end": 377.14
+    },
+    {
+      "word": " die",
+      "start": 377.32,
+      "end": 377.68
+    },
+    {
+      "word": " sich",
+      "start": 377.68,
+      "end": 377.9
+    },
+    {
+      "word": " über",
+      "start": 377.9,
+      "end": 378.22
+    },
+    {
+      "word": " hunderte",
+      "start": 378.22,
+      "end": 378.68
+    },
+    {
+      "word": " Kilometer",
+      "start": 378.68,
+      "end": 379.34
+    },
+    {
+      "word": " in",
+      "start": 379.34,
+      "end": 379.56
+    },
+    {
+      "word": " parallelen",
+      "start": 379.56,
+      "end": 380.32
+    },
+    {
+      "word": " Linien",
+      "start": 380.32,
+      "end": 380.7
+    },
+    {
+      "word": " erstrecken.",
+      "start": 380.7,
+      "end": 381.32
+    },
+    {
+      "word": " In",
+      "start": 381.84,
+      "end": 382.04
+    },
+    {
+      "word": " Form",
+      "start": 382.04,
+      "end": 382.36
+    },
+    {
+      "word": " und",
+      "start": 382.36,
+      "end": 382.56
+    },
+    {
+      "word": " Ausmaß",
+      "start": 382.56,
+      "end": 383.26
+    },
+    {
+      "word": " sind",
+      "start": 383.26,
+      "end": 383.76
+    },
+    {
+      "word": " sie",
+      "start": 383.76,
+      "end": 383.92
+    },
+    {
+      "word": " kaum",
+      "start": 383.92,
+      "end": 384.28
+    },
+    {
+      "word": " von",
+      "start": 384.28,
+      "end": 384.64
+    },
+    {
+      "word": " irdischen",
+      "start": 384.64,
+      "end": 385.22
+    },
+    {
+      "word": " Wüsten",
+      "start": 385.22,
+      "end": 385.66
+    },
+    {
+      "word": " zu",
+      "start": 385.66,
+      "end": 385.9
+    },
+    {
+      "word": " unterscheiden.",
+      "start": 385.9,
+      "end": 386.7
+    },
+    {
+      "word": " Aber",
+      "start": 386.94,
+      "end": 387.44
+    },
+    {
+      "word": " ihr",
+      "start": 387.44,
+      "end": 387.68
+    },
+    {
+      "word": " Sand",
+      "start": 387.68,
+      "end": 388.18
+    },
+    {
+      "word": " ist",
+      "start": 388.18,
+      "end": 388.92
+    },
+    {
+      "word": " kein",
+      "start": 388.92,
+      "end": 389.26
+    },
+    {
+      "word": " Silikat.",
+      "start": 389.26,
+      "end": 389.84
+    },
+    {
+      "word": " Er",
+      "start": 390.2,
+      "end": 390.64
+    },
+    {
+      "word": " besteht",
+      "start": 390.64,
+      "end": 391.02
+    },
+    {
+      "word": " aus",
+      "start": 391.02,
+      "end": 391.36
+    },
+    {
+      "word": " Tolinen,",
+      "start": 391.36,
+      "end": 392.04
+    },
+    {
+      "word": " komplexen",
+      "start": 392.56,
+      "end": 393.2
+    },
+    {
+      "word": " organischen",
+      "start": 393.2,
+      "end": 393.86
+    },
+    {
+      "word": " Molekülen,",
+      "start": 393.86,
+      "end": 394.64
+    },
+    {
+      "word": " die",
+      "start": 394.82,
+      "end": 395.16
+    },
+    {
+      "word": " entstehen,",
+      "start": 395.16,
+      "end": 395.78
+    },
+    {
+      "word": " wenn",
+      "start": 395.92,
+      "end": 396.04
+    },
+    {
+      "word": " ultraviolette",
+      "start": 396.04,
+      "end": 397.18
+    },
+    {
+      "word": " Strahlung",
+      "start": 397.18,
+      "end": 397.8
+    },
+    {
+      "word": " auf",
+      "start": 397.8,
+      "end": 398.02
+    },
+    {
+      "word": " Methan",
+      "start": 398.02,
+      "end": 398.6
+    },
+    {
+      "word": " und",
+      "start": 398.6,
+      "end": 398.8
+    },
+    {
+      "word": " Stickstoff",
+      "start": 398.8,
+      "end": 399.38
+    },
+    {
+      "word": " in",
+      "start": 399.38,
+      "end": 399.54
+    },
+    {
+      "word": " der",
+      "start": 399.54,
+      "end": 399.66
+    },
+    {
+      "word": " Atmosphäre",
+      "start": 399.66,
+      "end": 400.32
+    },
+    {
+      "word": " trifft.",
+      "start": 400.32,
+      "end": 400.82
+    },
+    {
+      "word": " Diese",
+      "start": 401.22,
+      "end": 401.68
+    },
+    {
+      "word": " Partikel",
+      "start": 401.68,
+      "end": 402.3
+    },
+    {
+      "word": " verkleben,",
+      "start": 402.3,
+      "end": 402.94
+    },
+    {
+      "word": " werden",
+      "start": 403.44,
+      "end": 403.66
+    },
+    {
+      "word": " schwerer",
+      "start": 403.66,
+      "end": 404.32
+    },
+    {
+      "word": " und",
+      "start": 404.32,
+      "end": 404.6
+    },
+    {
+      "word": " sinken",
+      "start": 404.6,
+      "end": 405.22
+    },
+    {
+      "word": " langsam",
+      "start": 405.22,
+      "end": 405.6
+    },
+    {
+      "word": " wie",
+      "start": 405.6,
+      "end": 405.94
+    },
+    {
+      "word": " Schnee",
+      "start": 405.94,
+      "end": 406.4
+    },
+    {
+      "word": " auf",
+      "start": 406.4,
+      "end": 406.54
+    },
+    {
+      "word": " die",
+      "start": 406.54,
+      "end": 406.68
+    },
+    {
+      "word": " Oberfläche,",
+      "start": 406.68,
+      "end": 407.09
+    },
+    {
+      "word": " wo",
+      "start": 407.62,
+      "end": 407.94
+    },
+    {
+      "word": " sie",
+      "start": 407.94,
+      "end": 408.12
+    },
+    {
+      "word": " über",
+      "start": 408.12,
+      "end": 408.38
+    },
+    {
+      "word": " Millionen",
+      "start": 408.38,
+      "end": 408.92
+    },
+    {
+      "word": " von",
+      "start": 408.92,
+      "end": 409.34
+    },
+    {
+      "word": " Jahren",
+      "start": 409.34,
+      "end": 409.74
+    },
+    {
+      "word": " Dünen",
+      "start": 409.74,
+      "end": 410.22
+    },
+    {
+      "word": " formen.",
+      "start": 410.22,
+      "end": 410.74
+    },
+    {
+      "word": " Das",
+      "start": 410.74,
+      "end": 411.44
+    },
+    {
+      "word": " ist",
+      "start": 411.44,
+      "end": 411.62
+    },
+    {
+      "word": " eine",
+      "start": 411.62,
+      "end": 411.86
+    },
+    {
+      "word": " fremde",
+      "start": 411.86,
+      "end": 412.38
+    },
+    {
+      "word": " Chemie,",
+      "start": 412.38,
+      "end": 412.96
+    },
+    {
+      "word": " gefährlich",
+      "start": 413.14,
+      "end": 413.94
+    },
+    {
+      "word": " und",
+      "start": 413.94,
+      "end": 414.4
+    },
+    {
+      "word": " absolut",
+      "start": 414.4,
+      "end": 415.02
+    },
+    {
+      "word": " unvergleichbar",
+      "start": 415.02,
+      "end": 416.04
+    },
+    {
+      "word": " mit",
+      "start": 416.04,
+      "end": 416.62
+    },
+    {
+      "word": " gewöhnlichen",
+      "start": 416.62,
+      "end": 417.46
+    },
+    {
+      "word": " irdischen",
+      "start": 417.46,
+      "end": 418.26
+    },
+    {
+      "word": " Materialien.",
+      "start": 418.26,
+      "end": 419.14
+    },
+    {
+      "word": " Es",
+      "start": 419.56,
+      "end": 420.0
+    },
+    {
+      "word": " gibt",
+      "start": 420.0,
+      "end": 420.16
+    },
+    {
+      "word": " ein",
+      "start": 420.16,
+      "end": 420.3
+    },
+    {
+      "word": " Detail",
+      "start": 420.3,
+      "end": 420.84
+    },
+    {
+      "word": " dieser",
+      "start": 420.84,
+      "end": 421.18
+    },
+    {
+      "word": " Dünen,",
+      "start": 421.18,
+      "end": 421.66
+    },
+    {
+      "word": " das",
+      "start": 421.88,
+      "end": 422.24
+    },
+    {
+      "word": " oft",
+      "start": 422.24,
+      "end": 422.46
+    },
+    {
+      "word": " übersehen",
+      "start": 422.46,
+      "end": 423.0
+    },
+    {
+      "word": " wird.",
+      "start": 423.0,
+      "end": 423.34
+    },
+    {
+      "word": " Sie",
+      "start": 423.6,
+      "end": 424.2
+    },
+    {
+      "word": " zeigen",
+      "start": 424.2,
+      "end": 424.7
+    },
+    {
+      "word": " in",
+      "start": 424.7,
+      "end": 425.36
+    },
+    {
+      "word": " die",
+      "start": 425.36,
+      "end": 425.5
+    },
+    {
+      "word": " falsche",
+      "start": 425.5,
+      "end": 426.02
+    },
+    {
+      "word": " Richtung.",
+      "start": 426.02,
+      "end": 426.4
+    },
+    {
+      "word": " Die",
+      "start": 426.98,
+      "end": 427.42
+    },
+    {
+      "word": " vorherrschenden",
+      "start": 427.42,
+      "end": 428.22
+    },
+    {
+      "word": " Winde",
+      "start": 428.22,
+      "end": 428.62
+    },
+    {
+      "word": " am",
+      "start": 428.62,
+      "end": 428.78
+    },
+    {
+      "word": " Äquator",
+      "start": 428.78,
+      "end": 429.34
+    },
+    {
+      "word": " des",
+      "start": 429.34,
+      "end": 429.52
+    },
+    {
+      "word": " Titan",
+      "start": 429.52,
+      "end": 429.86
+    },
+    {
+      "word": " wehen",
+      "start": 429.86,
+      "end": 431.04
+    },
+    {
+      "word": " von",
+      "start": 431.04,
+      "end": 431.26
+    },
+    {
+      "word": " Ost",
+      "start": 431.26,
+      "end": 431.6
+    },
+    {
+      "word": " nach",
+      "start": 431.6,
+      "end": 431.82
+    },
+    {
+      "word": " West,",
+      "start": 431.82,
+      "end": 432.14
+    },
+    {
+      "word": " was",
+      "start": 432.42,
+      "end": 432.86
+    },
+    {
+      "word": " bei",
+      "start": 432.86,
+      "end": 433.06
+    },
+    {
+      "word": " seiner",
+      "start": 433.06,
+      "end": 433.32
+    },
+    {
+      "word": " langsamen",
+      "start": 433.32,
+      "end": 433.9
+    },
+    {
+      "word": " Rotation",
+      "start": 433.9,
+      "end": 434.58
+    },
+    {
+      "word": " logisch",
+      "start": 434.58,
+      "end": 435.78
+    },
+    {
+      "word": " erscheint.",
+      "start": 435.78,
+      "end": 436.42
+    },
+    {
+      "word": " Doch",
+      "start": 436.42,
+      "end": 437.24
+    },
+    {
+      "word": " die",
+      "start": 437.24,
+      "end": 437.4
+    },
+    {
+      "word": " Dünen",
+      "start": 437.4,
+      "end": 437.74
+    },
+    {
+      "word": " selbst",
+      "start": 437.74,
+      "end": 438.24
+    },
+    {
+      "word": " sind",
+      "start": 438.24,
+      "end": 438.78
+    },
+    {
+      "word": " von",
+      "start": 438.78,
+      "end": 439.02
+    },
+    {
+      "word": " West",
+      "start": 439.02,
+      "end": 439.38
+    },
+    {
+      "word": " nach",
+      "start": 439.38,
+      "end": 439.88
+    },
+    {
+      "word": " Ost",
+      "start": 439.88,
+      "end": 440.32
+    },
+    {
+      "word": " ausgerichtet.",
+      "start": 440.32,
+      "end": 441.3
+    },
+    {
+      "word": " Lange",
+      "start": 441.78,
+      "end": 442.4
+    },
+    {
+      "word": " Zeit",
+      "start": 442.4,
+      "end": 442.86
+    },
+    {
+      "word": " blieb",
+      "start": 442.86,
+      "end": 443.24
+    },
+    {
+      "word": " dies",
+      "start": 443.24,
+      "end": 443.42
+    },
+    {
+      "word": " ein",
+      "start": 443.42,
+      "end": 443.62
+    },
+    {
+      "word": " Rätsel.",
+      "start": 443.62,
+      "end": 444.12
+    },
+    {
+      "word": " Später",
+      "start": 444.66,
+      "end": 445.36
+    },
+    {
+      "word": " schlugen",
+      "start": 445.36,
+      "end": 445.78
+    },
+    {
+      "word": " Forscher",
+      "start": 445.78,
+      "end": 446.24
+    },
+    {
+      "word": " basierend",
+      "start": 446.24,
+      "end": 447.0
+    },
+    {
+      "word": " auf",
+      "start": 447.0,
+      "end": 447.18
+    },
+    {
+      "word": " Cassini",
+      "start": 447.18,
+      "end": 447.72
+    },
+    {
+      "word": "-Daten",
+      "start": 447.72,
+      "end": 448.1
+    },
+    {
+      "word": " eine",
+      "start": 448.1,
+      "end": 448.34
+    },
+    {
+      "word": " Erklärung",
+      "start": 448.34,
+      "end": 448.98
+    },
+    {
+      "word": " vor.",
+      "start": 448.98,
+      "end": 449.3
+    },
+    {
+      "word": " Auf",
+      "start": 449.85,
+      "end": 450.32
+    },
+    {
+      "word": " dem",
+      "start": 450.32,
+      "end": 450.48
+    },
+    {
+      "word": " Titan",
+      "start": 450.48,
+      "end": 450.86
+    },
+    {
+      "word": " entstehen",
+      "start": 450.86,
+      "end": 451.88
+    },
+    {
+      "word": " gelegentlich",
+      "start": 451.88,
+      "end": 452.72
+    },
+    {
+      "word": " gewaltige",
+      "start": 452.72,
+      "end": 453.5
+    },
+    {
+      "word": " Äquatorialstürme,",
+      "start": 453.5,
+      "end": 454.96
+    },
+    {
+      "word": " kurze",
+      "start": 455.36,
+      "end": 456.0
+    },
+    {
+      "word": " aber",
+      "start": 456.0,
+      "end": 456.24
+    },
+    {
+      "word": " extrem",
+      "start": 456.24,
+      "end": 456.9
+    },
+    {
+      "word": " intensive",
+      "start": 456.9,
+      "end": 457.56
+    },
+    {
+      "word": " Methan",
+      "start": 457.56,
+      "end": 458.26
+    },
+    {
+      "word": "-Sindfluten.",
+      "start": 458.26,
+      "end": 458.73
+    },
+    {
+      "word": " Sie",
+      "start": 459.22,
+      "end": 459.7
+    },
+    {
+      "word": " erzeugen",
+      "start": 459.7,
+      "end": 460.22
+    },
+    {
+      "word": " starke",
+      "start": 460.22,
+      "end": 460.72
+    },
+    {
+      "word": " Bodenwinde,",
+      "start": 460.72,
+      "end": 461.52
+    },
+    {
+      "word": " die",
+      "start": 461.7,
+      "end": 462.0
+    },
+    {
+      "word": " in",
+      "start": 462.0,
+      "end": 462.16
+    },
+    {
+      "word": " die",
+      "start": 462.16,
+      "end": 462.28
+    },
+    {
+      "word": " entgegengesetzte",
+      "start": 462.28,
+      "end": 463.52
+    },
+    {
+      "word": " Richtung",
+      "start": 463.52,
+      "end": 463.92
+    },
+    {
+      "word": " wehen.",
+      "start": 463.92,
+      "end": 464.36
+    },
+    {
+      "word": " Diese",
+      "start": 465.11,
+      "end": 465.52
+    },
+    {
+      "word": " seltenen",
+      "start": 465.52,
+      "end": 466.18
+    },
+    {
+      "word": " Ereignisse",
+      "start": 466.18,
+      "end": 466.98
+    },
+    {
+      "word": " sind",
+      "start": 466.98,
+      "end": 467.24
+    },
+    {
+      "word": " stark",
+      "start": 467.24,
+      "end": 467.62
+    },
+    {
+      "word": " genug,",
+      "start": 467.62,
+      "end": 468.1
+    },
+    {
+      "word": " um",
+      "start": 468.34,
+      "end": 468.62
+    },
+    {
+      "word": " den",
+      "start": 468.62,
+      "end": 468.8
+    },
+    {
+      "word": " Einfluss",
+      "start": 468.8,
+      "end": 469.38
+    },
+    {
+      "word": " der",
+      "start": 469.38,
+      "end": 469.54
+    },
+    {
+      "word": " normalen",
+      "start": 469.54,
+      "end": 470.26
+    },
+    {
+      "word": " Winde",
+      "start": 470.26,
+      "end": 470.62
+    },
+    {
+      "word": " zu",
+      "start": 470.62,
+      "end": 470.8
+    },
+    {
+      "word": " überlagern",
+      "start": 470.8,
+      "end": 471.56
+    },
+    {
+      "word": " und",
+      "start": 471.56,
+      "end": 472.1
+    },
+    {
+      "word": " den",
+      "start": 472.1,
+      "end": 472.32
+    },
+    {
+      "word": " Sand",
+      "start": 472.32,
+      "end": 472.68
+    },
+    {
+      "word": " zu",
+      "start": 472.68,
+      "end": 472.94
+    },
+    {
+      "word": " verschieben.",
+      "start": 472.94,
+      "end": 473.56
+    },
+    {
+      "word": " In",
+      "start": 473.84,
+      "end": 474.6
+    },
+    {
+      "word": " ruhigen",
+      "start": 474.6,
+      "end": 475.02
+    },
+    {
+      "word": " Phasen",
+      "start": 475.02,
+      "end": 475.68
+    },
+    {
+      "word": " wachsen",
+      "start": 475.68,
+      "end": 476.5
+    },
+    {
+      "word": " die",
+      "start": 476.5,
+      "end": 476.68
+    },
+    {
+      "word": " Dünen",
+      "start": 476.68,
+      "end": 477.08
+    },
+    {
+      "word": " langsam,",
+      "start": 477.08,
+      "end": 477.66
+    },
+    {
+      "word": " doch",
+      "start": 478.02,
+      "end": 478.32
+    },
+    {
+      "word": " Stürme",
+      "start": 478.32,
+      "end": 478.82
+    },
+    {
+      "word": " können",
+      "start": 478.82,
+      "end": 479.1
+    },
+    {
+      "word": " sie",
+      "start": 479.1,
+      "end": 479.32
+    },
+    {
+      "word": " innerhalb",
+      "start": 479.32,
+      "end": 479.76
+    },
+    {
+      "word": " von",
+      "start": 479.76,
+      "end": 480.3
+    },
+    {
+      "word": " Stunden",
+      "start": 480.3,
+      "end": 480.82
+    },
+    {
+      "word": " umgestalten.",
+      "start": 480.82,
+      "end": 481.88
+    },
+    {
+      "word": " Ihre",
+      "start": 482.3,
+      "end": 482.68
+    },
+    {
+      "word": " Form",
+      "start": 482.68,
+      "end": 483.08
+    },
+    {
+      "word": " wird",
+      "start": 483.08,
+      "end": 483.32
+    },
+    {
+      "word": " also",
+      "start": 483.32,
+      "end": 483.62
+    },
+    {
+      "word": " nicht",
+      "start": 483.62,
+      "end": 483.9
+    },
+    {
+      "word": " nur",
+      "start": 483.9,
+      "end": 484.3
+    },
+    {
+      "word": " durch",
+      "start": 484.3,
+      "end": 484.88
+    },
+    {
+      "word": " stetige",
+      "start": 484.88,
+      "end": 485.58
+    },
+    {
+      "word": " Strömungen",
+      "start": 485.58,
+      "end": 486.22
+    },
+    {
+      "word": " bestimmt,",
+      "start": 486.22,
+      "end": 486.62
+    },
+    {
+      "word": " sondern",
+      "start": 487.24,
+      "end": 487.54
+    },
+    {
+      "word": " durch",
+      "start": 487.54,
+      "end": 487.94
+    },
+    {
+      "word": " plötzliche",
+      "start": 487.94,
+      "end": 488.64
+    },
+    {
+      "word": " Ausbrüche",
+      "start": 488.64,
+      "end": 489.5
+    },
+    {
+      "word": " gewaltiger",
+      "start": 489.5,
+      "end": 490.48
+    },
+    {
+      "word": " Aktivität.",
+      "start": 490.48,
+      "end": 491.62
+    },
+    {
+      "word": " Unter",
+      "start": 491.62,
+      "end": 492.8
+    },
+    {
+      "word": " dieser",
+      "start": 492.8,
+      "end": 493.12
+    },
+    {
+      "word": " Oberfläche",
+      "start": 493.12,
+      "end": 493.92
+    },
+    {
+      "word": " verbirgt",
+      "start": 493.92,
+      "end": 494.8
+    },
+    {
+      "word": " sich",
+      "start": 494.8,
+      "end": 495.08
+    },
+    {
+      "word": " eine",
+      "start": 495.08,
+      "end": 495.42
+    },
+    {
+      "word": " noch",
+      "start": 495.42,
+      "end": 495.68
+    },
+    {
+      "word": " ungewöhnlichere",
+      "start": 495.68,
+      "end": 496.88
+    },
+    {
+      "word": " Struktur.",
+      "start": 496.88,
+      "end": 497.64
+    },
+    {
+      "word": " Bei",
+      "start": 498.5,
+      "end": 498.92
+    },
+    {
+      "word": " Vorbeiflügen",
+      "start": 498.92,
+      "end": 499.78
+    },
+    {
+      "word": " zwischen",
+      "start": 499.78,
+      "end": 500.14
+    },
+    {
+      "word": " 2006",
+      "start": 500.14,
+      "end": 501.34
+    },
+    {
+      "word": " und",
+      "start": 501.34,
+      "end": 501.72
+    },
+    {
+      "word": " 2012",
+      "start": 501.72,
+      "end": 502.98
+    },
+    {
+      "word": " registrierte",
+      "start": 502.98,
+      "end": 504.0
+    },
+    {
+      "word": " Cassini",
+      "start": 504.0,
+      "end": 504.86
+    },
+    {
+      "word": " winzige",
+      "start": 504.86,
+      "end": 505.78
+    },
+    {
+      "word": " Veränderungen",
+      "start": 505.78,
+      "end": 506.6
+    },
+    {
+      "word": " im",
+      "start": 506.6,
+      "end": 507.08
+    },
+    {
+      "word": " Gravitationsfeld",
+      "start": 507.08,
+      "end": 508.26
+    },
+    {
+      "word": " des",
+      "start": 508.26,
+      "end": 508.56
+    },
+    {
+      "word": " Titan.",
+      "start": 508.56,
+      "end": 508.94
+    },
+    {
+      "word": " Diese",
+      "start": 509.36,
+      "end": 509.98
+    },
+    {
+      "word": " Daten",
+      "start": 509.98,
+      "end": 510.32
+    },
+    {
+      "word": " bewiesen,",
+      "start": 510.32,
+      "end": 510.88
+    },
+    {
+      "word": " dass",
+      "start": 511.26,
+      "end": 511.48
+    },
+    {
+      "word": " seine",
+      "start": 511.48,
+      "end": 511.72
+    },
+    {
+      "word": " Oberfläche",
+      "start": 511.72,
+      "end": 512.46
+    },
+    {
+      "word": " nicht",
+      "start": 512.46,
+      "end": 512.76
+    },
+    {
+      "word": " auf",
+      "start": 512.76,
+      "end": 513.1
+    },
+    {
+      "word": " festem",
+      "start": 513.1,
+      "end": 513.62
+    },
+    {
+      "word": " Gestein",
+      "start": 513.62,
+      "end": 514.16
+    },
+    {
+      "word": " ruht,",
+      "start": 514.16,
+      "end": 514.5
+    },
+    {
+      "word": " sondern",
+      "start": 514.88,
+      "end": 515.18
+    },
+    {
+      "word": " auf",
+      "start": 515.18,
+      "end": 515.42
+    },
+    {
+      "word": " einem",
+      "start": 515.42,
+      "end": 515.64
+    },
+    {
+      "word": " Eispanzer.",
+      "start": 515.64,
+      "end": 516.56
+    },
+    {
+      "word": " Und",
+      "start": 516.56,
+      "end": 517.3
+    },
+    {
+      "word": " darunter",
+      "start": 517.3,
+      "end": 517.88
+    },
+    {
+      "word": " befindet",
+      "start": 517.88,
+      "end": 518.36
+    },
+    {
+      "word": " sich",
+      "start": 518.36,
+      "end": 518.62
+    },
+    {
+      "word": " mit",
+      "start": 518.62,
+      "end": 518.82
+    },
+    {
+      "word": " an",
+      "start": 518.82,
+      "end": 519.0
+    },
+    {
+      "word": " Sicherheit",
+      "start": 519.0,
+      "end": 519.42
+    },
+    {
+      "word": " grenzender",
+      "start": 519.42,
+      "end": 520.12
+    },
+    {
+      "word": " Wahrscheinlichkeit",
+      "start": 520.12,
+      "end": 521.16
+    },
+    {
+      "word": " ein",
+      "start": 521.16,
+      "end": 521.68
+    },
+    {
+      "word": " globaler",
+      "start": 521.68,
+      "end": 522.46
+    },
+    {
+      "word": " Ozean",
+      "start": 522.46,
+      "end": 523.16
+    },
+    {
+      "word": " aus",
+      "start": 523.16,
+      "end": 523.44
+    },
+    {
+      "word": " flüssigem",
+      "start": 523.44,
+      "end": 524.04
+    },
+    {
+      "word": " Wasser,",
+      "start": 524.04,
+      "end": 524.38
+    },
+    {
+      "word": " möglicherweise",
+      "start": 524.82,
+      "end": 525.72
+    },
+    {
+      "word": " mit",
+      "start": 525.72,
+      "end": 526.34
+    },
+    {
+      "word": " Ammoniak",
+      "start": 526.34,
+      "end": 527.12
+    },
+    {
+      "word": " versetzt,",
+      "start": 527.12,
+      "end": 527.68
+    },
+    {
+      "word": " verborgen",
+      "start": 528.14,
+      "end": 528.68
+    },
+    {
+      "word": " unter",
+      "start": 528.68,
+      "end": 528.9
+    },
+    {
+      "word": " einer",
+      "start": 528.9,
+      "end": 529.16
+    },
+    {
+      "word": " Schicht",
+      "start": 529.16,
+      "end": 529.58
+    },
+    {
+      "word": " von",
+      "start": 529.58,
+      "end": 529.82
+    },
+    {
+      "word": " 50",
+      "start": 529.82,
+      "end": 530.36
+    },
+    {
+      "word": " bis",
+      "start": 530.36,
+      "end": 530.9
+    },
+    {
+      "word": " 100",
+      "start": 530.9,
+      "end": 531.66
+    },
+    {
+      "word": " Kilometern",
+      "start": 531.66,
+      "end": 532.46
+    },
+    {
+      "word": " Dicke.",
+      "start": 532.46,
+      "end": 532.94
+    },
+    {
+      "word": " Titan",
+      "start": 533.54,
+      "end": 534.12
+    },
+    {
+      "word": " hat",
+      "start": 534.12,
+      "end": 534.88
+    },
+    {
+      "word": " also",
+      "start": 534.88,
+      "end": 535.3
+    },
+    {
+      "word": " zwei",
+      "start": 535.3,
+      "end": 535.98
+    },
+    {
+      "word": " Ebenen.",
+      "start": 535.98,
+      "end": 536.7
+    },
+    {
+      "word": " Oben",
+      "start": 537.24,
+      "end": 537.78
+    },
+    {
+      "word": " die",
+      "start": 537.78,
+      "end": 537.96
+    },
+    {
+      "word": " kalte",
+      "start": 537.96,
+      "end": 538.44
+    },
+    {
+      "word": " Methanwelt,",
+      "start": 538.44,
+      "end": 539.26
+    },
+    {
+      "word": " die",
+      "start": 539.5,
+      "end": 539.78
+    },
+    {
+      "word": " äußerlich",
+      "start": 539.78,
+      "end": 540.32
+    },
+    {
+      "word": " der",
+      "start": 540.32,
+      "end": 540.5
+    },
+    {
+      "word": " Erde",
+      "start": 540.5,
+      "end": 540.86
+    },
+    {
+      "word": " ähnelt.",
+      "start": 540.86,
+      "end": 541.46
+    },
+    {
+      "word": " Darunter",
+      "start": 541.46,
+      "end": 542.34
+    },
+    {
+      "word": " der",
+      "start": 542.34,
+      "end": 542.5
+    },
+    {
+      "word": " verborgene",
+      "start": 542.5,
+      "end": 543.18
+    },
+    {
+      "word": " Wasserozean,",
+      "start": 543.18,
+      "end": 544.22
+    },
+    {
+      "word": " der",
+      "start": 544.38,
+      "end": 544.7
+    },
+    {
+      "word": " jedem",
+      "start": 544.7,
+      "end": 545.18
+    },
+    {
+      "word": " direkten",
+      "start": 545.18,
+      "end": 545.74
+    },
+    {
+      "word": " Blick",
+      "start": 545.74,
+      "end": 546.06
+    },
+    {
+      "word": " entzogen",
+      "start": 546.06,
+      "end": 546.74
+    },
+    {
+      "word": " ist.",
+      "start": 546.74,
+      "end": 547.08
+    },
+    {
+      "word": " Und",
+      "start": 547.26,
+      "end": 547.64
+    },
+    {
+      "word": " genau",
+      "start": 547.64,
+      "end": 547.96
+    },
+    {
+      "word": " dieser",
+      "start": 547.96,
+      "end": 548.44
+    },
+    {
+      "word": " Ozean",
+      "start": 548.44,
+      "end": 549.1
+    },
+    {
+      "word": " weckt",
+      "start": 549.1,
+      "end": 549.38
+    },
+    {
+      "word": " das",
+      "start": 549.38,
+      "end": 549.7
+    },
+    {
+      "word": " größte",
+      "start": 549.7,
+      "end": 550.24
+    },
+    {
+      "word": " Interesse.",
+      "start": 550.24,
+      "end": 550.8
+    },
+    {
+      "word": " Falls",
+      "start": 551.5,
+      "end": 551.86
+    },
+    {
+      "word": " es",
+      "start": 551.86,
+      "end": 552.06
+    },
+    {
+      "word": " dort",
+      "start": 552.06,
+      "end": 552.28
+    },
+    {
+      "word": " Kontakt",
+      "start": 552.28,
+      "end": 552.72
+    },
+    {
+      "word": " zwischen",
+      "start": 552.72,
+      "end": 553.14
+    },
+    {
+      "word": " dem",
+      "start": 553.14,
+      "end": 553.36
+    },
+    {
+      "word": " Wasser",
+      "start": 553.36,
+      "end": 553.7
+    },
+    {
+      "word": " und",
+      "start": 553.7,
+      "end": 554.22
+    },
+    {
+      "word": " einem",
+      "start": 554.22,
+      "end": 554.48
+    },
+    {
+      "word": " Gesteinskern",
+      "start": 554.48,
+      "end": 555.3
+    },
+    {
+      "word": " gibt,",
+      "start": 555.3,
+      "end": 555.58
+    },
+    {
+      "word": " könnte",
+      "start": 556.02,
+      "end": 556.3
+    },
+    {
+      "word": " hydrothermale",
+      "start": 556.3,
+      "end": 557.38
+    },
+    {
+      "word": " Aktivität",
+      "start": 557.38,
+      "end": 558.24
+    },
+    {
+      "word": " entstehen.",
+      "start": 558.24,
+      "end": 558.94
+    },
+    {
+      "word": " Das",
+      "start": 559.12,
+      "end": 559.68
+    },
+    {
+      "word": " ist",
+      "start": 559.68,
+      "end": 559.9
+    },
+    {
+      "word": " einer",
+      "start": 559.9,
+      "end": 560.22
+    },
+    {
+      "word": " der",
+      "start": 560.22,
+      "end": 560.44
+    },
+    {
+      "word": " Schlüsselmechanismen",
+      "start": 560.44,
+      "end": 561.78
+    },
+    {
+      "word": " für",
+      "start": 561.78,
+      "end": 562.2
+    },
+    {
+      "word": " die",
+      "start": 562.2,
+      "end": 562.34
+    },
+    {
+      "word": " Entstehung",
+      "start": 562.34,
+      "end": 563.1
+    },
+    {
+      "word": " von",
+      "start": 563.1,
+      "end": 563.34
+    },
+    {
+      "word": " Leben.",
+      "start": 563.34,
+      "end": 563.7
+    },
+    {
+      "word": " Auf",
+      "start": 563.7,
+      "end": 564.72
+    },
+    {
+      "word": " der",
+      "start": 564.72,
+      "end": 564.84
+    },
+    {
+      "word": " Erde",
+      "start": 564.84,
+      "end": 565.16
+    },
+    {
+      "word": " speisen",
+      "start": 565.16,
+      "end": 565.82
+    },
+    {
+      "word": " solche",
+      "start": 565.82,
+      "end": 566.22
+    },
+    {
+      "word": " Prozesse",
+      "start": 566.22,
+      "end": 566.92
+    },
+    {
+      "word": " Ökosysteme",
+      "start": 566.92,
+      "end": 568.2
+    },
+    {
+      "word": " in",
+      "start": 568.2,
+      "end": 568.3
+    },
+    {
+      "word": " der",
+      "start": 568.3,
+      "end": 568.46
+    },
+    {
+      "word": " Tiefsee,",
+      "start": 568.46,
+      "end": 569.08
+    },
+    {
+      "word": " die",
+      "start": 569.3,
+      "end": 569.66
+    },
+    {
+      "word": " völlig",
+      "start": 569.66,
+      "end": 569.98
+    },
+    {
+      "word": " unabhängig",
+      "start": 569.98,
+      "end": 570.78
+    },
+    {
+      "word": " vom",
+      "start": 570.78,
+      "end": 571.2
+    },
+    {
+      "word": " Sonnenlicht",
+      "start": 571.2,
+      "end": 572.0
+    },
+    {
+      "word": " existieren.",
+      "start": 572.0,
+      "end": 573.04
+    },
+    {
+      "word": " Auf",
+      "start": 573.32,
+      "end": 573.72
+    },
+    {
+      "word": " dem",
+      "start": 573.72,
+      "end": 573.88
+    },
+    {
+      "word": " Titan",
+      "start": 573.88,
+      "end": 574.18
+    },
+    {
+      "word": " könnte",
+      "start": 574.18,
+      "end": 574.64
+    },
+    {
+      "word": " etwas",
+      "start": 574.64,
+      "end": 575.0
+    },
+    {
+      "word": " Ähnliches",
+      "start": 575.0,
+      "end": 575.78
+    },
+    {
+      "word": " genau",
+      "start": 575.78,
+      "end": 576.12
+    },
+    {
+      "word": " jetzt",
+      "start": 576.12,
+      "end": 576.58
+    },
+    {
+      "word": " geschehen,",
+      "start": 576.58,
+      "end": 577.16
+    },
+    {
+      "word": " tief",
+      "start": 577.36,
+      "end": 577.98
+    },
+    {
+      "word": " unter",
+      "start": 577.98,
+      "end": 578.38
+    },
+    {
+      "word": " der",
+      "start": 578.38,
+      "end": 578.58
+    },
+    {
+      "word": " Oberfläche,",
+      "start": 578.58,
+      "end": 579.36
+    },
+    {
+      "word": " in",
+      "start": 579.64,
+      "end": 580.02
+    },
+    {
+      "word": " totaler",
+      "start": 580.02,
+      "end": 580.58
+    },
+    {
+      "word": " Dunkelheit",
+      "start": 580.58,
+      "end": 581.3
+    },
+    {
+      "word": " und",
+      "start": 581.3,
+      "end": 581.94
+    },
+    {
+      "word": " unter",
+      "start": 581.94,
+      "end": 582.24
+    },
+    {
+      "word": " gewaltigem",
+      "start": 582.24,
+      "end": 582.96
+    },
+    {
+      "word": " Druck.",
+      "start": 582.96,
+      "end": 583.3
+    },
+    {
+      "word": " Aber",
+      "start": 583.56,
+      "end": 584.12
+    },
+    {
+      "word": " auch",
+      "start": 584.12,
+      "end": 584.44
+    },
+    {
+      "word": " an",
+      "start": 584.44,
+      "end": 584.68
+    },
+    {
+      "word": " der",
+      "start": 584.68,
+      "end": 584.82
+    },
+    {
+      "word": " Oberfläche",
+      "start": 584.82,
+      "end": 585.6
+    },
+    {
+      "word": " gibt",
+      "start": 585.6,
+      "end": 586.14
+    },
+    {
+      "word": " es",
+      "start": 586.14,
+      "end": 586.36
+    },
+    {
+      "word": " eine",
+      "start": 586.36,
+      "end": 586.62
+    },
+    {
+      "word": " höchst",
+      "start": 586.62,
+      "end": 587.12
+    },
+    {
+      "word": " ungewöhnliche",
+      "start": 587.12,
+      "end": 588.2
+    },
+    {
+      "word": " Theorie.",
+      "start": 588.2,
+      "end": 588.74
+    },
+    {
+      "word": " Im",
+      "start": 588.74,
+      "end": 589.9
+    },
+    {
+      "word": " Jahr",
+      "start": 589.9,
+      "end": 590.14
+    },
+    {
+      "word": " 2015",
+      "start": 590.14,
+      "end": 591.32
+    },
+    {
+      "word": " versuchten",
+      "start": 591.32,
+      "end": 592.74
+    },
+    {
+      "word": " Forscher",
+      "start": 592.74,
+      "end": 593.24
+    },
+    {
+      "word": " der",
+      "start": 593.24,
+      "end": 593.44
+    },
+    {
+      "word": " Cornell",
+      "start": 593.44,
+      "end": 593.86
+    },
+    {
+      "word": " University",
+      "start": 593.86,
+      "end": 594.68
+    },
+    {
+      "word": " zu",
+      "start": 594.68,
+      "end": 595.0
+    },
+    {
+      "word": " modellieren,",
+      "start": 595.0,
+      "end": 595.7
+    },
+    {
+      "word": " wie",
+      "start": 595.98,
+      "end": 596.38
+    },
+    {
+      "word": " eine",
+      "start": 596.38,
+      "end": 596.64
+    },
+    {
+      "word": " Zellmembran",
+      "start": 596.64,
+      "end": 597.74
+    },
+    {
+      "word": " aussehen",
+      "start": 597.74,
+      "end": 598.28
+    },
+    {
+      "word": " könnte,",
+      "start": 598.28,
+      "end": 598.68
+    },
+    {
+      "word": " die",
+      "start": 598.92,
+      "end": 599.26
+    },
+    {
+      "word": " nicht",
+      "start": 599.26,
+      "end": 599.52
+    },
+    {
+      "word": " in",
+      "start": 599.52,
+      "end": 599.72
+    },
+    {
+      "word": " Wasser,",
+      "start": 599.72,
+      "end": 600.12
+    },
+    {
+      "word": " sondern",
+      "start": 600.36,
+      "end": 600.9
+    },
+    {
+      "word": " in",
+      "start": 600.9,
+      "end": 601.2
+    },
+    {
+      "word": " flüssigem",
+      "start": 601.2,
+      "end": 601.86
+    },
+    {
+      "word": " Methan",
+      "start": 601.86,
+      "end": 602.38
+    },
+    {
+      "word": " funktioniert.",
+      "start": 602.38,
+      "end": 603.16
+    },
+    {
+      "word": " Auf",
+      "start": 603.86,
+      "end": 604.36
+    },
+    {
+      "word": " der",
+      "start": 604.36,
+      "end": 604.48
+    },
+    {
+      "word": " Erde",
+      "start": 604.48,
+      "end": 604.8
+    },
+    {
+      "word": " nutzen",
+      "start": 604.8,
+      "end": 605.3
+    },
+    {
+      "word": " Zellen",
+      "start": 605.3,
+      "end": 605.88
+    },
+    {
+      "word": " Lipid",
+      "start": 605.88,
+      "end": 606.86
+    },
+    {
+      "word": "-Doppelschichten,",
+      "start": 606.86,
+      "end": 607.8
+    },
+    {
+      "word": " dünne",
+      "start": 607.98,
+      "end": 608.78
+    },
+    {
+      "word": " Strukturen",
+      "start": 608.78,
+      "end": 609.5
+    },
+    {
+      "word": " aus",
+      "start": 609.5,
+      "end": 609.78
+    },
+    {
+      "word": " Fettmolekülen,",
+      "start": 609.78,
+      "end": 610.84
+    },
+    {
+      "word": " die",
+      "start": 611.0,
+      "end": 611.32
+    },
+    {
+      "word": " in",
+      "start": 611.32,
+      "end": 611.54
+    },
+    {
+      "word": " wässriger",
+      "start": 611.54,
+      "end": 612.04
+    },
+    {
+      "word": " Umgebung",
+      "start": 612.04,
+      "end": 612.82
+    },
+    {
+      "word": " eine",
+      "start": 612.82,
+      "end": 613.38
+    },
+    {
+      "word": " Barriere",
+      "start": 613.38,
+      "end": 613.98
+    },
+    {
+      "word": " bilden.",
+      "start": 613.98,
+      "end": 614.5
+    },
+    {
+      "word": " In",
+      "start": 614.5,
+      "end": 615.4
+    },
+    {
+      "word": " Methan",
+      "start": 615.4,
+      "end": 615.96
+    },
+    {
+      "word": " funktioniert",
+      "start": 615.96,
+      "end": 616.78
+    },
+    {
+      "word": " diese",
+      "start": 616.78,
+      "end": 617.36
+    },
+    {
+      "word": " Chemie",
+      "start": 617.36,
+      "end": 617.8
+    },
+    {
+      "word": " nicht.",
+      "start": 617.8,
+      "end": 618.16
+    },
+    {
+      "word": " Die",
+      "start": 618.42,
+      "end": 618.9
+    },
+    {
+      "word": " Temperaturen",
+      "start": 618.9,
+      "end": 619.66
+    },
+    {
+      "word": " sind",
+      "start": 619.66,
+      "end": 619.84
+    },
+    {
+      "word": " zu",
+      "start": 619.84,
+      "end": 620.06
+    },
+    {
+      "word": " niedrig.",
+      "start": 620.06,
+      "end": 620.56
+    },
+    {
+      "word": " Das",
+      "start": 620.78,
+      "end": 621.24
+    },
+    {
+      "word": " Verhalten",
+      "start": 621.24,
+      "end": 621.78
+    },
+    {
+      "word": " der",
+      "start": 621.78,
+      "end": 621.96
+    },
+    {
+      "word": " Moleküle",
+      "start": 621.96,
+      "end": 622.56
+    },
+    {
+      "word": " ist",
+      "start": 622.56,
+      "end": 622.84
+    },
+    {
+      "word": " anders.",
+      "start": 622.84,
+      "end": 623.38
+    },
+    {
+      "word": " Man",
+      "start": 624.12,
+      "end": 624.7
+    },
+    {
+      "word": " schlug",
+      "start": 624.7,
+      "end": 625.1
+    },
+    {
+      "word": " eine",
+      "start": 625.1,
+      "end": 625.32
+    },
+    {
+      "word": " alternative",
+      "start": 625.32,
+      "end": 626.2
+    },
+    {
+      "word": " Struktur",
+      "start": 626.2,
+      "end": 626.94
+    },
+    {
+      "word": " vor.",
+      "start": 626.94,
+      "end": 627.36
+    },
+    {
+      "word": " Das",
+      "start": 627.54,
+      "end": 628.2
+    },
+    {
+      "word": " Azotosom.",
+      "start": 628.2,
+      "end": 629.26
+    },
+    {
+      "word": " Es",
+      "start": 629.44,
+      "end": 629.9
+    },
+    {
+      "word": " besteht",
+      "start": 629.9,
+      "end": 630.26
+    },
+    {
+      "word": " aus",
+      "start": 630.26,
+      "end": 630.54
+    },
+    {
+      "word": " stickstoffhaltigen",
+      "start": 630.54,
+      "end": 631.56
+    },
+    {
+      "word": " Verbindungen",
+      "start": 631.56,
+      "end": 632.28
+    },
+    {
+      "word": " und",
+      "start": 632.28,
+      "end": 632.88
+    },
+    {
+      "word": " wäre",
+      "start": 632.88,
+      "end": 633.2
+    },
+    {
+      "word": " theoretisch",
+      "start": 633.2,
+      "end": 634.0
+    },
+    {
+      "word": " in",
+      "start": 634.0,
+      "end": 634.12
+    },
+    {
+      "word": " der",
+      "start": 634.12,
+      "end": 634.24
+    },
+    {
+      "word": " Lage,",
+      "start": 634.24,
+      "end": 634.64
+    },
+    {
+      "word": " unter",
+      "start": 634.86,
+      "end": 635.32
+    },
+    {
+      "word": " Titanbedingungen",
+      "start": 635.32,
+      "end": 636.66
+    },
+    {
+      "word": " stabile",
+      "start": 636.66,
+      "end": 637.52
+    },
+    {
+      "word": " und",
+      "start": 637.52,
+      "end": 637.7
+    },
+    {
+      "word": " flexible",
+      "start": 637.7,
+      "end": 638.38
+    },
+    {
+      "word": " Hüllen",
+      "start": 638.38,
+      "end": 638.82
+    },
+    {
+      "word": " zu",
+      "start": 638.82,
+      "end": 639.08
+    },
+    {
+      "word": " bilden.",
+      "start": 639.08,
+      "end": 639.54
+    },
+    {
+      "word": " Bisher",
+      "start": 639.54,
+      "end": 640.42
+    },
+    {
+      "word": " ist",
+      "start": 640.42,
+      "end": 640.6
+    },
+    {
+      "word": " das",
+      "start": 640.6,
+      "end": 640.78
+    },
+    {
+      "word": " nur",
+      "start": 640.78,
+      "end": 640.92
+    },
+    {
+      "word": " ein",
+      "start": 640.92,
+      "end": 641.1
+    },
+    {
+      "word": " Modell,",
+      "start": 641.1,
+      "end": 641.64
+    },
+    {
+      "word": " solche",
+      "start": 642.18,
+      "end": 642.54
+    },
+    {
+      "word": " Strukturen",
+      "start": 642.54,
+      "end": 643.24
+    },
+    {
+      "word": " wurden",
+      "start": 643.24,
+      "end": 643.54
+    },
+    {
+      "word": " noch",
+      "start": 643.54,
+      "end": 643.74
+    },
+    {
+      "word": " nicht",
+      "start": 643.74,
+      "end": 644.04
+    },
+    {
+      "word": " nachgewiesen,",
+      "start": 644.04,
+      "end": 645.1
+    },
+    {
+      "word": " doch",
+      "start": 645.5,
+      "end": 645.86
+    },
+    {
+      "word": " allein",
+      "start": 645.86,
+      "end": 646.2
+    },
+    {
+      "word": " die",
+      "start": 646.2,
+      "end": 646.4
+    },
+    {
+      "word": " Möglichkeit",
+      "start": 646.4,
+      "end": 647.02
+    },
+    {
+      "word": " bedeutet,",
+      "start": 647.02,
+      "end": 647.68
+    },
+    {
+      "word": " dass",
+      "start": 648.12,
+      "end": 648.42
+    },
+    {
+      "word": " Titan",
+      "start": 648.42,
+      "end": 648.86
+    },
+    {
+      "word": " eine",
+      "start": 648.86,
+      "end": 649.44
+    },
+    {
+      "word": " grundlegend",
+      "start": 649.44,
+      "end": 650.44
+    },
+    {
+      "word": " andere",
+      "start": 650.44,
+      "end": 651.0
+    },
+    {
+      "word": " Art",
+      "start": 651.0,
+      "end": 651.36
+    },
+    {
+      "word": " von",
+      "start": 651.36,
+      "end": 651.62
+    },
+    {
+      "word": " Biologie",
+      "start": 651.62,
+      "end": 652.3
+    },
+    {
+      "word": " beherbergen",
+      "start": 652.3,
+      "end": 653.08
+    },
+    {
+      "word": " könnte.",
+      "start": 653.08,
+      "end": 653.52
+    },
+    {
+      "word": " Ohne",
+      "start": 653.84,
+      "end": 654.62
+    },
+    {
+      "word": " Wasser.",
+      "start": 654.62,
+      "end": 655.0
+    },
+    {
+      "word": " Das",
+      "start": 655.28,
+      "end": 655.98
+    },
+    {
+      "word": " wäre",
+      "start": 655.98,
+      "end": 656.26
+    },
+    {
+      "word": " nicht",
+      "start": 656.26,
+      "end": 656.52
+    },
+    {
+      "word": " mehr",
+      "start": 656.52,
+      "end": 656.74
+    },
+    {
+      "word": " nur",
+      "start": 656.74,
+      "end": 656.94
+    },
+    {
+      "word": " ein",
+      "start": 656.94,
+      "end": 657.24
+    },
+    {
+      "word": " Analogon",
+      "start": 657.24,
+      "end": 658.04
+    },
+    {
+      "word": " zu",
+      "start": 658.04,
+      "end": 658.5
+    },
+    {
+      "word": " irdischen",
+      "start": 658.5,
+      "end": 659.12
+    },
+    {
+      "word": " Prozessen,",
+      "start": 659.12,
+      "end": 659.76
+    },
+    {
+      "word": " sondern",
+      "start": 660.22,
+      "end": 660.64
+    },
+    {
+      "word": " eine",
+      "start": 660.64,
+      "end": 660.96
+    },
+    {
+      "word": " potenziell",
+      "start": 660.96,
+      "end": 661.72
+    },
+    {
+      "word": " völlig",
+      "start": 661.72,
+      "end": 662.22
+    },
+    {
+      "word": " fremde",
+      "start": 662.22,
+      "end": 662.68
+    },
+    {
+      "word": " Lebensform.",
+      "start": 662.68,
+      "end": 663.36
+    },
+    {
+      "word": " Es",
+      "start": 663.36,
+      "end": 664.22
+    },
+    {
+      "word": " gibt",
+      "start": 664.22,
+      "end": 664.4
+    },
+    {
+      "word": " Beobachtungen,",
+      "start": 664.4,
+      "end": 665.24
+    },
+    {
+      "word": " die",
+      "start": 665.46,
+      "end": 665.84
+    },
+    {
+      "word": " diese",
+      "start": 665.84,
+      "end": 666.12
+    },
+    {
+      "word": " Frage",
+      "start": 666.12,
+      "end": 666.54
+    },
+    {
+      "word": " weiter",
+      "start": 666.54,
+      "end": 666.9
+    },
+    {
+      "word": " anheizen.",
+      "start": 666.9,
+      "end": 667.64
+    },
+    {
+      "word": " Im",
+      "start": 668.14,
+      "end": 668.62
+    },
+    {
+      "word": " Jahr",
+      "start": 668.62,
+      "end": 668.82
+    },
+    {
+      "word": " 2010",
+      "start": 668.82,
+      "end": 669.8
+    },
+    {
+      "word": " zeigten",
+      "start": 669.8,
+      "end": 670.76
+    },
+    {
+      "word": " zwei",
+      "start": 670.76,
+      "end": 671.12
+    },
+    {
+      "word": " unabhängige",
+      "start": 671.12,
+      "end": 672.0
+    },
+    {
+      "word": " Analysen",
+      "start": 672.0,
+      "end": 672.68
+    },
+    {
+      "word": " der",
+      "start": 672.68,
+      "end": 673.12
+    },
+    {
+      "word": " Cassini",
+      "start": 673.12,
+      "end": 673.62
+    },
+    {
+      "word": "-Daten",
+      "start": 673.62,
+      "end": 674.0
+    },
+    {
+      "word": " Merkwürdigkeiten",
+      "start": 674.0,
+      "end": 675.04
+    },
+    {
+      "word": " in",
+      "start": 675.04,
+      "end": 675.52
+    },
+    {
+      "word": " der",
+      "start": 675.52,
+      "end": 675.62
+    },
+    {
+      "word": " bodennahen",
+      "start": 675.62,
+      "end": 676.32
+    },
+    {
+      "word": " Atmosphäre.",
+      "start": 676.32,
+      "end": 676.76
+    },
+    {
+      "word": " Die",
+      "start": 677.3,
+      "end": 677.94
+    },
+    {
+      "word": " erste",
+      "start": 677.94,
+      "end": 678.34
+    },
+    {
+      "word": " Studie",
+      "start": 678.34,
+      "end": 678.78
+    },
+    {
+      "word": " ergab,",
+      "start": 678.78,
+      "end": 679.32
+    },
+    {
+      "word": " dass",
+      "start": 679.66,
+      "end": 679.8
+    },
+    {
+      "word": " Wasserstoff,",
+      "start": 679.8,
+      "end": 680.5
+    },
+    {
+      "word": " der",
+      "start": 680.74,
+      "end": 681.0
+    },
+    {
+      "word": " von",
+      "start": 681.0,
+      "end": 681.22
+    },
+    {
+      "word": " außen",
+      "start": 681.22,
+      "end": 681.64
+    },
+    {
+      "word": " einströmt,",
+      "start": 681.64,
+      "end": 682.56
+    },
+    {
+      "word": " nach",
+      "start": 682.92,
+      "end": 683.08
+    },
+    {
+      "word": " unten",
+      "start": 683.08,
+      "end": 683.56
+    },
+    {
+      "word": " sinkt",
+      "start": 683.56,
+      "end": 684.08
+    },
+    {
+      "word": " und",
+      "start": 684.08,
+      "end": 684.34
+    },
+    {
+      "word": " dort",
+      "start": 684.34,
+      "end": 684.78
+    },
+    {
+      "word": " verschwindet,",
+      "start": 684.78,
+      "end": 685.62
+    },
+    {
+      "word": " ohne",
+      "start": 685.82,
+      "end": 686.28
+    },
+    {
+      "word": " zurückzukehren.",
+      "start": 686.28,
+      "end": 686.72
+    },
+    {
+      "word": " Das",
+      "start": 687.52,
+      "end": 687.96
+    },
+    {
+      "word": " bedeutet,",
+      "start": 687.96,
+      "end": 688.46
+    },
+    {
+      "word": " irgendetwas",
+      "start": 688.94,
+      "end": 689.64
+    },
+    {
+      "word": " an",
+      "start": 689.64,
+      "end": 690.04
+    },
+    {
+      "word": " oder",
+      "start": 690.04,
+      "end": 690.28
+    },
+    {
+      "word": " nahe",
+      "start": 690.28,
+      "end": 690.76
+    },
+    {
+      "word": " der",
+      "start": 690.76,
+      "end": 690.9
+    },
+    {
+      "word": " Oberfläche",
+      "start": 690.9,
+      "end": 691.56
+    },
+    {
+      "word": " absorbiert",
+      "start": 691.56,
+      "end": 692.24
+    },
+    {
+      "word": " ihn.",
+      "start": 692.24,
+      "end": 692.48
+    },
+    {
+      "word": " Die",
+      "start": 692.48,
+      "end": 693.2
+    },
+    {
+      "word": " zweite",
+      "start": 693.2,
+      "end": 693.78
+    },
+    {
+      "word": " Studie",
+      "start": 693.78,
+      "end": 694.26
+    },
+    {
+      "word": " entdeckte",
+      "start": 694.26,
+      "end": 694.76
+    },
+    {
+      "word": " ein",
+      "start": 694.76,
+      "end": 694.98
+    },
+    {
+      "word": " Defizit",
+      "start": 694.98,
+      "end": 695.74
+    },
+    {
+      "word": " an",
+      "start": 695.74,
+      "end": 696.06
+    },
+    {
+      "word": " Acetylen,",
+      "start": 696.06,
+      "end": 696.88
+    },
+    {
+      "word": " einem",
+      "start": 697.04,
+      "end": 697.54
+    },
+    {
+      "word": " Stoff,",
+      "start": 697.54,
+      "end": 697.9
+    },
+    {
+      "word": " der",
+      "start": 698.04,
+      "end": 698.12
+    },
+    {
+      "word": " sich",
+      "start": 698.12,
+      "end": 698.34
+    },
+    {
+      "word": " laut",
+      "start": 698.34,
+      "end": 698.6
+    },
+    {
+      "word": " Berechnungen",
+      "start": 698.6,
+      "end": 699.3
+    },
+    {
+      "word": " eigentlich",
+      "start": 699.3,
+      "end": 699.88
+    },
+    {
+      "word": " ansammeln",
+      "start": 699.88,
+      "end": 700.64
+    },
+    {
+      "word": " müsste,",
+      "start": 700.64,
+      "end": 701.0
+    },
+    {
+      "word": " es",
+      "start": 701.3,
+      "end": 701.72
+    },
+    {
+      "word": " aber",
+      "start": 701.72,
+      "end": 701.92
+    },
+    {
+      "word": " nicht",
+      "start": 701.92,
+      "end": 702.28
+    },
+    {
+      "word": " tut.",
+      "start": 702.28,
+      "end": 702.78
+    },
+    {
+      "word": " Schon",
+      "start": 703.44,
+      "end": 703.96
+    },
+    {
+      "word": " Jahre",
+      "start": 703.96,
+      "end": 704.3
+    },
+    {
+      "word": " zuvor",
+      "start": 704.3,
+      "end": 704.98
+    },
+    {
+      "word": " hatte",
+      "start": 704.98,
+      "end": 705.5
+    },
+    {
+      "word": " der",
+      "start": 705.5,
+      "end": 705.7
+    },
+    {
+      "word": " Astrobiologe",
+      "start": 705.7,
+      "end": 706.64
+    },
+    {
+      "word": " Chris",
+      "start": 706.64,
+      "end": 707.0
+    },
+    {
+      "word": " McKay",
+      "start": 707.0,
+      "end": 707.48
+    },
+    {
+      "word": " vermutet,",
+      "start": 707.48,
+      "end": 708.1
+    },
+    {
+      "word": " falls",
+      "start": 708.62,
+      "end": 709.28
+    },
+    {
+      "word": " auf",
+      "start": 709.28,
+      "end": 709.46
+    },
+    {
+      "word": " dem",
+      "start": 709.46,
+      "end": 709.62
+    },
+    {
+      "word": " Titan",
+      "start": 709.62,
+      "end": 710.02
+    },
+    {
+      "word": " methanogenes",
+      "start": 710.02,
+      "end": 711.16
+    },
+    {
+      "word": " Leben",
+      "start": 711.16,
+      "end": 711.5
+    },
+    {
+      "word": " existiert,",
+      "start": 711.5,
+      "end": 712.22
+    },
+    {
+      "word": " könnte",
+      "start": 712.68,
+      "end": 712.96
+    },
+    {
+      "word": " es",
+      "start": 712.96,
+      "end": 713.16
+    },
+    {
+      "word": " Wasserstoff,",
+      "start": 713.16,
+      "end": 713.8
+    },
+    {
+      "word": " Atmen",
+      "start": 714.14,
+      "end": 714.68
+    },
+    {
+      "word": " und",
+      "start": 714.68,
+      "end": 715.42
+    },
+    {
+      "word": " Acetylen",
+      "start": 715.42,
+      "end": 716.2
+    },
+    {
+      "word": " als",
+      "start": 716.2,
+      "end": 716.48
+    },
+    {
+      "word": " Energiequelle",
+      "start": 716.48,
+      "end": 717.26
+    },
+    {
+      "word": " nutzen,",
+      "start": 717.26,
+      "end": 717.7
+    },
+    {
+      "word": " wobei",
+      "start": 717.94,
+      "end": 718.48
+    },
+    {
+      "word": " Methan",
+      "start": 718.48,
+      "end": 719.04
+    },
+    {
+      "word": " freigesetzt",
+      "start": 719.04,
+      "end": 719.88
+    },
+    {
+      "word": " wird.",
+      "start": 719.88,
+      "end": 720.16
+    },
+    {
+      "word": " Und",
+      "start": 720.16,
+      "end": 720.84
+    },
+    {
+      "word": " die",
+      "start": 720.84,
+      "end": 720.98
+    },
+    {
+      "word": " Beobachtungen",
+      "start": 720.98,
+      "end": 721.76
+    },
+    {
+      "word": " deckten",
+      "start": 721.76,
+      "end": 722.18
+    },
+    {
+      "word": " sich",
+      "start": 722.18,
+      "end": 722.38
+    },
+    {
+      "word": " exakt",
+      "start": 722.38,
+      "end": 722.98
+    },
+    {
+      "word": " mit",
+      "start": 722.98,
+      "end": 723.26
+    },
+    {
+      "word": " diesem",
+      "start": 723.26,
+      "end": 723.72
+    },
+    {
+      "word": " Szenario.",
+      "start": 723.72,
+      "end": 724.5
+    },
+    {
+      "word": " Wasserstoff",
+      "start": 725.12,
+      "end": 725.94
+    },
+    {
+      "word": " verschwindet.",
+      "start": 725.94,
+      "end": 726.72
+    },
+    {
+      "word": " Acetylen",
+      "start": 727.22,
+      "end": 728.04
+    },
+    {
+      "word": " fehlt.",
+      "start": 728.04,
+      "end": 728.5
+    },
+    {
+      "word": " Das",
+      "start": 729.11,
+      "end": 729.52
+    },
+    {
+      "word": " gilt",
+      "start": 729.52,
+      "end": 729.76
+    },
+    {
+      "word": " nicht",
+      "start": 729.76,
+      "end": 730.06
+    },
+    {
+      "word": " als",
+      "start": 730.06,
+      "end": 730.36
+    },
+    {
+      "word": " Beweis",
+      "start": 730.36,
+      "end": 730.9
+    },
+    {
+      "word": " für",
+      "start": 730.9,
+      "end": 731.1
+    },
+    {
+      "word": " Leben,",
+      "start": 731.1,
+      "end": 731.46
+    },
+    {
+      "word": " solche",
+      "start": 731.78,
+      "end": 732.22
+    },
+    {
+      "word": " Effekte",
+      "start": 732.22,
+      "end": 732.74
+    },
+    {
+      "word": " könnten",
+      "start": 732.74,
+      "end": 733.06
+    },
+    {
+      "word": " auch",
+      "start": 733.06,
+      "end": 733.36
+    },
+    {
+      "word": " nicht",
+      "start": 733.36,
+      "end": 733.68
+    },
+    {
+      "word": " biologische",
+      "start": 733.68,
+      "end": 734.56
+    },
+    {
+      "word": " Ursachen",
+      "start": 734.56,
+      "end": 735.2
+    },
+    {
+      "word": " haben.",
+      "start": 735.2,
+      "end": 735.56
+    },
+    {
+      "word": " Aber",
+      "start": 736.1,
+      "end": 736.56
+    },
+    {
+      "word": " dass",
+      "start": 736.56,
+      "end": 736.82
+    },
+    {
+      "word": " zwei",
+      "start": 736.82,
+      "end": 737.22
+    },
+    {
+      "word": " unabhängige",
+      "start": 737.22,
+      "end": 738.12
+    },
+    {
+      "word": " Ergebnisse",
+      "start": 738.12,
+      "end": 738.8
+    },
+    {
+      "word": " so",
+      "start": 738.8,
+      "end": 739.12
+    },
+    {
+      "word": " genau",
+      "start": 739.12,
+      "end": 739.44
+    },
+    {
+      "word": " mit",
+      "start": 739.44,
+      "end": 739.74
+    },
+    {
+      "word": " einer",
+      "start": 739.74,
+      "end": 739.96
+    },
+    {
+      "word": " Vorhersage",
+      "start": 739.96,
+      "end": 740.76
+    },
+    {
+      "word": " übereinstimmen,",
+      "start": 740.76,
+      "end": 741.64
+    },
+    {
+      "word": " ist",
+      "start": 741.9,
+      "end": 742.44
+    },
+    {
+      "word": " zu",
+      "start": 742.44,
+      "end": 742.82
+    },
+    {
+      "word": " präzise,",
+      "start": 742.82,
+      "end": 743.68
+    },
+    {
+      "word": " um",
+      "start": 743.86,
+      "end": 744.18
+    },
+    {
+      "word": " es",
+      "start": 744.18,
+      "end": 744.34
+    },
+    {
+      "word": " zu",
+      "start": 744.34,
+      "end": 744.56
+    },
+    {
+      "word": " ignorieren.",
+      "start": 744.56,
+      "end": 745.28
+    },
+    {
+      "word": " Genau",
+      "start": 745.88,
+      "end": 746.3
+    },
+    {
+      "word": " das",
+      "start": 746.3,
+      "end": 746.72
+    },
+    {
+      "word": " erzeugt",
+      "start": 746.72,
+      "end": 747.32
+    },
+    {
+      "word": " dieses",
+      "start": 747.32,
+      "end": 747.66
+    },
+    {
+      "word": " Gefühl",
+      "start": 747.66,
+      "end": 748.18
+    },
+    {
+      "word": " von",
+      "start": 748.18,
+      "end": 748.56
+    },
+    {
+      "word": " gleichzeitigem",
+      "start": 748.56,
+      "end": 749.44
+    },
+    {
+      "word": " Interesse",
+      "start": 749.44,
+      "end": 749.94
+    },
+    {
+      "word": " und",
+      "start": 749.94,
+      "end": 750.52
+    },
+    {
+      "word": " Unbehagen.",
+      "start": 750.52,
+      "end": 751.2
+    },
+    {
+      "word": " Titan",
+      "start": 751.94,
+      "end": 752.16
+    },
+    {
+      "word": " besitzt",
+      "start": 752.16,
+      "end": 752.78
+    },
+    {
+      "word": " all",
+      "start": 752.78,
+      "end": 753.12
+    },
+    {
+      "word": " diese",
+      "start": 753.12,
+      "end": 753.4
+    },
+    {
+      "word": " Komplexität,",
+      "start": 753.4,
+      "end": 754.32
+    },
+    {
+      "word": " diese",
+      "start": 754.56,
+      "end": 755.02
+    },
+    {
+      "word": " Aktivität.",
+      "start": 755.02,
+      "end": 755.98
+    },
+    {
+      "word": " Regen,",
+      "start": 756.52,
+      "end": 756.86
+    },
+    {
+      "word": " Flüsse,",
+      "start": 757.18,
+      "end": 757.66
+    },
+    {
+      "word": " Meere,",
+      "start": 758.14,
+      "end": 758.48
+    },
+    {
+      "word": " Wetter,",
+      "start": 758.94,
+      "end": 759.26
+    },
+    {
+      "word": " verborgene",
+      "start": 759.68,
+      "end": 760.28
+    },
+    {
+      "word": " Ozeane.",
+      "start": 760.28,
+      "end": 761.0
+    },
+    {
+      "word": " Und",
+      "start": 761.4,
+      "end": 761.68
+    },
+    {
+      "word": " doch",
+      "start": 761.68,
+      "end": 761.98
+    },
+    {
+      "word": " haben",
+      "start": 761.98,
+      "end": 762.44
+    },
+    {
+      "word": " wir",
+      "start": 762.44,
+      "end": 762.56
+    },
+    {
+      "word": " fast",
+      "start": 762.56,
+      "end": 762.88
+    },
+    {
+      "word": " keine",
+      "start": 762.88,
+      "end": 763.12
+    },
+    {
+      "word": " Daten",
+      "start": 763.12,
+      "end": 763.44
+    },
+    {
+      "word": " von",
+      "start": 763.44,
+      "end": 763.62
+    },
+    {
+      "word": " der",
+      "start": 763.62,
+      "end": 763.74
+    },
+    {
+      "word": " Oberfläche.",
+      "start": 763.74,
+      "end": 764.36
+    },
+    {
+      "word": " Huygens",
+      "start": 765.1,
+      "end": 765.58
+    },
+    {
+      "word": " hielt",
+      "start": 765.58,
+      "end": 766.28
+    },
+    {
+      "word": " nach",
+      "start": 766.28,
+      "end": 766.62
+    },
+    {
+      "word": " der",
+      "start": 766.62,
+      "end": 766.8
+    },
+    {
+      "word": " Landung",
+      "start": 766.8,
+      "end": 767.24
+    },
+    {
+      "word": " nur",
+      "start": 767.24,
+      "end": 767.46
+    },
+    {
+      "word": " 72",
+      "start": 767.46,
+      "end": 768.3
+    },
+    {
+      "word": " Minuten",
+      "start": 768.3,
+      "end": 768.78
+    },
+    {
+      "word": " durch.",
+      "start": 768.78,
+      "end": 769.3
+    },
+    {
+      "word": " Ein",
+      "start": 769.66,
+      "end": 770.06
+    },
+    {
+      "word": " einziges",
+      "start": 770.06,
+      "end": 770.52
+    },
+    {
+      "word": " Bild,",
+      "start": 770.52,
+      "end": 770.84
+    },
+    {
+      "word": " eine",
+      "start": 771.34,
+      "end": 771.7
+    },
+    {
+      "word": " Hand",
+      "start": 771.7,
+      "end": 771.96
+    },
+    {
+      "word": " voll",
+      "start": 771.96,
+      "end": 772.2
+    },
+    {
+      "word": " Messwerte.",
+      "start": 772.2,
+      "end": 772.94
+    },
+    {
+      "word": " Alles",
+      "start": 773.71,
+      "end": 774.1
+    },
+    {
+      "word": " andere",
+      "start": 774.1,
+      "end": 774.44
+    },
+    {
+      "word": " stammt",
+      "start": 774.44,
+      "end": 774.8
+    },
+    {
+      "word": " aus",
+      "start": 774.8,
+      "end": 774.92
+    },
+    {
+      "word": " dem",
+      "start": 774.92,
+      "end": 775.08
+    },
+    {
+      "word": " Orbit,",
+      "start": 775.08,
+      "end": 775.58
+    },
+    {
+      "word": " Radar,",
+      "start": 776.12,
+      "end": 776.7
+    },
+    {
+      "word": " Infrarot",
+      "start": 777.16,
+      "end": 777.84
+    },
+    {
+      "word": " und",
+      "start": 777.84,
+      "end": 778.3
+    },
+    {
+      "word": " Gravitationsdaten",
+      "start": 778.3,
+      "end": 779.64
+    },
+    {
+      "word": " von",
+      "start": 779.64,
+      "end": 779.88
+    },
+    {
+      "word": " Cassini.",
+      "start": 779.88,
+      "end": 780.48
+    },
+    {
+      "word": " Wir",
+      "start": 781.23,
+      "end": 781.62
+    },
+    {
+      "word": " haben",
+      "start": 781.62,
+      "end": 781.84
+    },
+    {
+      "word": " den",
+      "start": 781.84,
+      "end": 782.08
+    },
+    {
+      "word": " Titan",
+      "start": 782.08,
+      "end": 782.58
+    },
+    {
+      "word": " kartografiert",
+      "start": 782.58,
+      "end": 783.76
+    },
+    {
+      "word": " wie",
+      "start": 783.76,
+      "end": 784.04
+    },
+    {
+      "word": " eine",
+      "start": 784.04,
+      "end": 784.28
+    },
+    {
+      "word": " Stadt,",
+      "start": 784.28,
+      "end": 784.68
+    },
+    {
+      "word": " über",
+      "start": 784.9,
+      "end": 785.24
+    },
+    {
+      "word": " die",
+      "start": 785.24,
+      "end": 785.4
+    },
+    {
+      "word": " man",
+      "start": 785.4,
+      "end": 785.6
+    },
+    {
+      "word": " nachts",
+      "start": 785.6,
+      "end": 786.04
+    },
+    {
+      "word": " mit",
+      "start": 786.04,
+      "end": 786.26
+    },
+    {
+      "word": " einer",
+      "start": 786.26,
+      "end": 786.5
+    },
+    {
+      "word": " Taschenlampe",
+      "start": 786.5,
+      "end": 787.22
+    },
+    {
+      "word": " hinweggeflogen",
+      "start": 787.22,
+      "end": 788.08
+    },
+    {
+      "word": " ist.",
+      "start": 788.08,
+      "end": 788.42
+    },
+    {
+      "word": " Wir",
+      "start": 788.68,
+      "end": 789.12
+    },
+    {
+      "word": " sahen",
+      "start": 789.12,
+      "end": 789.46
+    },
+    {
+      "word": " Umrisse,",
+      "start": 789.46,
+      "end": 790.18
+    },
+    {
+      "word": " vermuteten",
+      "start": 790.6,
+      "end": 791.22
+    },
+    {
+      "word": " die",
+      "start": 791.22,
+      "end": 791.4
+    },
+    {
+      "word": " Zusammensetzung,",
+      "start": 791.4,
+      "end": 792.46
+    },
+    {
+      "word": " modellierten",
+      "start": 792.98,
+      "end": 793.52
+    },
+    {
+      "word": " Prozesse,",
+      "start": 793.52,
+      "end": 794.26
+    },
+    {
+      "word": " aber",
+      "start": 794.52,
+      "end": 794.9
+    },
+    {
+      "word": " wir",
+      "start": 794.9,
+      "end": 795.06
+    },
+    {
+      "word": " haben",
+      "start": 795.06,
+      "end": 795.28
+    },
+    {
+      "word": " die",
+      "start": 795.28,
+      "end": 795.44
+    },
+    {
+      "word": " Oberfläche",
+      "start": 795.44,
+      "end": 796.22
+    },
+    {
+      "word": " nur",
+      "start": 796.22,
+      "end": 796.78
+    },
+    {
+      "word": " ein",
+      "start": 796.78,
+      "end": 797.08
+    },
+    {
+      "word": " einziges",
+      "start": 797.08,
+      "end": 797.78
+    },
+    {
+      "word": " Mal",
+      "start": 797.78,
+      "end": 798.12
+    },
+    {
+      "word": " berührt.",
+      "start": 798.12,
+      "end": 798.74
+    },
+    {
+      "word": " An",
+      "start": 798.74,
+      "end": 799.44
+    },
+    {
+      "word": " einem",
+      "start": 799.44,
+      "end": 799.7
+    },
+    {
+      "word": " einzigen",
+      "start": 799.7,
+      "end": 800.38
+    },
+    {
+      "word": " Punkt.",
+      "start": 800.38,
+      "end": 800.84
+    },
+    {
+      "word": " Für",
+      "start": 801.04,
+      "end": 801.56
+    },
+    {
+      "word": " kaum",
+      "start": 801.56,
+      "end": 801.9
+    },
+    {
+      "word": " mehr",
+      "start": 801.9,
+      "end": 802.24
+    },
+    {
+      "word": " als",
+      "start": 802.24,
+      "end": 802.62
+    },
+    {
+      "word": " eine",
+      "start": 802.62,
+      "end": 802.96
+    },
+    {
+      "word": " Stunde.",
+      "start": 802.96,
+      "end": 803.24
+    },
+    {
+      "word": " Die",
+      "start": 803.8,
+      "end": 804.38
+    },
+    {
+      "word": " NASA",
+      "start": 804.38,
+      "end": 804.7
+    },
+    {
+      "word": " kehrt",
+      "start": 804.7,
+      "end": 805.16
+    },
+    {
+      "word": " zurück.",
+      "start": 805.16,
+      "end": 805.7
+    },
+    {
+      "word": " Die",
+      "start": 806.22,
+      "end": 806.64
+    },
+    {
+      "word": " Mission",
+      "start": 806.64,
+      "end": 807.08
+    },
+    {
+      "word": " Dragonfly.",
+      "start": 807.08,
+      "end": 808.18
+    },
+    {
+      "word": " Ein",
+      "start": 808.58,
+      "end": 808.96
+    },
+    {
+      "word": " atomgetriebener",
+      "start": 808.96,
+      "end": 810.1
+    },
+    {
+      "word": " Quadrokopter.",
+      "start": 810.1,
+      "end": 811.0
+    },
+    {
+      "word": " Start",
+      "start": 811.6,
+      "end": 811.84
+    },
+    {
+      "word": " 2028.",
+      "start": 811.84,
+      "end": 813.24
+    },
+    {
+      "word": " Ankunft",
+      "start": 814.06,
+      "end": 814.76
+    },
+    {
+      "word": " Mitte",
+      "start": 814.76,
+      "end": 815.06
+    },
+    {
+      "word": " der",
+      "start": 815.06,
+      "end": 815.3
+    },
+    {
+      "word": " 2030er",
+      "start": 815.3,
+      "end": 816.72
+    },
+    {
+      "word": " Jahre.",
+      "start": 816.72,
+      "end": 817.06
+    },
+    {
+      "word": " Er",
+      "start": 817.44,
+      "end": 817.92
+    },
+    {
+      "word": " wird",
+      "start": 817.92,
+      "end": 818.16
+    },
+    {
+      "word": " nicht",
+      "start": 818.16,
+      "end": 818.36
+    },
+    {
+      "word": " an",
+      "start": 818.36,
+      "end": 818.56
+    },
+    {
+      "word": " einem",
+      "start": 818.56,
+      "end": 818.78
+    },
+    {
+      "word": " Ort",
+      "start": 818.78,
+      "end": 819.04
+    },
+    {
+      "word": " bleiben.",
+      "start": 819.04,
+      "end": 819.46
+    },
+    {
+      "word": " Er",
+      "start": 819.7,
+      "end": 820.28
+    },
+    {
+      "word": " wird",
+      "start": 820.28,
+      "end": 820.48
+    },
+    {
+      "word": " fliegen.",
+      "start": 820.48,
+      "end": 820.9
+    },
+    {
+      "word": " Die",
+      "start": 821.48,
+      "end": 821.92
+    },
+    {
+      "word": " dichte",
+      "start": 821.92,
+      "end": 822.36
+    },
+    {
+      "word": " Atmosphäre",
+      "start": 822.36,
+      "end": 823.18
+    },
+    {
+      "word": " und",
+      "start": 823.18,
+      "end": 823.36
+    },
+    {
+      "word": " die",
+      "start": 823.36,
+      "end": 823.5
+    },
+    {
+      "word": " schwache",
+      "start": 823.5,
+      "end": 823.94
+    },
+    {
+      "word": " Schwerkraft",
+      "start": 823.94,
+      "end": 824.76
+    },
+    {
+      "word": " machen",
+      "start": 824.76,
+      "end": 825.44
+    },
+    {
+      "word": " Titan",
+      "start": 825.44,
+      "end": 825.84
+    },
+    {
+      "word": " zum",
+      "start": 825.84,
+      "end": 826.34
+    },
+    {
+      "word": " idealen",
+      "start": 826.34,
+      "end": 827.08
+    },
+    {
+      "word": " Ort",
+      "start": 827.08,
+      "end": 827.44
+    },
+    {
+      "word": " für",
+      "start": 827.44,
+      "end": 827.82
+    },
+    {
+      "word": " Fluggeräte.",
+      "start": 827.82,
+      "end": 828.66
+    },
+    {
+      "word": " Dragonfly",
+      "start": 829.62,
+      "end": 830.2
+    },
+    {
+      "word": " wird",
+      "start": 830.2,
+      "end": 830.5
+    },
+    {
+      "word": " über",
+      "start": 830.5,
+      "end": 830.8
+    },
+    {
+      "word": " die",
+      "start": 830.8,
+      "end": 830.96
+    },
+    {
+      "word": " äquatorialen",
+      "start": 830.96,
+      "end": 832.04
+    },
+    {
+      "word": " Dünenfelder",
+      "start": 832.04,
+      "end": 832.78
+    },
+    {
+      "word": " zum",
+      "start": 832.78,
+      "end": 833.38
+    },
+    {
+      "word": " Selk",
+      "start": 833.38,
+      "end": 833.94
+    },
+    {
+      "word": "-Krater",
+      "start": 833.94,
+      "end": 834.42
+    },
+    {
+      "word": " fliegen,",
+      "start": 834.42,
+      "end": 834.86
+    },
+    {
+      "word": " einem",
+      "start": 835.12,
+      "end": 835.54
+    },
+    {
+      "word": " Einschlagsort,",
+      "start": 835.54,
+      "end": 836.54
+    },
+    {
+      "word": " an",
+      "start": 836.7,
+      "end": 837.02
+    },
+    {
+      "word": " dem",
+      "start": 837.02,
+      "end": 837.2
+    },
+    {
+      "word": " flüssiges",
+      "start": 837.2,
+      "end": 837.84
+    },
+    {
+      "word": " Wasser",
+      "start": 837.84,
+      "end": 838.16
+    },
+    {
+      "word": " für",
+      "start": 838.16,
+      "end": 838.38
+    },
+    {
+      "word": " kurze",
+      "start": 838.38,
+      "end": 838.84
+    },
+    {
+      "word": " Zeit",
+      "start": 838.84,
+      "end": 839.18
+    },
+    {
+      "word": " an",
+      "start": 839.18,
+      "end": 839.62
+    },
+    {
+      "word": " die",
+      "start": 839.62,
+      "end": 839.78
+    },
+    {
+      "word": " Oberfläche",
+      "start": 839.78,
+      "end": 840.52
+    },
+    {
+      "word": " gelangt",
+      "start": 840.52,
+      "end": 840.98
+    },
+    {
+      "word": " sein",
+      "start": 840.98,
+      "end": 841.16
+    },
+    {
+      "word": " könnte",
+      "start": 841.16,
+      "end": 841.58
+    },
+    {
+      "word": " und",
+      "start": 841.58,
+      "end": 842.24
+    },
+    {
+      "word": " sich",
+      "start": 842.24,
+      "end": 842.52
+    },
+    {
+      "word": " mit",
+      "start": 842.52,
+      "end": 842.72
+    },
+    {
+      "word": " organischer",
+      "start": 842.72,
+      "end": 843.38
+    },
+    {
+      "word": " Materie",
+      "start": 843.38,
+      "end": 844.1
+    },
+    {
+      "word": " vermischte.",
+      "start": 844.1,
+      "end": 844.76
+    },
+    {
+      "word": " Eine",
+      "start": 845.47,
+      "end": 845.9
+    },
+    {
+      "word": " Zone,",
+      "start": 845.9,
+      "end": 846.36
+    },
+    {
+      "word": " in",
+      "start": 846.64,
+      "end": 846.98
+    },
+    {
+      "word": " der",
+      "start": 846.98,
+      "end": 847.1
+    },
+    {
+      "word": " Wasser",
+      "start": 847.1,
+      "end": 847.5
+    },
+    {
+      "word": "-",
+      "start": 847.5,
+      "end": 847.5
+    },
+    {
+      "word": " und",
+      "start": 847.5,
+      "end": 847.86
+    },
+    {
+      "word": " Methanchemie",
+      "start": 847.86,
+      "end": 848.96
+    },
+    {
+      "word": " aufeinander",
+      "start": 848.96,
+      "end": 849.92
+    },
+    {
+      "word": " getroffen",
+      "start": 849.92,
+      "end": 850.42
+    },
+    {
+      "word": " sein",
+      "start": 850.42,
+      "end": 850.68
+    },
+    {
+      "word": " könnten.",
+      "start": 850.68,
+      "end": 851.1
+    },
+    {
+      "word": " Die",
+      "start": 851.75,
+      "end": 852.18
+    },
+    {
+      "word": " Ingenieurskunst",
+      "start": 852.18,
+      "end": 853.14
+    },
+    {
+      "word": " dahinter",
+      "start": 853.14,
+      "end": 853.66
+    },
+    {
+      "word": " grenzt",
+      "start": 853.66,
+      "end": 854.78
+    },
+    {
+      "word": " an",
+      "start": 854.78,
+      "end": 855.0
+    },
+    {
+      "word": " Wahnsinn.",
+      "start": 855.0,
+      "end": 855.6
+    },
+    {
+      "word": " Die",
+      "start": 855.6,
+      "end": 856.3
+    },
+    {
+      "word": " Rotoren",
+      "start": 856.3,
+      "end": 856.88
+    },
+    {
+      "word": " arbeiten",
+      "start": 856.88,
+      "end": 857.5
+    },
+    {
+      "word": " in",
+      "start": 857.5,
+      "end": 857.68
+    },
+    {
+      "word": " einer",
+      "start": 857.68,
+      "end": 857.88
+    },
+    {
+      "word": " Atmosphäre,",
+      "start": 857.88,
+      "end": 858.68
+    },
+    {
+      "word": " die",
+      "start": 858.8,
+      "end": 858.84
+    },
+    {
+      "word": " dichter",
+      "start": 858.84,
+      "end": 859.4
+    },
+    {
+      "word": " als",
+      "start": 859.4,
+      "end": 859.62
+    },
+    {
+      "word": " die",
+      "start": 859.62,
+      "end": 859.8
+    },
+    {
+      "word": " der",
+      "start": 859.8,
+      "end": 860.0
+    },
+    {
+      "word": " Erde",
+      "start": 860.0,
+      "end": 860.34
+    },
+    {
+      "word": " ist,",
+      "start": 860.34,
+      "end": 860.7
+    },
+    {
+      "word": " aber",
+      "start": 860.9,
+      "end": 861.36
+    },
+    {
+      "word": " bei",
+      "start": 861.36,
+      "end": 861.64
+    },
+    {
+      "word": " Temperaturen,",
+      "start": 861.64,
+      "end": 862.5
+    },
+    {
+      "word": " bei",
+      "start": 862.56,
+      "end": 862.66
+    },
+    {
+      "word": " denen",
+      "start": 862.66,
+      "end": 862.92
+    },
+    {
+      "word": " sich",
+      "start": 862.92,
+      "end": 863.22
+    },
+    {
+      "word": " Schmiermittel",
+      "start": 863.22,
+      "end": 863.88
+    },
+    {
+      "word": " und",
+      "start": 863.88,
+      "end": 864.16
+    },
+    {
+      "word": " Elektronik",
+      "start": 864.16,
+      "end": 864.94
+    },
+    {
+      "word": " völlig",
+      "start": 864.94,
+      "end": 865.22
+    },
+    {
+      "word": " anders",
+      "start": 865.22,
+      "end": 865.66
+    },
+    {
+      "word": " verhalten.",
+      "start": 865.66,
+      "end": 866.2
+    },
+    {
+      "word": " Und",
+      "start": 866.54,
+      "end": 867.1
+    },
+    {
+      "word": " die",
+      "start": 867.1,
+      "end": 867.26
+    },
+    {
+      "word": " Energiequelle",
+      "start": 867.26,
+      "end": 868.06
+    },
+    {
+      "word": " ist",
+      "start": 868.06,
+      "end": 868.7
+    },
+    {
+      "word": " der",
+      "start": 868.7,
+      "end": 869.02
+    },
+    {
+      "word": " Zerfall",
+      "start": 869.02,
+      "end": 869.56
+    },
+    {
+      "word": " von",
+      "start": 869.56,
+      "end": 869.82
+    },
+    {
+      "word": " Plutonium.",
+      "start": 869.82,
+      "end": 870.7
+    },
+    {
+      "word": " 238.",
+      "start": 872.72,
+      "end": 873.4
+    },
+    {
+      "word": " Die",
+      "start": 873.94,
+      "end": 874.62
+    },
+    {
+      "word": " Sonde",
+      "start": 874.62,
+      "end": 874.96
+    },
+    {
+      "word": " wird",
+      "start": 874.96,
+      "end": 875.18
+    },
+    {
+      "word": " etwa",
+      "start": 875.18,
+      "end": 875.46
+    },
+    {
+      "word": " 30",
+      "start": 875.46,
+      "end": 875.94
+    },
+    {
+      "word": " Minuten",
+      "start": 875.94,
+      "end": 876.36
+    },
+    {
+      "word": " lang",
+      "start": 876.36,
+      "end": 876.7
+    },
+    {
+      "word": " fliegen",
+      "start": 876.7,
+      "end": 877.12
+    },
+    {
+      "word": " und",
+      "start": 877.12,
+      "end": 877.62
+    },
+    {
+      "word": " bis",
+      "start": 877.62,
+      "end": 877.92
+    },
+    {
+      "word": " zu",
+      "start": 877.92,
+      "end": 878.14
+    },
+    {
+      "word": " 8",
+      "start": 878.14,
+      "end": 878.5
+    },
+    {
+      "word": " Kilometer",
+      "start": 878.5,
+      "end": 879.12
+    },
+    {
+      "word": " pro",
+      "start": 879.12,
+      "end": 879.36
+    },
+    {
+      "word": " Sprung",
+      "start": 879.36,
+      "end": 879.74
+    },
+    {
+      "word": " zurücklegen.",
+      "start": 879.74,
+      "end": 880.48
+    },
+    {
+      "word": " dann",
+      "start": 880.48,
+      "end": 881.12
+    },
+    {
+      "word": " landen,",
+      "start": 881.12,
+      "end": 881.66
+    },
+    {
+      "word": " die",
+      "start": 881.96,
+      "end": 882.16
+    },
+    {
+      "word": " Batterien",
+      "start": 882.16,
+      "end": 882.64
+    },
+    {
+      "word": " laden,",
+      "start": 882.64,
+      "end": 883.12
+    },
+    {
+      "word": " den",
+      "start": 883.48,
+      "end": 883.64
+    },
+    {
+      "word": " Boden",
+      "start": 883.64,
+      "end": 884.04
+    },
+    {
+      "word": " analysieren",
+      "start": 884.04,
+      "end": 884.92
+    },
+    {
+      "word": " und",
+      "start": 884.92,
+      "end": 885.44
+    },
+    {
+      "word": " auf",
+      "start": 885.44,
+      "end": 885.6
+    },
+    {
+      "word": " das",
+      "start": 885.6,
+      "end": 885.8
+    },
+    {
+      "word": " nächste",
+      "start": 885.8,
+      "end": 886.12
+    },
+    {
+      "word": " Fenster",
+      "start": 886.12,
+      "end": 886.58
+    },
+    {
+      "word": " warten.",
+      "start": 886.58,
+      "end": 886.94
+    },
+    {
+      "word": " Sie",
+      "start": 887.36,
+      "end": 887.96
+    },
+    {
+      "word": " navigiert",
+      "start": 887.96,
+      "end": 888.6
+    },
+    {
+      "word": " nach",
+      "start": 888.6,
+      "end": 889.04
+    },
+    {
+      "word": " den",
+      "start": 889.04,
+      "end": 889.24
+    },
+    {
+      "word": " Daten",
+      "start": 889.24,
+      "end": 889.62
+    },
+    {
+      "word": " von",
+      "start": 889.62,
+      "end": 889.9
+    },
+    {
+      "word": " Cassini,",
+      "start": 889.9,
+      "end": 890.54
+    },
+    {
+      "word": " einer",
+      "start": 890.86,
+      "end": 891.4
+    },
+    {
+      "word": " Sonde,",
+      "start": 891.4,
+      "end": 891.82
+    },
+    {
+      "word": " die",
+      "start": 892.08,
+      "end": 892.4
+    },
+    {
+      "word": " 2017",
+      "start": 892.4,
+      "end": 893.68
+    },
+    {
+      "word": " zerstört",
+      "start": 893.68,
+      "end": 894.7
+    },
+    {
+      "word": " wurde.",
+      "start": 894.7,
+      "end": 895.06
+    },
+    {
+      "word": " Im",
+      "start": 895.6,
+      "end": 896.12
+    },
+    {
+      "word": " Grunde",
+      "start": 896.12,
+      "end": 896.56
+    },
+    {
+      "word": " fliegt",
+      "start": 896.56,
+      "end": 896.94
+    },
+    {
+      "word": " sie",
+      "start": 896.94,
+      "end": 897.08
+    },
+    {
+      "word": " nach",
+      "start": 897.08,
+      "end": 897.26
+    },
+    {
+      "word": " einer",
+      "start": 897.26,
+      "end": 897.52
+    },
+    {
+      "word": " Karte,",
+      "start": 897.52,
+      "end": 898.04
+    },
+    {
+      "word": " die",
+      "start": 898.3,
+      "end": 898.56
+    },
+    {
+      "word": " von",
+      "start": 898.56,
+      "end": 898.72
+    },
+    {
+      "word": " einem",
+      "start": 898.72,
+      "end": 898.96
+    },
+    {
+      "word": " Geist",
+      "start": 898.96,
+      "end": 899.42
+    },
+    {
+      "word": " gezeichnet",
+      "start": 899.42,
+      "end": 900.1
+    },
+    {
+      "word": " wurde.",
+      "start": 900.1,
+      "end": 900.42
+    },
+    {
+      "word": " Und",
+      "start": 900.72,
+      "end": 901.32
+    },
+    {
+      "word": " was",
+      "start": 901.32,
+      "end": 901.5
+    },
+    {
+      "word": " sie",
+      "start": 901.5,
+      "end": 901.64
+    },
+    {
+      "word": " finden",
+      "start": 901.64,
+      "end": 902.0
+    },
+    {
+      "word": " wird,",
+      "start": 902.0,
+      "end": 902.38
+    },
+    {
+      "word": " könnte",
+      "start": 902.86,
+      "end": 903.06
+    },
+    {
+      "word": " unser",
+      "start": 903.06,
+      "end": 903.42
+    },
+    {
+      "word": " Verständnis",
+      "start": 903.42,
+      "end": 904.36
+    },
+    {
+      "word": " von",
+      "start": 904.36,
+      "end": 904.82
+    },
+    {
+      "word": " Leben",
+      "start": 904.82,
+      "end": 905.3
+    },
+    {
+      "word": " verändern.",
+      "start": 905.3,
+      "end": 905.68
+    },
+    {
+      "word": " ändern.",
+      "start": 905.68,
+      "end": 906.0
+    },
+    {
+      "word": " Sollten",
+      "start": 906.62,
+      "end": 907.36
+    },
+    {
+      "word": " komplexe",
+      "start": 907.36,
+      "end": 908.06
+    },
+    {
+      "word": " organische",
+      "start": 908.06,
+      "end": 908.72
+    },
+    {
+      "word": " Strukturen",
+      "start": 908.72,
+      "end": 909.56
+    },
+    {
+      "word": " entdeckt",
+      "start": 909.56,
+      "end": 910.06
+    },
+    {
+      "word": " werden,",
+      "start": 910.06,
+      "end": 910.44
+    },
+    {
+      "word": " wäre",
+      "start": 911.08,
+      "end": 911.28
+    },
+    {
+      "word": " das",
+      "start": 911.28,
+      "end": 911.58
+    },
+    {
+      "word": " noch",
+      "start": 911.58,
+      "end": 911.82
+    },
+    {
+      "word": " kein",
+      "start": 911.82,
+      "end": 912.16
+    },
+    {
+      "word": " Beweis",
+      "start": 912.16,
+      "end": 912.7
+    },
+    {
+      "word": " für",
+      "start": 912.7,
+      "end": 913.32
+    },
+    {
+      "word": " Leben.",
+      "start": 913.32,
+      "end": 913.68
+    },
+    {
+      "word": " Es",
+      "start": 913.96,
+      "end": 914.58
+    },
+    {
+      "word": " wäre",
+      "start": 914.58,
+      "end": 914.86
+    },
+    {
+      "word": " ein",
+      "start": 914.86,
+      "end": 915.12
+    },
+    {
+      "word": " zweites",
+      "start": 915.12,
+      "end": 915.72
+    },
+    {
+      "word": " Beispiel",
+      "start": 915.72,
+      "end": 916.18
+    },
+    {
+      "word": " für",
+      "start": 916.18,
+      "end": 916.4
+    },
+    {
+      "word": " eine",
+      "start": 916.4,
+      "end": 916.6
+    },
+    {
+      "word": " Welt,",
+      "start": 916.6,
+      "end": 916.98
+    },
+    {
+      "word": " in",
+      "start": 917.16,
+      "end": 917.54
+    },
+    {
+      "word": " der",
+      "start": 917.54,
+      "end": 917.64
+    },
+    {
+      "word": " die",
+      "start": 917.64,
+      "end": 917.84
+    },
+    {
+      "word": " Chemie",
+      "start": 917.84,
+      "end": 918.26
+    },
+    {
+      "word": " versucht,",
+      "start": 918.26,
+      "end": 918.86
+    },
+    {
+      "word": " zur",
+      "start": 919.34,
+      "end": 919.5
+    },
+    {
+      "word": " Biologie",
+      "start": 919.5,
+      "end": 920.14
+    },
+    {
+      "word": " zu",
+      "start": 920.14,
+      "end": 920.4
+    },
+    {
+      "word": " werden.",
+      "start": 920.4,
+      "end": 920.74
+    },
+    {
+      "word": " Eines",
+      "start": 921.26,
+      "end": 921.86
+    },
+    {
+      "word": " ist",
+      "start": 921.86,
+      "end": 922.04
+    },
+    {
+      "word": " ein",
+      "start": 922.04,
+      "end": 922.2
+    },
+    {
+      "word": " Zufall.",
+      "start": 922.2,
+      "end": 922.72
+    },
+    {
+      "word": " Zwei",
+      "start": 923.36,
+      "end": 923.9
+    },
+    {
+      "word": " sind",
+      "start": 923.9,
+      "end": 924.2
+    },
+    {
+      "word": " eine",
+      "start": 924.2,
+      "end": 924.44
+    },
+    {
+      "word": " Gesetzmäßigkeit.",
+      "start": 924.44,
+      "end": 925.6
+    },
+    {
+      "word": " Bis",
+      "start": 925.98,
+      "end": 926.48
+    },
+    {
+      "word": " dahin",
+      "start": 926.48,
+      "end": 927.02
+    },
+    {
+      "word": " wartet",
+      "start": 927.02,
+      "end": 928.08
+    },
+    {
+      "word": " Titan.",
+      "start": 928.08,
+      "end": 928.68
+    },
+    {
+      "word": " Methan",
+      "start": 929.44,
+      "end": 930.26
+    },
+    {
+      "word": " regnet",
+      "start": 930.26,
+      "end": 930.82
+    },
+    {
+      "word": " weiterhin",
+      "start": 930.82,
+      "end": 931.34
+    },
+    {
+      "word": " in",
+      "start": 931.34,
+      "end": 931.6
+    },
+    {
+      "word": " dunkle",
+      "start": 931.6,
+      "end": 931.96
+    },
+    {
+      "word": " Flüsse,",
+      "start": 931.96,
+      "end": 932.4
+    },
+    {
+      "word": " die",
+      "start": 932.5,
+      "end": 932.56
+    },
+    {
+      "word": " in",
+      "start": 932.56,
+      "end": 932.74
+    },
+    {
+      "word": " Meere",
+      "start": 932.74,
+      "end": 933.08
+    },
+    {
+      "word": " münden,",
+      "start": 933.08,
+      "end": 933.56
+    },
+    {
+      "word": " die",
+      "start": 933.74,
+      "end": 934.06
+    },
+    {
+      "word": " noch",
+      "start": 934.06,
+      "end": 934.24
+    },
+    {
+      "word": " niemand",
+      "start": 934.24,
+      "end": 934.62
+    },
+    {
+      "word": " direkt",
+      "start": 934.62,
+      "end": 935.04
+    },
+    {
+      "word": " gesehen",
+      "start": 935.04,
+      "end": 935.54
+    },
+    {
+      "word": " hat.",
+      "start": 935.54,
+      "end": 935.86
+    },
+    {
+      "word": " Ein",
+      "start": 936.28,
+      "end": 936.84
+    },
+    {
+      "word": " Ozean",
+      "start": 936.84,
+      "end": 937.38
+    },
+    {
+      "word": " aus",
+      "start": 937.38,
+      "end": 937.56
+    },
+    {
+      "word": " Wasser",
+      "start": 937.56,
+      "end": 937.9
+    },
+    {
+      "word": " liegt",
+      "start": 937.9,
+      "end": 938.16
+    },
+    {
+      "word": " verborgen",
+      "start": 938.16,
+      "end": 938.72
+    },
+    {
+      "word": " unter",
+      "start": 938.72,
+      "end": 938.98
+    },
+    {
+      "word": " hunderten",
+      "start": 938.98,
+      "end": 939.54
+    },
+    {
+      "word": " Kilometern",
+      "start": 939.54,
+      "end": 940.16
+    },
+    {
+      "word": " Eis.",
+      "start": 940.16,
+      "end": 940.68
+    },
+    {
+      "word": " Titan",
+      "start": 941.7,
+      "end": 942.12
+    },
+    {
+      "word": " trägt",
+      "start": 942.12,
+      "end": 942.6
+    },
+    {
+      "word": " noch",
+      "start": 942.6,
+      "end": 942.76
+    },
+    {
+      "word": " immer",
+      "start": 942.76,
+      "end": 943.02
+    },
+    {
+      "word": " das",
+      "start": 943.02,
+      "end": 943.26
+    },
+    {
+      "word": " Gesicht",
+      "start": 943.26,
+      "end": 943.66
+    },
+    {
+      "word": " der",
+      "start": 943.66,
+      "end": 943.96
+    },
+    {
+      "word": " Erde",
+      "start": 943.96,
+      "end": 944.32
+    },
+    {
+      "word": " über",
+      "start": 944.32,
+      "end": 944.6
+    },
+    {
+      "word": " einem",
+      "start": 944.6,
+      "end": 944.86
+    },
+    {
+      "word": " Körper",
+      "start": 944.86,
+      "end": 945.28
+    },
+    {
+      "word": " aus",
+      "start": 945.28,
+      "end": 945.58
+    },
+    {
+      "word": " Gift,",
+      "start": 945.58,
+      "end": 945.98
+    },
+    {
+      "word": " Kälte",
+      "start": 946.46,
+      "end": 946.94
+    },
+    {
+      "word": " und",
+      "start": 946.94,
+      "end": 947.58
+    },
+    {
+      "word": " Fremdartigkeit.",
+      "start": 947.58,
+      "end": 948.6
+    },
+    {
+      "word": " Andere",
+      "start": 949.28,
+      "end": 950.02
+    },
+    {
+      "word": " gefährliche",
+      "start": 950.02,
+      "end": 950.58
+    },
+    {
+      "word": " Welten",
+      "start": 950.58,
+      "end": 951.04
+    },
+    {
+      "word": " sind",
+      "start": 951.04,
+      "end": 951.74
+    },
+    {
+      "word": " ehrlich.",
+      "start": 951.74,
+      "end": 952.24
+    },
+    {
+      "word": " Die",
+      "start": 952.88,
+      "end": 953.32
+    },
+    {
+      "word": " Venus",
+      "start": 953.32,
+      "end": 953.66
+    },
+    {
+      "word": " ist",
+      "start": 953.66,
+      "end": 953.92
+    },
+    {
+      "word": " ein",
+      "start": 953.92,
+      "end": 954.1
+    },
+    {
+      "word": " glühender",
+      "start": 954.1,
+      "end": 954.68
+    },
+    {
+      "word": " Ofen,",
+      "start": 954.68,
+      "end": 955.26
+    },
+    {
+      "word": " der",
+      "start": 955.64,
+      "end": 955.72
+    },
+    {
+      "word": " Jupiter",
+      "start": 955.72,
+      "end": 956.12
+    },
+    {
+      "word": " eine",
+      "start": 956.12,
+      "end": 956.44
+    },
+    {
+      "word": " Wand",
+      "start": 956.44,
+      "end": 956.86
+    },
+    {
+      "word": " aus",
+      "start": 956.86,
+      "end": 957.14
+    },
+    {
+      "word": " Strahlung.",
+      "start": 957.14,
+      "end": 957.8
+    },
+    {
+      "word": " Sie",
+      "start": 958.02,
+      "end": 958.74
+    },
+    {
+      "word": " verstellen",
+      "start": 958.74,
+      "end": 959.16
+    },
+    {
+      "word": " Titan",
+      "start": 987.74,
+      "end": 989.14
+    },
+    {
+      "word": " schon.",
+      "start": 989.14,
+      "end": 989.14
+    },
+    {
+      "word": " Ähnlichkeit.",
+      "start": 989.16,
+      "end": 989.88
+    },
+    {
+      "word": " Er",
+      "start": 990.1,
+      "end": 990.56
+    },
+    {
+      "word": " kopiert",
+      "start": 990.56,
+      "end": 991.08
+    },
+    {
+      "word": " die",
+      "start": 991.08,
+      "end": 991.36
+    },
+    {
+      "word": " Form",
+      "start": 991.36,
+      "end": 991.74
+    },
+    {
+      "word": " der",
+      "start": 991.74,
+      "end": 991.92
+    },
+    {
+      "word": " Erde,",
+      "start": 991.92,
+      "end": 992.32
+    },
+    {
+      "word": " füllt",
+      "start": 992.68,
+      "end": 993.16
+    },
+    {
+      "word": " sie",
+      "start": 993.16,
+      "end": 993.34
+    },
+    {
+      "word": " aber",
+      "start": 993.34,
+      "end": 993.66
+    },
+    {
+      "word": " mit",
+      "start": 993.66,
+      "end": 994.26
+    },
+    {
+      "word": " fremdem",
+      "start": 994.26,
+      "end": 994.74
+    },
+    {
+      "word": " Inhalt.",
+      "start": 994.74,
+      "end": 995.34
+    },
+    {
+      "word": " Wir",
+      "start": 995.78,
+      "end": 996.22
+    },
+    {
+      "word": " sehen",
+      "start": 996.22,
+      "end": 996.52
+    },
+    {
+      "word": " ein",
+      "start": 996.52,
+      "end": 996.74
+    },
+    {
+      "word": " Spiegelbild,",
+      "start": 996.74,
+      "end": 997.48
+    },
+    {
+      "word": " fast",
+      "start": 997.74,
+      "end": 998.36
+    },
+    {
+      "word": " exakt,",
+      "start": 998.36,
+      "end": 998.96
+    },
+    {
+      "word": " aber",
+      "start": 999.2,
+      "end": 999.68
+    },
+    {
+      "word": " leicht",
+      "start": 999.68,
+      "end": 1000.08
+    },
+    {
+      "word": " verschoben.",
+      "start": 1000.08,
+      "end": 1000.88
+    },
+    {
+      "word": " Und",
+      "start": 1001.18,
+      "end": 1001.68
+    },
+    {
+      "word": " es",
+      "start": 1001.68,
+      "end": 1001.84
+    },
+    {
+      "word": " braucht",
+      "start": 1001.84,
+      "end": 1002.18
+    },
+    {
+      "word": " Zeit,",
+      "start": 1002.18,
+      "end": 1002.66
+    },
+    {
+      "word": " um",
+      "start": 1002.9,
+      "end": 1003.42
+    },
+    {
+      "word": " das",
+      "start": 1003.42,
+      "end": 1003.64
+    },
+    {
+      "word": " zu",
+      "start": 1003.64,
+      "end": 1003.86
+    },
+    {
+      "word": " bemerken.",
+      "start": 1003.86,
+      "end": 1004.38
+    },
+    {
+      "word": " Und",
+      "start": 1004.66,
+      "end": 1005.32
+    },
+    {
+      "word": " noch",
+      "start": 1005.32,
+      "end": 1005.58
+    },
+    {
+      "word": " mehr",
+      "start": 1005.58,
+      "end": 1005.78
+    },
+    {
+      "word": " Zeit,",
+      "start": 1005.78,
+      "end": 1006.2
+    },
+    {
+      "word": " um",
+      "start": 1006.46,
+      "end": 1006.98
+    },
+    {
+      "word": " es",
+      "start": 1006.98,
+      "end": 1007.14
+    },
+    {
+      "word": " zu",
+      "start": 1007.14,
+      "end": 1007.36
+    },
+    {
+      "word": " begreifen.",
+      "start": 1007.36,
+      "end": 1007.96
+    },
+    {
+      "word": " Vielen",
+      "start": 1008.26,
+      "end": 1008.92
+    },
+    {
+      "word": " Dank",
+      "start": 1008.92,
+      "end": 1009.16
+    },
+    {
+      "word": " fürs",
+      "start": 1009.16,
+      "end": 1009.42
+    },
+    {
+      "word": " Zuschauen.",
+      "start": 1009.42,
+      "end": 1010.02
+    },
+    {
+      "word": " Unterstützt",
+      "start": 1010.54,
+      "end": 1011.2
+    },
+    {
+      "word": " uns",
+      "start": 1011.2,
+      "end": 1011.38
+    },
+    {
+      "word": " gerne",
+      "start": 1011.38,
+      "end": 1011.66
+    },
+    {
+      "word": " mit",
+      "start": 1011.66,
+      "end": 1011.84
+    },
+    {
+      "word": " einem",
+      "start": 1011.84,
+      "end": 1012.04
+    },
+    {
+      "word": " Abo",
+      "start": 1012.04,
+      "end": 1012.36
+    },
+    {
+      "word": " und",
+      "start": 1012.36,
+      "end": 1012.58
+    },
+    {
+      "word": " einem",
+      "start": 1012.58,
+      "end": 1012.82
+    },
+    {
+      "word": " Like.",
+      "start": 1012.82,
+      "end": 1013.14
+    },
+    {
+      "word": " Ich",
+      "start": 1013.44,
+      "end": 1014.04
+    },
+    {
+      "word": " hoffe,",
+      "start": 1014.04,
+      "end": 1014.24
+    },
+    {
+      "word": " das",
+      "start": 1014.26,
+      "end": 1014.48
+    },
+    {
+      "word": " Video",
+      "start": 1014.48,
+      "end": 1014.84
+    },
+    {
+      "word": " hat",
+      "start": 1014.84,
+      "end": 1015.08
+    },
+    {
+      "word": " euch",
+      "start": 1015.08,
+      "end": 1015.24
+    },
+    {
+      "word": " gefallen.",
+      "start": 1015.24,
+      "end": 1015.64
+    },
+    {
+      "word": " Wir",
+      "start": 1016.33,
+      "end": 1016.66
+    },
+    {
+      "word": " sehen",
+      "start": 1016.66,
+      "end": 1016.96
+    },
+    {
+      "word": " uns",
+      "start": 1016.96,
+      "end": 1017.32
+    },
+    {
+      "word": " im",
+      "start": 1017.32,
+      "end": 1017.66
+    },
+    {
+      "word": " nächsten.",
+      "start": 1017.66,
+      "end": 1018.0
+    }
+  ]
+}
