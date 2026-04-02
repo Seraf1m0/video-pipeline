@@ -439,8 +439,10 @@ def build_final_audio(
     def _run(cmd, label="ffmpeg"):
         r = subprocess.run(cmd, capture_output=True)
         if r.returncode != 0:
-            print(f"  [Audio] {label} failed: {r.stderr.decode(errors='replace')[:300]}",
-                  flush=True)
+            err = r.stderr.decode(errors='replace')
+            # Показываем последние 600 символов (там реальная ошибка, не шапка ffmpeg)
+            tail = err[-600:] if len(err) > 600 else err
+            print(f"  [Audio] {label} failed:\n{tail}", flush=True)
         return r.returncode == 0
 
     # ── Шаги 1-3 параллельно: music / SFX / intro независимы ────────────────
@@ -456,6 +458,8 @@ def build_final_audio(
         if not all_tracks:
             return None
         needed_dur = max(0.0, video_duration - music_start_sec + 10.0)
+        if needed_dur <= 0.0:
+            return None
         probe_durations_parallel(all_tracks)
         total, idx, tracks = 0.0, 0, []
         while total < needed_dur:
@@ -465,6 +469,8 @@ def build_final_audio(
             idx   += 1
             if idx > len(all_tracks) * 3:
                 break
+        if not tracks:
+            return None
         print(f"  [Audio] music: {len(tracks)} tracks ~{total:.0f}s", flush=True)
 
         out = temp_dir / "_music_for_mix.wav"
@@ -579,13 +585,12 @@ def build_final_audio(
             "-i", str(music_wav),           # [0] музыка (сигнал)
             "-i", str(_voice_for_mix),       # [1] голос (sidechain детектор)
             "-filter_complex",
-            # Выравниваем оба потока, потом sidechain compressor
-            "[0:a]aresample=44100,aformat=channel_layouts=stereo,"
-            f"volume={music_vol_db}dB[music_in];"
+            # sidechaincompress: AA->A (музыка + голос → duck музыки)
+            f"[0:a]aresample=44100,aformat=channel_layouts=stereo,volume={music_vol_db}dB[music_in];"
             "[1:a]aresample=44100,aformat=channel_layouts=stereo[sc];"
-            "[music_in][sc]acompressor="
-            "threshold=-30dB:ratio=4:attack=10:release=300:"
-            "makeup=0dB:level_sc=1.0:mix=0.9[music_out]",
+            "[music_in][sc]sidechaincompress="
+            "threshold=0.03:ratio=4:attack=10:release=300:"
+            "makeup=1:mix=0.9[music_out]",
             "-map", "[music_out]",
             "-c:a", "pcm_f32le", "-ar", "44100", str(music_sc_wav),
         ], "music sidechain")
@@ -730,5 +735,5 @@ def build_final_audio(
             pass
 
     out_dur = get_audio_duration(str(output_path)) if Path(str(output_path)).exists() else 0.0
-    print(f"  [Audio] done: {out_dur:.1f}s → {output_path}", flush=True)
+    print(f"  [Audio] done: {out_dur:.1f}s -> {output_path}", flush=True)
     return str(output_path)
