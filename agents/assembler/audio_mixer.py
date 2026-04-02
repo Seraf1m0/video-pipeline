@@ -413,6 +413,7 @@ def build_final_audio(
     intro_trim_s:         float = 90.0,
     intro_vol_db:         float = -20.0,
     video_duration:       float = 0.0,
+    lufs_target:          float = -16.0,   # LUFS таргет: -16 YouTube, -18 спокойный
     peak_moment_times=None,      # сохранён для совместимости API, не используется
     vo_emotion_keyframes=None,   # сохранён для совместимости API, не используется
 ) -> str:
@@ -548,24 +549,70 @@ def build_final_audio(
         if _w:
             _wavs.append(_w)
 
-    # ── Шаг 4: bg_for_mix.wav ────────────────────────────────────────────────
-    # amix всех фоновых дорожек с их громкостями
+    # ── Шаг 4a: voice_proc.wav — EQ + компрессор на голос ───────────────────
+    # High-pass 80Hz (убирает rumble/низкий шум)
+    # Presence EQ +3dB @ 3kHz Q=1.4 (чёткость речи)
+    # Compressor 4:1, threshold -20dB, attack 5ms, release 150ms (выравнивает динамику)
+    voice_proc_wav = temp_dir / "_voice_proc.wav"
+    _wavs.append(voice_proc_wav)
+    voice_proc_ok = _run([
+        "ffmpeg", "-y", "-i", str(voice_path),
+        "-af",
+        "highpass=f=80,"
+        "equalizer=f=3000:width_type=o:width=1.4:g=3,"
+        "acompressor=threshold=-20dB:ratio=4:attack=5:release=150:makeup=2dB",
+        "-c:a", "pcm_f32le", "-ar", "44100", str(voice_proc_wav),
+    ], "voice EQ+comp")
+    # Если EQ/comp упал — используем исходный голос
+    _voice_for_mix = voice_proc_wav if voice_proc_ok and voice_proc_wav.exists() else voice_path
+
+    # ── Шаг 4b: music_sc.wav — sidechain ducking музыки от голоса ───────────
+    # acompressor с sidechain: голос = детектор, музыка = сигнал
+    # Когда голос активен → музыка duck до -8dB (ratio=4, threshold=-30dB)
+    # attack=10ms (быстро реагирует), release=300ms (плавно возвращается)
+    music_sc_wav = None
+    if music_wav and music_wav.exists():
+        music_sc_wav = temp_dir / "_music_sc.wav"
+        _wavs.append(music_sc_wav)
+        sc_ok = _run([
+            "ffmpeg", "-y",
+            "-i", str(music_wav),           # [0] музыка (сигнал)
+            "-i", str(_voice_for_mix),       # [1] голос (sidechain детектор)
+            "-filter_complex",
+            # Выравниваем оба потока, потом sidechain compressor
+            "[0:a]aresample=44100,aformat=channel_layouts=stereo,"
+            f"volume={music_vol_db}dB[music_in];"
+            "[1:a]aresample=44100,aformat=channel_layouts=stereo[sc];"
+            "[music_in][sc]acompressor="
+            "threshold=-30dB:ratio=4:attack=10:release=300:"
+            "makeup=0dB:level_sc=1.0:mix=0.9[music_out]",
+            "-map", "[music_out]",
+            "-c:a", "pcm_f32le", "-ar", "44100", str(music_sc_wav),
+        ], "music sidechain")
+        if not sc_ok:
+            # Fallback: просто применяем volume без sidechain
+            music_sc_wav = None
+
+    # ── Шаг 4c: bg_for_mix.wav — финальный bg микс ───────────────────────────
     bg_wav = None
-    bg = []   # (path, vol_db)
-    if music_wav:
-        bg.append((music_wav, music_vol_db))
+    bg = []   # (path, vol_db_or_None_if_already_applied)
+    if music_sc_wav:
+        bg.append((music_sc_wav, 0.0))     # громкость уже применена в sidechain шаге
+    elif music_wav:
+        bg.append((music_wav, music_vol_db))  # fallback без sidechain
     if intro_wav:
         bg.append((intro_wav, intro_vol_db))
     if sfx_wav:
-        bg.append((sfx_wav, 0.0))   # SFX уже с gain
+        bg.append((sfx_wav, 0.0))
 
     if bg:
         bg_wav = temp_dir / "_bg_for_mix.wav"
         _wavs.append(bg_wav)
         if len(bg) == 1:
             path, db = bg[0]
+            vf = f"volume={db}dB" if db != 0.0 else "anull"
             _run(["ffmpeg", "-y", "-i", str(path),
-                  "-af", f"volume={db}dB",
+                  "-af", vf,
                   "-c:a", "pcm_f32le", "-ar", "44100", str(bg_wav)], "bg WAV")
         else:
             cmd = ["ffmpeg", "-y"]
@@ -584,17 +631,21 @@ def build_final_audio(
             if not _run(cmd, "bg WAV"):
                 bg_wav = None
 
-    # ── Шаг 5: финальный 2-input amix → AAC 320k ─────────────────────────────
+    # ── Шаг 5: финальный микс → loudnorm (2 прохода) → AAC 320k ─────────────
     print(f"  [Audio] final mix: voice"
-          + (f" + music" if music_wav else "")
+          + (f" + music(sidechain)" if music_sc_wav else " + music" if music_wav else "")
           + (f" + intro" if intro_wav else "")
           + (f" + {len(sfx_events)}×SFX" if sfx_wav else ""),
           flush=True)
 
+    # Собираем raw mix во временный WAV перед loudnorm
+    raw_mix_wav = temp_dir / "_raw_mix.wav"
+    _wavs.append(raw_mix_wav)
+
     if bg_wav and bg_wav.exists():
         _run([
             "ffmpeg", "-y",
-            "-i", str(voice_path),
+            "-i", str(_voice_for_mix),
             "-i", str(bg_wav),
             "-filter_complex",
             "[0:a]aresample=44100,aformat=channel_layouts=stereo[v];"
@@ -602,15 +653,74 @@ def build_final_audio(
             "[v][b]amix=inputs=2:duration=first:normalize=0:dropout_transition=0[out]",
             "-map", "[out]",
             "-t", f"{voice_dur:.3f}",
+            "-c:a", "pcm_f32le", "-ar", "44100",
+            "-loglevel", "warning",
+            str(raw_mix_wav),
+        ], "raw mix WAV")
+    else:
+        _run(["ffmpeg", "-y", "-i", str(_voice_for_mix),
+              "-c:a", "pcm_f32le", "-ar", "44100",
+              "-loglevel", "warning", str(raw_mix_wav)], "voice-only WAV")
+
+    # Loudnorm двумя проходами:
+    # Проход 1: измеряем реальные LUFS / LRA / TP
+    # Проход 2: применяем точную коррекцию с measured_ параметрами
+    _lufs_target = lufs_target  # из параметра функции
+    _measured = {}
+    if raw_mix_wav.exists():
+        r_probe = subprocess.run([
+            "ffmpeg", "-y", "-i", str(raw_mix_wav),
+            "-af", f"loudnorm=I={_lufs_target}:TP=-1.5:LRA=11:print_format=json",
+            "-f", "null", "-",
+        ], capture_output=True, text=True)
+        # loudnorm пишет JSON в stderr
+        stderr = r_probe.stderr
+        try:
+            j_start = stderr.rfind("{")
+            j_end   = stderr.rfind("}") + 1
+            if j_start >= 0 and j_end > j_start:
+                ln_data = json.loads(stderr[j_start:j_end])
+                _measured = {
+                    "input_i":   ln_data.get("input_i",   "-99"),
+                    "input_tp":  ln_data.get("input_tp",  "-99"),
+                    "input_lra": ln_data.get("input_lra", "0"),
+                    "input_thresh": ln_data.get("input_thresh", "-99"),
+                }
+                print(f"  [Audio] loudnorm pass1: I={_measured['input_i']} LUFS  "
+                      f"TP={_measured['input_tp']}  LRA={_measured['input_lra']}",
+                      flush=True)
+        except Exception as _e:
+            print(f"  [Audio] loudnorm pass1 parse error: {_e}", flush=True)
+
+    # Проход 2: применяем loudnorm + alimiter
+    if raw_mix_wav.exists():
+        if _measured:
+            ln_filter = (
+                f"loudnorm=I={_lufs_target}:TP=-1.5:LRA=11:linear=true:"
+                f"measured_I={_measured['input_i']}:"
+                f"measured_TP={_measured['input_tp']}:"
+                f"measured_LRA={_measured['input_lra']}:"
+                f"measured_thresh={_measured['input_thresh']},"
+                f"alimiter=limit=0.891:attack=5:release=50:level=false"
+            )
+        else:
+            # Fallback: single-pass dynamic loudnorm
+            ln_filter = (
+                f"loudnorm=I={_lufs_target}:TP=-1.5:LRA=11:linear=false,"
+                f"alimiter=limit=0.891:attack=5:release=50:level=false"
+            )
+        _run([
+            "ffmpeg", "-y", "-i", str(raw_mix_wav),
+            "-af", ln_filter,
             "-c:a", "aac", "-b:a", "320k", "-ar", "44100",
             "-loglevel", "warning",
             str(output_path),
-        ], "final amix")
+        ], f"loudnorm pass2 → AAC")
     else:
-        # Нет фоновых дорожек — просто конвертируем голос
-        _run(["ffmpeg", "-y", "-i", str(voice_path),
+        # raw mix не создался — используем исходный голос напрямую
+        _run(["ffmpeg", "-y", "-i", str(_voice_for_mix),
               "-c:a", "aac", "-b:a", "320k", "-ar", "44100",
-              "-loglevel", "warning", str(output_path)], "voice-only")
+              "-loglevel", "warning", str(output_path)], "voice-only fallback")
 
     # Удалить temp WAV файлы
     for w in _wavs:

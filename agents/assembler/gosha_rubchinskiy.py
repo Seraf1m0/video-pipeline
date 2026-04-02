@@ -689,6 +689,7 @@ def build_audio_track(
     music_vol   = float(style.get("music_vol_db", -22.0))
     intro_vol   = float(style.get("intro_audio_vol_db", -20.0))
 
+    lufs_target = float(style.get("lufs_target", -16.0))
     build_final_audio(
         voice_path       = voiceover,
         output_path      = output,
@@ -699,6 +700,7 @@ def build_audio_track(
         intro_trim_s     = intro_dur + 2.0 if has_intro else 0.0,
         intro_vol_db     = intro_vol,
         video_duration   = total_dur,
+        lufs_target      = lufs_target,
     )
     return output.exists()
 
