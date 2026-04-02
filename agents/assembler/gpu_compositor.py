@@ -274,12 +274,14 @@ def prerender_subtitles(events: list[dict],
                         subtitle_style: str = "default",
                         subtitle_anim: str = ANIM_SLIDE_UP) -> list[dict]:
     """
-    CPU: растеризует все субтитры → GPU: загружает в VRAM.
+    CPU: растеризует все субтитры параллельно → GPU: загружает в VRAM (batch, non-blocking).
 
     subtitle_style: "default"|"karaoke" → снизу экрана
                     "scripture"          → по центру экрана
     subtitle_anim:  ANIM_FADE | ANIM_FADE_SCALE | ANIM_SLIDE_UP | ANIM_POP | ANIM_WORD_HL
     """
+    import concurrent.futures
+
     if font_path and Path(font_path).exists():
         try:
             font = ImageFont.truetype(font_path, font_size)
@@ -290,86 +292,94 @@ def prerender_subtitles(events: list[dict],
 
     center_screen = (subtitle_style == "scripture")
     fade_frames   = max(1, int(fade_ms / 1000 * fps))
-    rendered      = []
-    vram_mb       = 0.0
 
-    for ev in events:
+    # ── Шаг 1: параллельный CPU-рендер ───────────────────────────────────────
+    # Каждый event независим — PIL Image объекты не разделяются между потоками.
+    def _render_event_cpu(ev):
+        """Возвращает (numpy_arrays_dict, meta_dict) без CUDA."""
         start_f = int(ev["start"] * fps)
         end_f   = max(start_f + 1, int(ev["end"] * fps))
 
-        # ── word_highlight: рендерим каждое слово отдельно (bright + dim) ──────
         if subtitle_anim == ANIM_WORD_HL and ev.get("words") and len(ev["words"]) > 1:
             words_data = ev["words"]
-            bright_tensors, dim_tensors = [], []
-            word_start_fs = []
-            word_widths   = []
-            max_th        = 0
-            gap_px        = 14  # расстояние между словами
-
+            bright_arrs, dim_arrs = [], []
+            word_start_fs, word_widths = [], []
+            max_th = 0
             for w in words_data:
                 arr_b = _render_sub_rgba(w["text"], font, color=_COLOR_BRIGHT)
                 arr_d = _render_sub_rgba(w["text"], font, color=_COLOR_DIM)
-                bright_tensors.append(torch.from_numpy(arr_b).to(DEVICE))
-                dim_tensors.append(torch.from_numpy(arr_d).to(DEVICE))
+                bright_arrs.append(arr_b)
+                dim_arrs.append(arr_d)
                 word_start_fs.append(int(w["start"] * fps))
                 word_widths.append(arr_b.shape[1])
                 max_th = max(max_th, arr_b.shape[0])
-                vram_mb += (arr_b.nbytes + arr_d.nbytes) / 1024 / 1024
-
+            gap_px  = 14
             total_w = sum(word_widths) + gap_px * (len(words_data) - 1)
             x_start = (W - total_w) // 2
-            x_positions = []
-            cx = x_start
+            x_positions, cx = [], x_start
             for ww in word_widths:
                 x_positions.append(cx)
                 cx += ww + gap_px
-
-            # Bottom anchor: нижний край всегда на одном уровне независимо от высоты текста
             y_base = (H - max_th) // 2 if center_screen else H - max_th - 50
+            return ("word_hl", bright_arrs, dim_arrs, {
+                "word_start_fs": word_start_fs,
+                "x_positions":   x_positions,
+                "word_heights":  [a.shape[0] for a in bright_arrs],
+                "y_base":        y_base,
+                "start_f":       start_f,
+                "end_f":         end_f,
+                "fade_frames":   fade_frames,
+                "tw":            total_w,
+                "th":            max_th,
+                "x":             x_start,
+                "y":             y_base,
+            })
 
+        _color = _COLOR_BRIGHT if subtitle_anim == ANIM_WORD_HL else _COLOR_WHITE
+        arr = _render_sub_rgba(ev["text"], font, color=_color)
+        th, tw = arr.shape[:2]
+        x  = (W - tw) // 2
+        y  = (H - th) // 2 if center_screen else H - th - 50
+        _anim = ANIM_FADE if subtitle_anim == ANIM_WORD_HL else subtitle_anim
+        return ("std", arr, None, {
+            "anim": _anim, "start_f": start_f, "end_f": end_f,
+            "x": x, "y": y, "tw": tw, "th": th, "fade_frames": fade_frames,
+        })
+
+    # Параллельный CPU-рендер (I/O bound через PIL + numpy)
+    cpu_workers = min(8, len(events)) if events else 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_workers) as ex:
+        cpu_results = list(ex.map(_render_event_cpu, events))
+
+    # ── Шаг 2: batch VRAM upload (pin_memory + non_blocking) ─────────────────
+    # pin_memory() позволяет DMA-трансфер без CPU-посредника → быстрее.
+    def _to_gpu(arr: np.ndarray) -> torch.Tensor:
+        return torch.from_numpy(arr).pin_memory().to(DEVICE, non_blocking=True)
+
+    rendered = []
+    vram_mb  = 0.0
+
+    for kind, a1, a2, meta in cpu_results:
+        if kind == "word_hl":
+            bright_arrs, dim_arrs = a1, a2
+            bright_tensors = [_to_gpu(a) for a in bright_arrs]
+            dim_tensors    = [_to_gpu(a) for a in dim_arrs]
+            for a in bright_arrs + dim_arrs:
+                vram_mb += a.nbytes / 1024 / 1024
             rendered.append({
                 "anim":            ANIM_WORD_HL,
                 "bright_tensors":  bright_tensors,
                 "dim_tensors":     dim_tensors,
-                "word_start_fs":   word_start_fs,
-                "x_positions":     x_positions,
-                "word_heights":    [t.shape[0] for t in bright_tensors],
-                "y_base":          y_base,
-                "start_f":         start_f,
-                "end_f":           end_f,
-                "fade_frames":     fade_frames,
-                "tw":              total_w,
-                "th":              max_th,
-                "x":               x_start,
-                "y":               y_base,
+                **meta,
             })
-            continue
+        else:
+            arr = a1
+            vram_mb += arr.nbytes / 1024 / 1024
+            rendered.append({"tensor": _to_gpu(arr), **meta})
 
-        # ── Стандартный рендер (все остальные анимации) ───────────────────────
-        # Одиночное слово в WORD_HL режиме: всегда активное → яркий (жёлтый) цвет
-        _color = _COLOR_BRIGHT if subtitle_anim == ANIM_WORD_HL else _COLOR_WHITE
-        arr = _render_sub_rgba(ev["text"], font, color=_color)
-        th, tw = arr.shape[:2]
-        tensor = torch.from_numpy(arr).to(DEVICE)
-
-        x = (W - tw) // 2
-        # Bottom anchor: нижний край всегда на одном уровне независимо от высоты текста
-        y = (H - th) // 2 if center_screen else H - th - 50
-
-        # ANIM_WORD_HL требует multi-word путь выше; одиночное слово → fade
-        _anim = ANIM_FADE if subtitle_anim == ANIM_WORD_HL else subtitle_anim
-        rendered.append({
-            "anim":        _anim,
-            "tensor":      tensor,
-            "start_f":     start_f,
-            "end_f":       end_f,
-            "x":           x,
-            "y":           y,
-            "tw":          tw,
-            "th":          th,
-            "fade_frames": fade_frames,
-        })
-        vram_mb += arr.nbytes / 1024 / 1024
+    # Дождаться завершения всех non_blocking transfers перед рендером
+    if DEVICE != "cpu":
+        torch.cuda.synchronize()
 
     print(f"[GPU] Субтитры: {len(rendered)} строк, VRAM: {vram_mb:.0f}MB загружено в {DEVICE}")
     return rendered
