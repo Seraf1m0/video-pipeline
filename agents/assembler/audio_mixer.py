@@ -649,14 +649,13 @@ def build_final_audio(
         "equalizer=f=3000:width_type=o:width=1.4:g=3,"       # presence
         "equalizer=f=10000:width_type=o:width=1.0:g=2,"      # air
         # Stage 4: Двухполосный компрессор (crossover @ 2kHz)
-        #   lo band: 2.5:1, attack 35ms (медленная — пропускает согласные/транзиенты)
-        #   hi band: 3:1,   attack 15ms, release 80ms (быстрее на высоких, меньше pumping)
-        "mcompand="
-        "attacks=0.035 0.015:"
-        "decays=0.08 0.08:"
-        "points=-47/-40 -22/-22 0/-13|-47/-40 -22/-22 0/-15:"
-        "crossover_freq=2000:"
-        "delay=0.01,"
+        #   Синтаксис args: "attack,decay soft_knee points crossover | ..."
+        #   lo band (0-2kHz):  attack 35ms — медленная, пропускает согласные
+        #   hi band (2k-22kHz): attack 15ms — быстрее, контроль высоких
+        "mcompand=args="
+        "'0.035,0.08 6 -47/-40,-22/-22,0/-13 2000"
+        " | "
+        "0.015,0.08 6 -47/-40,-22/-22,0/-15 22000',"
         # Stage 5: Динамический нормализатор → цель -6 dBFS (p=0.50)
         #   f=250ms окна | g=15 Gaussian | m=20 макс. буст +20dB
         "dynaudnorm=f=250:g=15:p=0.50:m=20,"
