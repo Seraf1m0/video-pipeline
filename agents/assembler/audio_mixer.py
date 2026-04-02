@@ -16,24 +16,46 @@ import math
 import os
 import json
 import subprocess
+import threading
+import concurrent.futures
 from pathlib import Path
 
 
 # ── Утилиты ──────────────────────────────────────────────────────────────────
 
+_dur_cache: dict[str, float] = {}
+_dur_lock  = threading.Lock()
+
+
 def get_audio_duration(path) -> float:
-    """Получить длительность аудио/видео через ffprobe."""
+    """Получить длительность аудио/видео через ffprobe (с кэшем)."""
+    key = str(path)
+    with _dur_lock:
+        if key in _dur_cache:
+            return _dur_cache[key]
     cmd = [
         "ffprobe", "-v", "quiet",
         "-print_format", "json",
         "-show_format",
-        str(path)
+        key,
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
     try:
-        return float(json.loads(r.stdout)["format"]["duration"])
+        dur = float(json.loads(r.stdout)["format"]["duration"])
     except Exception:
-        return 0.0
+        dur = 0.0
+    with _dur_lock:
+        _dur_cache[key] = dur
+    return dur
+
+
+def probe_durations_parallel(paths, max_workers: int = 8) -> None:
+    """Прогреть кэш для списка файлов параллельно (fire-and-forget)."""
+    uncached = [p for p in paths if str(p) not in _dur_cache]
+    if not uncached:
+        return
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+        list(ex.map(get_audio_duration, uncached))
 
 
 # Алиас для совместимости
@@ -420,79 +442,75 @@ def build_final_audio(
                   flush=True)
         return r.returncode == 0
 
-    # ── Шаг 1: music_for_mix.wav ─────────────────────────────────────────────
-    # тишина(music_start_sec) + треки с acrossfade + trim + fade, полный уровень
-    music_wav = None
-    use_music = music_vol_db > -60 and music_dir.exists() and video_duration > 0
-    if use_music:
+    # ── Шаги 1-3 параллельно: music / SFX / intro независимы ────────────────
+
+    def _build_music_wav() -> "Path | None":
+        """Шаг 1: music_for_mix.wav — тишина + треки acrossfade + fade."""
+        if not (music_vol_db > -60 and music_dir.exists() and video_duration > 0):
+            return None
         all_tracks = sorted([
             f for f in music_dir.iterdir()
             if f.suffix.lower() in (".mp3", ".wav", ".aac", ".flac")
         ])
-        if all_tracks:
-            needed_dur = max(0.0, video_duration - music_start_sec + 10.0)
-            total, idx, tracks = 0.0, 0, []
-            while total < needed_dur:
-                t = all_tracks[idx % len(all_tracks)]
-                tracks.append(t)
-                total += get_audio_duration(str(t))
-                idx   += 1
-                if idx > len(all_tracks) * 3:
-                    break
-            print(f"  [Audio] music: {len(tracks)} tracks ~{total:.0f}s", flush=True)
+        if not all_tracks:
+            return None
+        needed_dur = max(0.0, video_duration - music_start_sec + 10.0)
+        probe_durations_parallel(all_tracks)
+        total, idx, tracks = 0.0, 0, []
+        while total < needed_dur:
+            t = all_tracks[idx % len(all_tracks)]
+            tracks.append(t)
+            total += get_audio_duration(str(t))
+            idx   += 1
+            if idx > len(all_tracks) * 3:
+                break
+        print(f"  [Audio] music: {len(tracks)} tracks ~{total:.0f}s", flush=True)
 
-            music_wav = temp_dir / "_music_for_mix.wav"
-            _wavs.append(music_wav)
-            n = len(tracks)
+        out = temp_dir / "_music_for_mix.wav"
+        n   = len(tracks)
+        cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
+        for t in tracks:
+            cmd += ["-i", str(t)]
+        fc = [f"[0:a]atrim=0:{music_start_sec:.3f}[sil]"]
+        for j in range(n):
+            fc.append(f"[{j+1}:a]aresample=44100,aformat=channel_layouts=stereo[mt{j}]")
+        if n == 1:
+            fc.append("[mt0]anull[mcat]")
+        elif n == 2:
+            fc.append("[mt0][mt1]acrossfade=d=3:c1=tri:c2=tri[mcat]")
+        else:
+            prev = "mt0"
+            for j in range(1, n):
+                nxt = "mcat" if j == n - 1 else f"cf{j}"
+                fc.append(f"[{prev}][mt{j}]acrossfade=d=3:c1=tri:c2=tri[{nxt}]")
+                prev = nxt
+        fo = max(0.0, needed_dur - 4.0)
+        fc.append(
+            f"[mcat]atrim=0:{needed_dur:.2f},"
+            f"afade=t=in:st=0:d=2,afade=t=out:st={fo:.2f}:d=4[mtr]"
+        )
+        fc.append("[sil][mtr]concat=n=2:v=0:a=1[out]")
+        cmd += ["-filter_complex", ";".join(fc),
+                "-map", "[out]",
+                "-t", f"{music_start_sec + needed_dur:.2f}",
+                "-c:a", "pcm_f32le", "-ar", "44100", str(out)]
+        return out if _run(cmd, "music WAV") else None
 
-            cmd = ["ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
-            for t in tracks:
-                cmd += ["-i", str(t)]
-
-            fc = [f"[0:a]atrim=0:{music_start_sec:.3f}[sil]"]
-            for j in range(n):
-                fc.append(f"[{j+1}:a]aresample=44100,aformat=channel_layouts=stereo[mt{j}]")
-
-            if n == 1:
-                fc.append("[mt0]anull[mcat]")
-            elif n == 2:
-                fc.append("[mt0][mt1]acrossfade=d=3:c1=tri:c2=tri[mcat]")
-            else:
-                prev = "mt0"
-                for j in range(1, n):
-                    out = "mcat" if j == n - 1 else f"cf{j}"
-                    fc.append(f"[{prev}][mt{j}]acrossfade=d=3:c1=tri:c2=tri[{out}]")
-                    prev = out
-
-            fo = max(0.0, needed_dur - 4.0)
-            fc.append(
-                f"[mcat]atrim=0:{needed_dur:.2f},"
-                f"afade=t=in:st=0:d=2,afade=t=out:st={fo:.2f}:d=4[mtr]"
-            )
-            fc.append("[sil][mtr]concat=n=2:v=0:a=1[out]")
-
-            cmd += ["-filter_complex", ";".join(fc),
-                    "-map", "[out]",
-                    "-t", f"{music_start_sec + needed_dur:.2f}",
-                    "-c:a", "pcm_f32le", "-ar", "44100", str(music_wav)]
-            if not _run(cmd, "music WAV"):
-                music_wav = None
-
-    # ── Шаг 2: sfx_for_mix.wav ───────────────────────────────────────────────
-    # SFX-only amix с adelay — только короткие файлы, дедлока нет
-    sfx_wav = None
-    if sfx_events:
-        sfx_wav = temp_dir / "_sfx_for_mix.wav"
-        _wavs.append(sfx_wav)
+    def _build_sfx_wav() -> "Path | None":
+        """Шаг 2: sfx_for_mix.wav — все SFX с adelay и gain."""
+        if not sfx_events:
+            return None
+        probe_durations_parallel([ev["file"] for ev in sfx_events])
+        out = temp_dir / "_sfx_for_mix.wav"
         cmd = ["ffmpeg", "-y"]
         for ev in sfx_events:
             cmd += ["-i", str(ev["file"])]
         fc = []
         for k, ev in enumerate(sfx_events):
-            delay_ms   = max(0, int(float(ev.get("time_s", ev.get("time", 0))) * 1000))
-            gain       = float(ev.get("gain", ev.get("vol", 0.20)))
-            sfx_dur    = get_audio_duration(str(ev["file"]))
-            fo_d       = min(0.15, sfx_dur * 0.3)
+            delay_ms = max(0, int(float(ev.get("time_s", ev.get("time", 0))) * 1000))
+            gain     = float(ev.get("gain", ev.get("vol", 0.20)))
+            sfx_dur  = get_audio_duration(str(ev["file"]))
+            fo_d     = min(0.15, sfx_dur * 0.3)
             fc.append(
                 f"[{k}:a]aresample=44100,aformat=channel_layouts=stereo,"
                 f"afade=t=in:st=0:d=0.04,"
@@ -503,20 +521,32 @@ def build_final_audio(
         fc.append(f"{ins}amix=inputs={len(sfx_events)}:"
                   f"duration=longest:normalize=0:dropout_transition=0[out]")
         cmd += ["-filter_complex", ";".join(fc),
-                "-map", "[out]", "-c:a", "pcm_f32le", "-ar", "44100", str(sfx_wav)]
-        if not _run(cmd, "SFX WAV"):
-            sfx_wav = None
+                "-map", "[out]", "-c:a", "pcm_f32le", "-ar", "44100", str(out)]
+        return out if _run(cmd, "SFX WAV") else None
 
-    # ── Шаг 3: intro_audio.wav ───────────────────────────────────────────────
-    intro_wav = None
-    if intro_audio_path and Path(str(intro_audio_path)).exists():
-        intro_wav = temp_dir / "_intro_audio.wav"
-        _wavs.append(intro_wav)
-        if not _run(["ffmpeg", "-y", "-i", str(intro_audio_path),
-                     "-vn", "-t", f"{intro_trim_s:.2f}",
-                     "-c:a", "pcm_f32le", "-ar", "44100", str(intro_wav)],
-                    "intro WAV"):
-            intro_wav = None
+    def _build_intro_wav() -> "Path | None":
+        """Шаг 3: intro_audio.wav — аудио из интро-видео."""
+        if not (intro_audio_path and Path(str(intro_audio_path)).exists()):
+            return None
+        out = temp_dir / "_intro_audio.wav"
+        ok  = _run(["ffmpeg", "-y", "-i", str(intro_audio_path),
+                    "-vn", "-t", f"{intro_trim_s:.2f}",
+                    "-c:a", "pcm_f32le", "-ar", "44100", str(out)],
+                   "intro WAV")
+        return out if ok else None
+
+    # Запускаем все три задачи параллельно
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as _ex:
+        _fut_music = _ex.submit(_build_music_wav)
+        _fut_sfx   = _ex.submit(_build_sfx_wav)
+        _fut_intro = _ex.submit(_build_intro_wav)
+        music_wav  = _fut_music.result()
+        sfx_wav    = _fut_sfx.result()
+        intro_wav  = _fut_intro.result()
+
+    for _w in (music_wav, sfx_wav, intro_wav):
+        if _w:
+            _wavs.append(_w)
 
     # ── Шаг 4: bg_for_mix.wav ────────────────────────────────────────────────
     # amix всех фоновых дорожек с их громкостями
