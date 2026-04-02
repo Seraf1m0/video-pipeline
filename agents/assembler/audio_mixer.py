@@ -282,6 +282,49 @@ def final_mix(voice_path, music_path, output_path,
     return str(output_path)
 
 
+# ─── SFX GAIN TABLE (по категориям) ─────────────────────────────────────────
+#
+# Все уровни — линейный коэффициент относительно 0 dBFS.
+# Целевой уровень голоса в миксе: -6 dBFS (после dynaudnorm).
+# Проценты ниже — перцептивная громкость относительно голоса.
+#
+#   whoosh/swish:  17–20%  (-15.4 … -14.0 dB)
+#   riser/boom/impact/hit: 10–15%  (-20.0 … -16.5 dB)
+#   default:       10–15%
+
+_SFX_GAIN_RANGES: dict[str, tuple[float, float]] = {
+    # Еле заметный, атмосферный — не должен перебивать голос
+    # whoosh/swish: чуть громче остальных (движение), но всё равно фоновые
+    "whoosh":  (0.08, 0.12),
+    "swish":   (0.08, 0.12),
+    "sweep":   (0.08, 0.12),
+    "fly":     (0.08, 0.12),
+    # Остальные — едва слышны, только ощущение атмосферы
+    "riser":   (0.05, 0.08),
+    "rise":    (0.05, 0.08),
+    "boom":    (0.05, 0.08),
+    "impact":  (0.05, 0.08),
+    "hit":     (0.05, 0.08),
+    "drop":    (0.05, 0.08),
+    "slam":    (0.05, 0.08),
+    "crash":   (0.05, 0.08),
+    "default": (0.05, 0.08),
+}
+
+
+def _sfx_gain_for_category(category: str, emotion: float = 5.0) -> float:
+    """
+    Линейный gain для SFX события.
+    Внутри диапазона категории масштабируется по emotion (1-10):
+      emotion=1 → нижняя граница диапазона
+      emotion=10 → верхняя граница диапазона
+    """
+    key = (category or "default").lower().split("_")[0]
+    lo, hi = _SFX_GAIN_RANGES.get(key, _SFX_GAIN_RANGES["default"])
+    t = max(0.0, min(1.0, (max(1.0, min(10.0, float(emotion))) - 1.0) / 9.0))
+    return lo + t * (hi - lo)
+
+
 # ─── НОВЫЙ ЕДИНЫЙ АУДИО ПАСС — ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ──────────────────────
 
 def _vo_volume_for_emotion(emotion: float) -> float:
@@ -480,7 +523,18 @@ def build_final_audio(
             cmd += ["-i", str(t)]
         fc = [f"[0:a]atrim=0:{music_start_sec:.3f}[sil]"]
         for j in range(n):
-            fc.append(f"[{j+1}:a]aresample=44100,aformat=channel_layouts=stereo[mt{j}]")
+            # silenceremove на каждом треке: убираем только тихие интро/аутро
+            # (-55dB порог — только цифровая тишина, не музыкальные паузы).
+            # start_silence=0.1 — оставляем 0.1s в начале для естественного старта.
+            fc.append(
+                f"[{j+1}:a]aresample=44100,aformat=channel_layouts=stereo,"
+                "silenceremove="
+                "start_periods=1:start_duration=0.1:start_threshold=-55dB:"
+                "start_silence=0.1:"
+                "stop_periods=1:stop_duration=0.3:stop_threshold=-55dB:"
+                "stop_silence=0.1"
+                f"[mt{j}]"
+            )
         if n == 1:
             fc.append("[mt0]anull[mcat]")
         elif n == 2:
@@ -515,7 +569,10 @@ def build_final_audio(
         fc = []
         for k, ev in enumerate(sfx_events):
             delay_ms = max(0, int(float(ev.get("time_s", ev.get("time", 0))) * 1000))
-            gain     = float(ev.get("gain", ev.get("vol", 0.20)))
+            # Gain по таблице категорий (whoosh 17-20%, остальные 10-15%)
+            category = str(ev.get("category", ev.get("type", "default")))
+            emotion  = float(ev.get("emotion", 5.0))
+            gain     = _sfx_gain_for_category(category, emotion)
             sfx_dur  = get_audio_duration(str(ev["file"]))
             fo_d     = min(0.15, sfx_dur * 0.3)
             fc.append(
@@ -532,14 +589,26 @@ def build_final_audio(
         return out if _run(cmd, "SFX WAV") else None
 
     def _build_intro_wav() -> "Path | None":
-        """Шаг 3: intro_audio.wav — аудио из интро-видео."""
+        """
+        Шаг 3: intro_audio.wav — аудио из интро-видео.
+
+        Нормализует интро к единому пику перед применением громкости в миксе.
+        Это гарантирует что intro_audio_vol_db даёт предсказуемый уровень:
+          тихий исходник → поднимается до нормы
+          громкий исходник → остаётся на норме
+        Без нормализации -34 dB от тихого файла = почти тишина.
+        """
         if not (intro_audio_path and Path(str(intro_audio_path)).exists()):
             return None
         out = temp_dir / "_intro_audio.wav"
-        ok  = _run(["ffmpeg", "-y", "-i", str(intro_audio_path),
-                    "-vn", "-t", f"{intro_trim_s:.2f}",
-                    "-c:a", "pcm_f32le", "-ar", "44100", str(out)],
-                   "intro WAV")
+        ok  = _run([
+            "ffmpeg", "-y", "-i", str(intro_audio_path),
+            "-vn", "-t", f"{intro_trim_s:.2f}",
+            # dynaudnorm: нормализуем пик к -1 dBFS (p=0.891 ≈ -1dBFS)
+            # Теперь intro_audio_vol_db всегда отсчитывается от -1 dBFS
+            "-af", "dynaudnorm=f=500:g=31:p=0.891:m=30",
+            "-c:a", "pcm_f32le", "-ar", "44100", str(out),
+        ], "intro WAV (normalized)")
         return out if ok else None
 
     # Запускаем все три задачи параллельно
@@ -555,20 +624,63 @@ def build_final_audio(
         if _w:
             _wavs.append(_w)
 
-    # ── Шаг 4a: voice_proc.wav — EQ + компрессор на голос ───────────────────
-    # High-pass 80Hz (убирает rumble/низкий шум)
-    # Presence EQ +3dB @ 3kHz Q=1.4 (чёткость речи)
-    # Compressor 4:1, threshold -20dB, attack 5ms, release 150ms (выравнивает динамику)
+    # ── Шаг 4a: voice_proc.wav — полный голосовой процессинг ───────────────────
+    # Stage 1: afftdn        — шумоподавление Wiener (noise floor -25dB)
+    # Stage 2: Multi-band EQ — HP 80Hz + mud -3dB@200Hz + presence +3dB@3kHz + air +2dB@10kHz
+    # Stage 3: mcompand      — 2-полосный компрессор (split @ 2kHz)
+    #             lo band: 2.5:1, attack 8ms, decay 150ms
+    #             hi band: 3:1,   attack 3ms, decay 80ms  (тighter на высоких)
+    # Stage 4: De-esser      — sidechaincompress, sidechain = HP>7kHz копия
+    #             убирает шипящие без влияния на остальной спектр
+    # Stage 5: Reverb        — aecho 35ms (ранние отражения), dry/wet = 88/12%
     voice_proc_wav = temp_dir / "_voice_proc.wav"
     _wavs.append(voice_proc_wav)
+
+    _voice_fc = (
+        # Stage 1: Шумоподавление (Wiener FFT, floor -25dB)
+        "[0:a]"
+        "afftdn=nf=-25,"
+        # Stage 2: Noise gate — подавляем фоновый шум в паузах
+        #   threshold=0.015 ≈ -36dBFS | range=0.04 = -28dB подавление (не полное молчание)
+        "agate=threshold=0.015:attack=10:release=300:range=0.04,"
+        # Stage 3: Multi-band EQ
+        "highpass=f=80,"                                      # rumble cut
+        "equalizer=f=200:width_type=o:width=1.0:g=-3,"       # mud cut
+        "equalizer=f=3000:width_type=o:width=1.4:g=3,"       # presence
+        "equalizer=f=10000:width_type=o:width=1.0:g=2,"      # air
+        # Stage 4: Двухполосный компрессор (crossover @ 2kHz)
+        #   lo band: 2.5:1, attack 35ms (медленная — пропускает согласные/транзиенты)
+        #   hi band: 3:1,   attack 15ms, release 80ms (быстрее на высоких, меньше pumping)
+        "mcompand="
+        "attacks=0.035 0.015:"
+        "decays=0.08 0.08:"
+        "points=-47/-40 -22/-22 0/-13|-47/-40 -22/-22 0/-15:"
+        "crossover_freq=2000:"
+        "delay=0.01,"
+        # Stage 5: Динамический нормализатор → цель -6 dBFS (p=0.50)
+        #   f=250ms окна | g=15 Gaussian | m=20 макс. буст +20dB
+        "dynaudnorm=f=250:g=15:p=0.50:m=20,"
+        # Stage 6: Hard ceiling -3 dBFS (limit=0.708 ≈ -3dBFS)
+        "alimiter=limit=0.708:attack=5:release=20:level=false,"
+        # Stage 7: De-esser — sidechain HP>7kHz
+        "asplit=2[main][sc_src];"
+        "[sc_src]highpass=f=7000[sc_hf];"
+        "[main][sc_hf]sidechaincompress="
+        "threshold=0.025:ratio=3:attack=1:release=60:"
+        "level_sc=2.5[deessed];"
+        # Stage 8: Reverb — ранние отражения 35ms, dry/wet 88/12%
+        "[deessed]asplit=2[dry][wet_in];"
+        "[wet_in]aecho=0.8:0.88:35:0.25[reverb];"
+        "[dry][reverb]amix=inputs=2:weights=0.88 0.12[voice_out]"
+    )
+
     voice_proc_ok = _run([
         "ffmpeg", "-y", "-i", str(voice_path),
-        "-af",
-        "highpass=f=80,"
-        "equalizer=f=3000:width_type=o:width=1.4:g=3,"
-        "acompressor=threshold=-20dB:ratio=4:attack=5:release=150:makeup=2dB",
-        "-c:a", "pcm_f32le", "-ar", "44100", str(voice_proc_wav),
-    ], "voice EQ+comp")
+        "-filter_complex", _voice_fc,
+        "-map", "[voice_out]",
+        "-c:a", "pcm_f32le", "-ar", "44100",
+        str(voice_proc_wav),
+    ], "voice EQ+mcomp+deess+reverb")
     # Если EQ/comp упал — используем исходный голос
     _voice_for_mix = voice_proc_wav if voice_proc_ok and voice_proc_wav.exists() else voice_path
 
@@ -586,7 +698,11 @@ def build_final_audio(
             "-i", str(_voice_for_mix),       # [1] голос (sidechain детектор)
             "-filter_complex",
             # sidechaincompress: AA->A (музыка + голос → duck музыки)
-            f"[0:a]aresample=44100,aformat=channel_layouts=stereo,volume={music_vol_db}dB[music_in];"
+            # EQ notch на музыке: -4dB @ 300Hz (фундаментал голоса) + -3dB @ 2500Hz (разборчивость)
+            # Создаёт spectral space для голоса без агрессивного level ducking
+            f"[0:a]aresample=44100,aformat=channel_layouts=stereo,volume={music_vol_db}dB,"
+            "equalizer=f=300:width_type=o:width=1.5:g=-4,"
+            "equalizer=f=2500:width_type=o:width=1.2:g=-3[music_in];"
             "[1:a]aresample=44100,aformat=channel_layouts=stereo[sc];"
             "[music_in][sc]sidechaincompress="
             "threshold=0.03:ratio=4:attack=10:release=300:"
@@ -637,10 +753,10 @@ def build_final_audio(
                 bg_wav = None
 
     # ── Шаг 5: финальный микс → loudnorm (2 прохода) → AAC 320k ─────────────
-    print(f"  [Audio] final mix: voice"
-          + (f" + music(sidechain)" if music_sc_wav else " + music" if music_wav else "")
+    print(f"  [Audio] final mix: voice[EQ+mcomp+deess+reverb]"
+          + (f" + music[sidechain]" if music_sc_wav else " + music" if music_wav else "")
           + (f" + intro" if intro_wav else "")
-          + (f" + {len(sfx_events)}×SFX" if sfx_wav else ""),
+          + (f" + {len(sfx_events)}xSFX" if sfx_wav else ""),
           flush=True)
 
     # Собираем raw mix во временный WAV перед loudnorm

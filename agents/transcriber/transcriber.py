@@ -590,6 +590,125 @@ def verify_with_ffmpeg(audio_path: Path, blocks: list[dict]) -> tuple[list[dict]
     return blocks, meta
 
 
+def preprocess_voice(audio_path: Path,
+                     min_silence_s:  float = 0.6,
+                     keep_each_side: float = 0.1,
+                     threshold_db:   float = -42.0) -> Path:
+    """
+    Точная подрезка пауз в озвучке ДО транскрибации.
+
+    Алгоритм:
+      1. silencedetect — находим все паузы >= min_silence_s
+      2. Для каждой паузы: оставляем keep_each_side с каждого края,
+         вырезаем середину
+         Пример: пауза 0.70s → оставить 0.1s + вырезать 0.50s + оставить 0.1s
+      3. Склеиваем оставшиеся сегменты через atrim + concat
+      4. Заменяем исходный файл in-place
+
+    Что трогаем:
+      - Паузы >= 0.6s (полная тишина, плохое дыхание)
+    Что НЕ трогаем:
+      - Паузы < 0.6s (естественные паузы между словами/предложениями)
+    """
+    import re as _re
+
+    def _dur(p: Path) -> float:
+        res = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", str(p)],
+            capture_output=True, text=True,
+        )
+        try:
+            return float(json.loads(res.stdout)["format"]["duration"])
+        except Exception:
+            return 0.0
+
+    # ── Шаг 1: detect silences ───────────────────────────────────────────
+    r = subprocess.run([
+        "ffmpeg", "-i", str(audio_path),
+        "-af", f"silencedetect=noise={threshold_db}dB:duration={min_silence_s}",
+        "-f", "null", "-",
+    ], capture_output=True, text=True)
+
+    silences: list[tuple[float, float]] = []
+    sil_start = None
+    for line in r.stderr.split("\n"):
+        if "silence_start" in line:
+            m = _re.search(r"silence_start: ([\d.]+)", line)
+            if m:
+                sil_start = float(m.group(1))
+        elif "silence_end" in line and sil_start is not None:
+            m = _re.search(r"silence_end: ([\d.]+)", line)
+            if m:
+                silences.append((sil_start, float(m.group(1))))
+                sil_start = None
+
+    if not silences:
+        print(f"[Preprocess] Пауз >= {min_silence_s}s не найдено")
+        return audio_path
+
+    total_dur = _dur(audio_path)
+    print(f"[Preprocess] Найдено {len(silences)} пауз >= {min_silence_s}s")
+
+    # ── Шаг 2: строим список сегментов для сохранения ───────────────────
+    keep_segs: list[tuple[float, float]] = []
+    cursor = 0.0
+    removed_total = 0.0
+
+    for sil_s, sil_e in silences:
+        cut_dur = (sil_e - sil_s) - 2 * keep_each_side
+        if cut_dur <= 0:
+            continue
+        if sil_s > cursor:
+            keep_segs.append((cursor, sil_s))
+        keep_segs.append((sil_s, sil_s + keep_each_side))
+        keep_segs.append((sil_e - keep_each_side, sil_e))
+        cursor = sil_e
+        removed_total += cut_dur
+        print(f"  {sil_s:.2f}-{sil_e:.2f}s ({sil_e-sil_s:.2f}s) -> cut {cut_dur:.2f}s")
+
+    if cursor < total_dur:
+        keep_segs.append((cursor, total_dur))
+
+    if removed_total < 0.05:
+        print(f"[Preprocess] Нечего вырезать")
+        return audio_path
+
+    # ── Шаг 3: ffconcat (надёжнее filter_complex для 100+ сегментов) ─────
+    out_tmp    = audio_path.parent / f"_vc_tmp{audio_path.suffix}"
+    concat_txt = audio_path.parent / "_vc_concat.txt"
+    abs_path   = str(audio_path.resolve()).replace("\\", "/")
+    lines = ["ffconcat version 1.0"]
+    for st, en in keep_segs:
+        lines.append(f"file '{abs_path}'")
+        lines.append(f"inpoint {st:.6f}")
+        lines.append(f"outpoint {en:.6f}")
+    concat_txt.write_text("\n".join(lines), encoding="utf-8")
+
+    r2 = subprocess.run([
+        "ffmpeg", "-y",
+        "-f", "concat", "-safe", "0",
+        "-i", str(concat_txt),
+        "-c:a", "libmp3lame", "-q:a", "2",
+        str(out_tmp),
+    ], capture_output=True)
+
+    concat_txt.unlink(missing_ok=True)
+
+    if r2.returncode != 0 or not out_tmp.exists():
+        err = r2.stderr.decode(errors="replace")[-400:]
+        print(f"[Preprocess] concat failed — используем оригинал\n{err}")
+        out_tmp.unlink(missing_ok=True)
+        return audio_path
+
+    clean_dur = _dur(out_tmp)
+    print(f"[Preprocess] Готово: -{removed_total:.1f}s "
+          f"({total_dur:.1f}s -> {clean_dur:.1f}s)")
+
+    # Заменяем оригинал очищенной версией in-place
+    out_tmp.replace(audio_path)
+    return audio_path
+
+
 def extract_audio_segment_ffmpeg(
     audio_path: Path,
     start: int,
@@ -764,6 +883,10 @@ def run():
         mode = ask_cut_mode()
 
     channel_id = args.channel or ""
+
+    # ── Предобработка: убираем тишину и артефакты до транскрибации ──────
+    # Важно: ДО кеша, чтобы Whisper и ассемблер работали с одним файлом
+    audio_path = preprocess_voice(audio_path)
 
     # ── Кеш транскрипции ─────────────────────────────────────────────────
     cached = _load_cache(audio_path, mode)
