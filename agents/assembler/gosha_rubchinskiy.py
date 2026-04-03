@@ -118,7 +118,6 @@ _CH_ALIAS = {
 def log(msg: str) -> None:
     print(f"[GOSHA] {msg}", flush=True)
 
-
 _DURATION_CACHE: dict[str, float] = {}
 
 def get_duration(path: Path) -> float:
@@ -798,11 +797,12 @@ def _build_sfx_events_for_render(
 
 
 def generate_subtitles(
-    result_json: Path,
-    ass_path:    Path,
-    style:       dict,
-    intro_dur:   float,
-    no_subs:     bool,
+    result_json:    Path,
+    ass_path:       Path,
+    style:          dict,
+    intro_dur:      float,
+    no_subs:        bool,
+    intro_trans_dur: float = 0.0,
 ) -> tuple[bool, str]:
     """
     Генерация субтитров по стилю канала.
@@ -811,6 +811,12 @@ def generate_subtitles(
     """
     if no_subs or not result_json.exists():
         return False, ""
+
+    # Эффективный сдвиг субтитров: intro_dur минус длина перехода интро→контент.
+    # _ffmpeg_merge_intro_clips использует xfade с offset=intro_dur-trans_dur,
+    # т.е. контент начинается на trans_dur раньше конца интро в финальном видео.
+    # Без поправки субтитры спешали бы на trans_dur секунд относительно аудио.
+    sub_intro_dur = max(0.0, intro_dur - intro_trans_dur)
 
     sub_style = style.get("subtitle_style", "default")
     font_name = "Organetto Bold" if Path(ORGANETTO_FONT_PATH).exists() else "Organetto"
@@ -825,14 +831,14 @@ def generate_subtitles(
                 str(result_json), str(ass_path),
                 karaoke_font, font_size,
                 SUBTITLE_FADE_IN_MS, rise_px,
-                intro_dur, 3, "&H00FFFFFF", "&H00707070", border,
+                sub_intro_dur, 3, "&H0000FFFF", "&H00707070", border,
             )
             return ass_path.exists(), ""
         elif sub_style == "scripture":
             generate_scripture_ass(
                 str(result_json), str(ass_path),
                 style.get("subtitle_font", "Montserrat Bold"), font_size,
-                350, 200, intro_dur,
+                350, 200, sub_intro_dur,
                 style.get("subtitle_max_words", 5),
             )
             return ass_path.exists(), ""
@@ -844,7 +850,7 @@ def generate_subtitles(
                 font_path        = fp,
                 font_size        = font_size,
                 fade_out         = SUBTITLE_FADE_OUT_MS / 1000.0,
-                intro_duration   = intro_dur,
+                intro_duration   = sub_intro_dur,
                 max_words        = style.get("subtitle_max_words", 2),
                 animation        = "scale_pop",
                 shadow_opacity   = 0.60,
@@ -862,7 +868,7 @@ def generate_subtitles(
                 fade_in_ms       = SUBTITLE_FADE_IN_MS,
                 fade_out_ms      = SUBTITLE_FADE_OUT_MS,
                 rise_px          = rise_px,
-                intro_duration   = intro_dur,
+                intro_duration   = sub_intro_dur,
                 border_style     = border,
             )
             return ass_path.exists(), ""
@@ -1211,35 +1217,17 @@ def main() -> None:
 
     log(f"[⏱] Timeline+Trim: {time.time()-t_timeline:.1f}s")
 
-    # Времена переходов для SFX (в абсолютном времени аудио: смещаем на intro_dur)
+    # Времена переходов (нужны для prune/sync, но transition-based SFX отключены)
     trans_times = compute_transition_times(segments_main, intro_dur, trans_dur) if sfx_enabled else []
 
-    # SFX события (transition-based)
-    sfx_events = _build_sfx_events_for_render(
-        trans_plan    = trans_plan,
-        trans_times   = trans_times,
-        timings       = timings,
-        intro_dur     = intro_dur,
-        channel_id    = channel_id,
-        sfx_enabled   = sfx_enabled,
-        sfx_vol_scale = sfx_vol_scale,
-        xf_dur        = trans_dur,
-    ) if sfx_enabled else []
-
-    # SFX события от Haiku (narrative-based) — мерж с transition SFX
+    # SFX только от Haiku — точные нарративные метки, без transition-based risers
+    sfx_events = []
     if sfx_enabled and any(s.get("sfx_cue") for s in segments):
-        haiku_events = build_haiku_sfx_events(
+        sfx_events = build_haiku_sfx_events(
             segments       = segments,
             intro_duration = intro_dur,
         )
-        sfx_events = sorted(sfx_events + haiku_events, key=lambda e: e["time"])
-        log(f"SFX: {len(sfx_events)} событий (transition + {len(haiku_events)} Haiku)")
-    elif sfx_events:
-        log(f"SFX: {len(sfx_events)} событий")
-
-    # Глобальный бюджет SFX: не более 10% длины видео
-    if sfx_events and total_dur > 0:
-        sfx_events = _prune_sfx_by_ratio(sfx_events, trans_times, total_dur)
+        log(f"SFX: {len(sfx_events)} событий (Haiku only)")
         log(f"SFX после бюджета: {len(sfx_events)} событий")
 
     # ── 4. RENDER ─────────────────────────────────────────────────────────────
@@ -1273,7 +1261,7 @@ def main() -> None:
         )
         fut_subs = ex.submit(
             generate_subtitles,
-            result_json, ass_path, style, intro_dur, args.no_subs,
+            result_json, ass_path, style, intro_dur, args.no_subs, trans_dur,
         )
         # CPU fallback: encode videotrack параллельно с аудио/субтитрами
         fut_video = None

@@ -15,7 +15,10 @@
     "subtitle_border_style": 3,
     "color_grade": "warm_cinematic",
     "subtitle_anim": "slide_up",
-    "lufs_target": -16.0
+    "lufs_target": -16.0,
+    "cta_mov": "D:/Video-pipeline-temp/test_cta_de.mov",
+    "cta_min_gap_s": 90,
+    "cta_max_gap_s": 120
   },
   "channel_002_cosmos_fr": {
     "name": "Cosmos FR",
@@ -28,12 +31,15 @@
     "music_vol_db": -32.0,
     "intro_audio_vol_db": -34.0,
     "subtitle_style": "karaoke",
-    "subtitle_font": "Montserrat Bold",
+    "subtitle_font": "Montserrat ExtraBold",
     "subtitle_max_words": 3,
     "subtitle_size_offset": 24,
     "color_grade": "cool_cinematic",
     "subtitle_anim": "word_highlight",
-    "lufs_target": -16.0
+    "lufs_target": -16.0,
+    "cta_mov": "D:/Video-pipeline-temp/test_cta_fr.mov",
+    "cta_min_gap_s": 90,
+    "cta_max_gap_s": 120
   },
   "channel_003_religion_es": {
     "name": "Religion ES",
@@ -42,7 +48,7 @@
     "clip_transition_duration": 1.0,
     "zone_a_end_s": 300,
     "zone_b_transitions": 35,
-    "sfx_enabled": false,
+    "sfx_enabled": true,
     "music_vol_db": -32.0,
     "intro_audio_vol_db": -34.0,
     "sfx_vol_scale_db": 3.0,
@@ -53,6 +59,9 @@
     "subtitle_max_words": 5,
     "color_grade": "gold_dramatic",
     "subtitle_anim": "fade_scale",
-    "lufs_target": -18.0
+    "lufs_target": -18.0,
+    "cta_mov": "D:/Video-pipeline-temp/test_cta_es.mov",
+    "cta_min_gap_s": 90,
+    "cta_max_gap_s": 120
   }
 }

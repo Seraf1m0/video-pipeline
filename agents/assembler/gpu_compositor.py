@@ -73,7 +73,7 @@ def _strip_ass_tags(text: str) -> str:
     return " ".join(clean).strip()
 
 
-_KARAOKE_MAX_CHARS  = 15  # жёсткий лимит символов на группу (с пробелами)
+_KARAOKE_MAX_CHARS  = 35  # жёсткий лимит символов на группу (с пробелами)
 _KARAOKE_GROUP_SIZE = 3   # попытка взять до N слов; снижается если > _KARAOKE_MAX_CHARS
 
 
@@ -140,9 +140,18 @@ def _parse_karaoke_words(text: str, line_start: float, line_end: float) -> list[
 def parse_ass(ass_path: Path) -> list[dict]:
     """
     Парсит ASS файл → список событий без перекрытий:
-      [{'start': float, 'end': float, 'text': str}, ...]
+      [{'start': float, 'end': float, 'text': str, 'pos_y': int|None}, ...]
     Karaoke \\kf теги разбиваются на per-word события (одно слово = одно событие).
+
+    Времена в ASS — content-relative (0 = конец интро = начало контента).
+    Генераторы (generate_karaoke_ass, generate_ass) уже сдвигают -intro_duration.
+    GPU compositor использует их напрямую без дополнительной коррекции.
+
+    pos_y: извлекается из \\pos(x,y) тега (Alignment=2 = bottom-center).
+           GPU compositor использует pos_y как нижнюю границу текста.
     """
+    _pos_re = re.compile(r'\\pos\(([0-9.]+),([0-9.]+)\)')
+
     events = []
     in_events = False
     fmt_fields = []
@@ -170,9 +179,15 @@ def parse_ass(ass_path: Path) -> list[dict]:
                     except Exception:
                         continue
 
+                    # Извлекаем \pos(x,y) — bottom-center якорь для GPU compositor
+                    pm = _pos_re.search(raw_text)
+                    pos_y = int(float(pm.group(2))) if pm else None
+
                     # Попытка разбить на per-word события (karaoke \\kf)
                     word_events = _parse_karaoke_words(raw_text, line_start, line_end)
                     if word_events:
+                        for ev in word_events:
+                            ev["pos_y"] = pos_y
                         events.extend(word_events)
                     else:
                         # Нет \\kf тегов — показываем всю строку целиком
@@ -182,6 +197,7 @@ def parse_ass(ass_path: Path) -> list[dict]:
                                 "start": line_start,
                                 "end":   line_end,
                                 "text":  text.upper(),
+                                "pos_y": pos_y,
                             })
 
     # Сортируем по времени и обрезаем перекрытия
@@ -189,8 +205,8 @@ def parse_ass(ass_path: Path) -> list[dict]:
     for i in range(len(events) - 1):
         if events[i]["end"] > events[i + 1]["start"]:
             events[i]["end"] = events[i + 1]["start"]
-    # Убираем нулевые/отрицательные события после обрезки
-    events = [e for e in events if e["end"] > e["start"] + 0.02]
+    # Убираем нулевые/отрицательные/до-интро события (t < 0 = до конца интро)
+    events = [e for e in events if e["end"] > max(e["start"] + 0.02, 0.0)]
 
     return events
 
@@ -222,34 +238,46 @@ _COLOR_WHITE  = (255, 255, 255, 255)  # белый — обычный текст
 
 def _render_sub_rgba(text: str, font: ImageFont.FreeTypeFont,
                      max_width: int = W - 160,
-                     color: tuple = _COLOR_WHITE) -> np.ndarray:
+                     color: tuple = _COLOR_WHITE,
+                     outline: int = 3,
+                     fixed_h: int | None = None,
+                     fixed_by: int | None = None) -> np.ndarray:
     """
     Рендерит строку субтитра в RGBA numpy [H, W, 4] uint8.
-    Текст нужного цвета + чёрная обводка.
+    outline=0 → без обводки (для karaoke word_hl).
+
+    fixed_h  : если задан — высота canvas фиксирована (одинакова для всех слов группы).
+    fixed_by : если задан — позиция рисования по Y фиксирована (одинаковый baseline).
+               Вместе fixed_h+fixed_by обеспечивают baseline-выравнивание в word_hl режиме.
     """
     pad = 12
     dummy = Image.new("RGBA", (1, 1))
     draw  = ImageDraw.Draw(dummy)
 
-    # Одна строка — перенос запрещён (тексты ограничены 15 символами на этапе группировки)
     full_text = text
     bb = draw.textbbox((0, 0), full_text, font=font)
     tw = min(bb[2] - bb[0] + pad * 2 + 6, W)
-    th = bb[3] - bb[1] + pad * 2 + 6
+
+    if fixed_h is not None:
+        # Режим karaoke: canvas одинаковой высоты, by фиксирован → единый baseline
+        th = fixed_h
+        by = fixed_by if fixed_by is not None else (pad + 3)
+    else:
+        th = bb[3] - bb[1] + pad * 2 + 6
+        # Выравниваем по нижнему краю текста (bb[3]) а не по верху canvas
+        by = th - bb[3] - pad - 3
 
     img  = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
     bx = pad + 3
-    # Выравниваем по нижнему краю текста (bb[3]) а не по верху canvas:
-    # гарантирует одинаковый visual baseline для всех субтитров независимо от акцентов.
-    by = th - bb[3] - pad - 3
-    for dx in range(-3, 4, 2):
-        for dy in range(-3, 4, 2):
-            if dx == 0 and dy == 0:
-                continue
-            draw.text((bx + dx, by + dy), full_text, font=font,
-                      fill=(0, 0, 0, 220), align="center")
+    if outline > 0:
+        for dx in range(-outline, outline + 1, max(1, outline)):
+            for dy in range(-outline, outline + 1, max(1, outline)):
+                if dx == 0 and dy == 0:
+                    continue
+                draw.text((bx + dx, by + dy), full_text, font=font,
+                          fill=(0, 0, 0, 220), align="center")
     draw.text((bx, by), full_text, font=font, fill=color, align="center")
 
     return np.array(img, dtype=np.uint8)
@@ -290,7 +318,8 @@ def prerender_subtitles(events: list[dict],
     else:
         font = _load_font(font_size)
 
-    center_screen = (subtitle_style == "scripture")
+    # Scripture style now uses \pos(960,y) tags → bottom anchor, not center
+    center_screen = False
     fade_frames   = max(1, int(fade_ms / 1000 * fps))
 
     # ── Шаг 1: параллельный CPU-рендер ───────────────────────────────────────
@@ -304,15 +333,31 @@ def prerender_subtitles(events: list[dict],
             words_data = ev["words"]
             bright_arrs, dim_arrs = [], []
             word_start_fs, word_widths = [], []
-            max_th = 0
+
+            # ── Baseline-выравнивание через font.getmetrics() ──────────────────
+            # Проблема: разные слова имеют разный bb[1] (расстояние от anchor до
+            # верхнего края глифа). "Dieu" (D заглавная) bb[1]=8, "et" bb[1]=15.
+            # Это приводит к разному by (позиция рисования) → разный baseline
+            # в canvas → слова прыгают вертикально при composite.
+            #
+            # Решение: все слова рисуются с ФИКСИРОВАННЫМ by=pad+3.
+            # Canvas высота = ascent + descent + pad*2 + 6 (одинакова для всех).
+            # Тогда baseline у всех = pad+3+ascent = константа → нет прыжков.
+            pad = 12
+            font_ascent, font_descent = font.getmetrics()
+            word_canvas_h = font_ascent + font_descent + pad * 2 + 6
+            by_fixed = pad + 3   # фиксированный draw-y: ascender top всегда здесь
+
             for w in words_data:
-                arr_b = _render_sub_rgba(w["text"], font, color=_COLOR_BRIGHT)
-                arr_d = _render_sub_rgba(w["text"], font, color=_COLOR_DIM)
+                arr_b = _render_sub_rgba(w["text"], font, color=_COLOR_BRIGHT, outline=0,
+                                         fixed_h=word_canvas_h, fixed_by=by_fixed)
+                arr_d = _render_sub_rgba(w["text"], font, color=_COLOR_DIM,    outline=0,
+                                         fixed_h=word_canvas_h, fixed_by=by_fixed)
                 bright_arrs.append(arr_b)
                 dim_arrs.append(arr_d)
                 word_start_fs.append(int(w["start"] * fps))
                 word_widths.append(arr_b.shape[1])
-                max_th = max(max_th, arr_b.shape[0])
+            max_th = word_canvas_h  # все слова одинаковой высоты — паддинг не нужен
             gap_px  = 14
             total_w = sum(word_widths) + gap_px * (len(words_data) - 1)
             x_start = (W - total_w) // 2
@@ -320,7 +365,15 @@ def prerender_subtitles(events: list[dict],
             for ww in word_widths:
                 x_positions.append(cx)
                 cx += ww + gap_px
-            y_base = (H - max_th) // 2 if center_screen else H - max_th - 50
+            # Bottom anchor: pos_y из \pos(x,y) тега ASS (Alignment=2 = bottom-center)
+            # Если pos_y есть — текст bottom-aligned к pos_y; иначе — к H-50
+            _pos_y = ev.get("pos_y")
+            if center_screen:
+                y_base = (H - max_th) // 2
+            elif _pos_y is not None:
+                y_base = _pos_y - max_th   # top = bottom_anchor - height
+            else:
+                y_base = H - max_th - 50
             return ("word_hl", bright_arrs, dim_arrs, {
                 "word_start_fs": word_start_fs,
                 "x_positions":   x_positions,
@@ -333,17 +386,25 @@ def prerender_subtitles(events: list[dict],
                 "th":            max_th,
                 "x":             x_start,
                 "y":             y_base,
+                "pos_y":         _pos_y,
             })
 
         _color = _COLOR_BRIGHT if subtitle_anim == ANIM_WORD_HL else _COLOR_WHITE
         arr = _render_sub_rgba(ev["text"], font, color=_color)
         th, tw = arr.shape[:2]
         x  = (W - tw) // 2
-        y  = (H - th) // 2 if center_screen else H - th - 50
+        _pos_y = ev.get("pos_y")
+        if center_screen:
+            y = (H - th) // 2
+        elif _pos_y is not None:
+            y = _pos_y - th   # bottom anchor: top = bottom_anchor - height
+        else:
+            y = H - th - 50
         _anim = ANIM_FADE if subtitle_anim == ANIM_WORD_HL else subtitle_anim
         return ("std", arr, None, {
             "anim": _anim, "start_f": start_f, "end_f": end_f,
             "x": x, "y": y, "tw": tw, "th": th, "fade_frames": fade_frames,
+            "pos_y": _pos_y,
         })
 
     # Параллельный CPU-рендер (I/O bound через PIL + numpy)
@@ -351,7 +412,52 @@ def prerender_subtitles(events: list[dict],
     with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_workers) as ex:
         cpu_results = list(ex.map(_render_event_cpu, events))
 
-    # ── Шаг 2: batch VRAM upload (pin_memory + non_blocking) ─────────────────
+    # ── Глобальная нормализация высоты canvas ────────────────────────────────────
+    # Проблема: каждая группа имеет свой max_th (высота canvas группы).
+    # Апострофы D'/C', акценты É/È/Â, короткие символы ? дают разный max_th.
+    # Разные группы → разный th → разный y → строки прыгают между группами.
+    #
+    # Решение: паддим ВСЕ canvases до global_max_th, ставим единый y_global.
+    #
+    # Стратегии паддинга:
+    #   "std":      добавляем прозрачные строки СВЕРХУ → bottom-aligned к _bottom.
+    #   "word_hl":  добавляем прозрачные строки СНИЗУ → top-aligned.
+    #               В _render_sub_rgba glyph TOP всегда на row=pad+3 внутри canvas.
+    #               _pad_bottom сохраняет этот offset → все слова на одной высоте.
+    #               _pad_top (сверху) сдвигал glyph top по-разному → слова прыгали.
+    def _pad_to(arr: np.ndarray, target_h: int) -> np.ndarray:
+        """Pad at TOP (bottom-aligned) — для std субтитров."""
+        h = arr.shape[0]
+        if h >= target_h:
+            return arr
+        pad = np.zeros((target_h - h, arr.shape[1], 4), dtype=np.uint8)
+        return np.vstack([pad, arr])
+
+    def _pad_bottom_to(arr: np.ndarray, target_h: int) -> np.ndarray:
+        """Pad at BOTTOM (top-aligned) — для word_hl слов, сохраняет glyph top."""
+        h = arr.shape[0]
+        if h >= target_h:
+            return arr
+        pad = np.zeros((target_h - h, arr.shape[1], 4), dtype=np.uint8)
+        return np.vstack([arr, pad])
+
+    if cpu_results:
+        global_max_th = max(meta.get("th", 1) for _, _, _, meta in cpu_results)
+        if center_screen:
+            y_global = (H - global_max_th) // 2
+        else:
+            # Bottom anchor: берём pos_y из первого события с \pos тегом (все одинаковые)
+            # pos_y = bottom-center позиция из ASS \pos(x,y); нет тега → fallback H-50
+            _all_pos_y = [m.get("pos_y") for _, _, _, m in cpu_results if m.get("pos_y") is not None]
+            _bottom = _all_pos_y[0] if _all_pos_y else (H - 50)
+            y_global = _bottom - global_max_th
+        print(f"[GPU] Y-normalize: global_max_th={global_max_th}px → y={y_global} "
+              f"(bottom={y_global + global_max_th}) [anchor={'pos_y=' + str(_bottom) if not center_screen else 'center'}]")
+    else:
+        global_max_th = 1
+        y_global      = H - 51
+
+    # ── Шаг 2: batch VRAM upload + global padding ────────────────────────────
     # pin_memory() позволяет DMA-трансфер без CPU-посредника → быстрее.
     def _to_gpu(arr: np.ndarray) -> torch.Tensor:
         return torch.from_numpy(arr).pin_memory().to(DEVICE, non_blocking=True)
@@ -360,8 +466,13 @@ def prerender_subtitles(events: list[dict],
     vram_mb  = 0.0
 
     for kind, a1, a2, meta in cpu_results:
+        # Обновляем y и th на глобальные значения
+        meta["y"]  = y_global
+        meta["th"] = global_max_th
+
         if kind == "word_hl":
-            bright_arrs, dim_arrs = a1, a2
+            bright_arrs = [_pad_bottom_to(a, global_max_th) for a in a1]
+            dim_arrs    = [_pad_bottom_to(a, global_max_th) for a in a2]
             bright_tensors = [_to_gpu(a) for a in bright_arrs]
             dim_tensors    = [_to_gpu(a) for a in dim_arrs]
             for a in bright_arrs + dim_arrs:
@@ -373,7 +484,7 @@ def prerender_subtitles(events: list[dict],
                 **meta,
             })
         else:
-            arr = a1
+            arr = _pad_to(a1, global_max_th)
             vram_mb += arr.nbytes / 1024 / 1024
             rendered.append({"tensor": _to_gpu(arr), **meta})
 
@@ -464,9 +575,8 @@ def composite_subtitles(frame: torch.Tensor,
                     active = i
             for i, (bt, dt, wx) in enumerate(zip(
                     ev["bright_tensors"], ev["dim_tensors"], ev["x_positions"])):
-                wh = ev["word_heights"][i]
-                # Bottom anchor: текст каждого слова заканчивается на одном уровне
-                wy = H - wh - 50
+                # Bottom anchor: все слова группы выровнены по единой базе (max_th)
+                wy = ev["y"]
                 tensor = bt if i == active else dt
                 frame = _composite_one(frame, tensor, wx, wy, fade)
             continue
@@ -1026,13 +1136,12 @@ def run(
     _gpu_b = torch.empty(H, W, 3,   dtype=torch.float32, device=DEVICE)
 
     # ── Subtitle frame offset ────────────────────────────────────────────────
-    # ASS-тайминги абсолютные (включают интро). Когда GPU рендерит только клипы
-    # (skip_intro=True), frame 0 = начало голоса, а не начало видео.
-    # Вычитаем intro_frames чтобы субтитры совпали с клиповым рендером.
-    if _skip_intro and intro_frames > 0 and sub_events:
-        for _ev in sub_events:
-            _ev["start_f"] = max(0, _ev["start_f"] - intro_frames)
-            _ev["end_f"]   = max(0, _ev["end_f"]   - intro_frames)
+    # ASS-тайминги content-relative: 0 = конец интро = начало контента.
+    # generate_karaoke_ass / generate_ass сдвигают -intro_duration при генерации.
+    # GPU compositor frame 0 = начало контента (_skip_intro=True) → коррекция НЕ нужна.
+    # Фильтруем события с отрицательным или нулевым end_f (до начала контента).
+    if sub_events:
+        sub_events = [ev for ev in sub_events if ev.get("end_f", 0) > 0]
 
     # ── Subtitle fast index ───────────────────────────────────────────────────
     sub_idx = SubtitleIndex(sub_events) if sub_events else None

@@ -186,10 +186,15 @@ Style: Default,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H80000000,&H000000
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
 """
 
+    y_pos = 1038   # bottom anchor (Alignment=2 = bottom-center)
     lines = []
     for g in groups:
-        start_s = g["start"]
-        end_s   = g["end"]
+        # Content-relative: сдвигаем -intro_duration (0 = конец интро = начало контента)
+        start_s = g["start"] - intro_duration
+        end_s   = g["end"]   - intro_duration
+        if end_s <= 0.02:
+            continue  # внутри интро
+
         if end_s - start_s < 0.2:
             end_s = start_s + 0.2
 
@@ -200,11 +205,12 @@ Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
         end_ass   = seconds_to_ass(end_s)
 
         x       = 960
-        y_start = 1038 + rise_px
-        y_end   = 1038
+        y_start = y_pos + rise_px   # начальная Y при появлении (снизу вверх)
+        y_end   = y_pos             # конечная Y (bottom anchor)
 
         tags = (
             f"{{\\an2"
+            f"\\pos({x},{y_end})"
             f"\\fad({fade_in_ms},{fade_out_ms})"
             f"\\move({x},{y_start},{x},{y_end},0,{fade_in_ms})"
             f"}}"
@@ -275,7 +281,7 @@ def generate_karaoke_ass(
     rise_px:          int   = 120,
     intro_duration:   float = INTRO_DURATION,
     max_words:        int   = 3,
-    col_active:       str   = "&H00FFFFFF",
+    col_active:       str   = "&H0000FFFF",   # жёлтый (ABGR: AA=00, BB=00, GG=FF, RR=FF)
     col_passive:      str   = "&H00707070",
     border_style:     int   = 1,   # 1=outline+shadow, 3=opaque box (плашка)
 ) -> Path:
@@ -313,9 +319,13 @@ def generate_karaoke_ass(
             continue
         if not seg_text or seg_text.startswith("["):
             continue
-        seg_mid = (seg_start + seg_end) / 2
-        if int(seg_mid * 10) in _word_buckets:
-            continue  # уже покрыт word-level данными
+        # Пропускаем сегмент если его начало уже покрыто word-level данными Whisper.
+        # Раньше проверяли seg_mid — это давало overlap: сегмент 01:50-01:53 с
+        # midpoint=01:51.70 (не в buckets) генерировал дубликаты поверх реальных слов.
+        seg_covered_end = seg_start + (seg_end - seg_start) * 0.4
+        if any(b in _word_buckets
+               for b in range(int(seg_start * 10), int(seg_covered_end * 10) + 1)):
+            continue  # первые 40% сегмента покрыты — не нужен fallback
         tokens = seg_text.split()
         if not tokens:
             continue
@@ -323,7 +333,9 @@ def generate_karaoke_ass(
         for i, tok in enumerate(tokens):
             w_start = round(seg_start + i * dur, 3)
             w_end   = round(seg_start + (i + 1) * dur, 3)
-            words.append({"word": tok, "start": w_start, "end": w_end})
+            # Leading space обязателен: BPE merge считает слова без space продолжением
+            # предыдущего слова → склеивает их → "EXCLUANTSIGMA,EXCLUANT" и т.п.
+            words.append({"word": " " + tok, "start": w_start, "end": w_end})
             for _b in range(int(w_start * 10), int(w_end * 10) + 1):
                 _word_buckets.add(_b)
 
@@ -332,6 +344,11 @@ def generate_karaoke_ass(
 
     # Сортируем по времени — fallback слова добавляются в конец, но должны быть на своём месте
     words.sort(key=lambda w: float(w.get("start", 0)))
+
+    # Фильтруем слова из одних знаков препинания (?, !, ..., , и т.п.)
+    # Такие токены Whisper выдаёт как отдельные слова → выглядят как одиночный символ
+    # на другой высоте в karaoke-строке и ломают группировку.
+    words = [w for w in words if any(c.isalpha() or c.isdigit() for c in w.get("word", ""))]
 
     # Мёрджим Whisper BPE-токены без leading space = продолжение предыдущего слова
     # " années" + "-lumière." → "années-lumière."   " C" + "'est" → "C'est"
@@ -363,7 +380,7 @@ def generate_karaoke_ass(
         "Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
         f"Style: Karaoke,{font_name},{font_size},"
         f"{col_active},{col_passive},&H80000000,&H00000000,"
-        f"-1,0,0,0,100,100,2,0,{border_style},{3 if border_style==1 else 2},{1 if border_style==1 else 0},2,80,80,{rise_px},1\n"
+        f"-1,0,0,0,100,100,2,0,{border_style},0,0,2,80,80,{rise_px},1\n"
         "\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
@@ -371,10 +388,17 @@ def generate_karaoke_ass(
 
     groups = [words[i:i+max_words] for i in range(0, len(words), max_words)]
     entries = []
+    pos_y = 1080 - rise_px   # bottom anchor Y (bottom-center, Alignment=2)
     for group in groups:
-        g_start = group[0]["start"]
-        g_end   = group[-1]["end"]
+        # Content-relative times: сдвигаем -intro_duration.
+        # GPU compositor читает эти времена как "секунды от начала контента" (t=0 = конец интро).
+        # Это устраняет дрейф, который возникал при вычитании intro_frames в compositor-е.
+        g_start = group[0]["start"]  - intro_duration
+        g_end   = group[-1]["end"]   - intro_duration
+        if g_end <= 0.02:
+            continue  # группа полностью внутри интро — пропускаем
 
+        # \kf — ДЛИТЕЛЬНОСТИ в сантисекундах, не абсолютные времена → не нуждаются в сдвиге
         kara_parts = []
         for wi, w in enumerate(group):
             cs = max(1, int((w["end"] - w["start"]) * 100))
@@ -384,8 +408,9 @@ def generate_karaoke_ass(
                     cs += int(gap * 100)
             kara_parts.append(f"{{\\kf{cs}}}{w['word'].strip().upper()}")
 
-        fad = f"{{\\fad({fade_ms},{fade_ms})}}" if fade_ms > 0 else ""
-        text = fad + " ".join(kara_parts)
+        pos   = f"{{\\pos(960,{pos_y})}}"   # bottom-center anchor (Alignment=2 в стиле)
+        fad   = f"{{\\fad({fade_ms},{fade_ms})}}" if fade_ms > 0 else ""
+        text  = pos + fad + " ".join(kara_parts)
         entries.append(
             f"Dialogue: 0,{seconds_to_ass(g_start)},{seconds_to_ass(g_end)},"
             f"Karaoke,,0,0,0,,{text}"
@@ -408,15 +433,17 @@ def generate_scripture_ass(
     fade_out_ms:      int   = 200,
     intro_duration:   float = 0.0,
     max_words:        int   = 3,
+    pos_y:            int   = 900,   # bottom anchor Y for \pos(960, pos_y)
 ) -> Path:
     """
     Scripture-style ASS для religion канала.
 
     - Группы по 2–3 слова (короче, читабельнее)
-    - Позиция: нижняя треть экрана, центр (\\an2, Y=850)
+    - Позиция: нижняя треть экрана, центр (\\an2, \\pos(960,pos_y))
     - Fade только: нет движения, нет karaoke-highlight
     - Italic, без бокса, только тень
     - Заглавные буквы
+    - Тайминги content-relative: время -= intro_duration
     """
     result_json_path = Path(result_json_path)
     output_ass_path  = Path(output_ass_path)
@@ -445,6 +472,13 @@ def generate_scripture_ass(
     words = [w for w in words
              if float(w.get("start", 0)) >= intro_duration
              and str(w.get("word", "")).strip()]
+
+    # Content-relative: сдвигаем тайминги на -intro_duration
+    if intro_duration > 0:
+        words = [{**w,
+                  "start": round(float(w["start"]) - intro_duration, 3),
+                  "end":   round(float(w["end"])   - intro_duration, 3)}
+                 for w in words]
 
     # Мёрдж BPE-токенов
     merged: list[dict] = []
@@ -496,7 +530,7 @@ WrapStyle: 2
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Scripture,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,3,0,1,0,2,5,80,80,0,1
+Style: Scripture,{font_name},{font_size},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,3,0,1,0,2,2,80,80,0,1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
@@ -511,10 +545,15 @@ Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
         else:
             e = g["end"]
         e = max(e, s + 0.25)
-        fad = f"{{\\fad({fade_in_ms},{fade_out_ms})}}"
+        tags = (
+            f"{{\\an2"
+            f"\\pos(960,{pos_y})"
+            f"\\fad({fade_in_ms},{fade_out_ms})"
+            f"}}"
+        )
         lines.append(
             f"Dialogue: 0,{seconds_to_ass(s)},{seconds_to_ass(e)},"
-            f"Scripture,,0,0,0,,{fad}{g['text']}"
+            f"Scripture,,0,0,0,,{tags}{g['text']}"
         )
 
     output_ass_path.parent.mkdir(parents=True, exist_ok=True)
