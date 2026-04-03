@@ -1463,6 +1463,33 @@ def main() -> None:
     shutil.rmtree(temp_dir, ignore_errors=True)
     log("Временные файлы удалены")
 
+    # ── 6. CTA OVERLAY ───────────────────────────────────────────────────────
+    cta_mov = style.get("cta_mov")
+    if cta_mov and Path(cta_mov).exists() and final_output.exists():
+        try:
+            from apply_cta import compute_timestamps, apply_cta
+            cta_path   = Path(cta_mov)
+            cta_out    = final_output.with_stem(final_output.stem + "_cta")
+            cta_dur    = get_duration(cta_path)
+            min_gap    = float(style.get("cta_min_gap_s", 90))
+            max_gap    = float(style.get("cta_max_gap_s", 120))
+            timestamps = compute_timestamps(
+                total_dur, intro_dur, cta_dur, min_gap, max_gap
+            )
+            if timestamps:
+                log(f"CTA: {len(timestamps)} плашки → {[f'{t:.0f}s' for t in timestamps]}")
+                ok = apply_cta(final_output, cta_path, timestamps, cta_out)
+                if ok:
+                    log(f"CTA: ✅ {cta_out.name}  {cta_out.stat().st_size//1024//1024}MB")
+                else:
+                    log("CTA: ✗ не удалось наложить")
+            else:
+                log("CTA: видео слишком короткое — пропуск")
+        except Exception as e:
+            log(f"CTA: ошибка — {e}")
+    elif cta_mov and not Path(cta_mov).exists():
+        log(f"CTA: файл не найден ({cta_mov}) — пропуск")
+
     elapsed = time.time() - t_start
     m, s = divmod(int(elapsed), 60)
     size_mb = final_output.stat().st_size / 1024 / 1024 if final_output.exists() else 0
