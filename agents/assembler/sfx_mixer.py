@@ -33,6 +33,7 @@ sfx_mixer.py — инжект SFX (whoosh / glitch / riser / boom / downlifter /
 """
 
 import math
+import json
 import os
 import random
 import subprocess
@@ -111,6 +112,30 @@ _SFX_TARGET_DB = -27.0
 _dur_cache:   dict[str, float] = {}
 _level_cache: dict[str, float] = {}
 
+# Персистентный кэш peaks на диске — volumedetect не запускается повторно
+# между разными рендерами если SFX-библиотека не менялась.
+_SFX_PEAKS_JSON = _SFX_DIR / "_peaks_cache.json"
+
+def _load_peaks_cache() -> None:
+    """Загрузить сохранённые пики из JSON в _level_cache."""
+    if _SFX_PEAKS_JSON.exists():
+        try:
+            data = json.loads(_SFX_PEAKS_JSON.read_text(encoding="utf-8"))
+            _level_cache.update(data)
+        except Exception:
+            pass
+
+def _save_peaks_cache() -> None:
+    """Сохранить текущий _level_cache в JSON."""
+    try:
+        _SFX_PEAKS_JSON.write_text(
+            json.dumps(_level_cache, indent=2), encoding="utf-8"
+        )
+    except Exception:
+        pass
+
+_load_peaks_cache()
+
 
 def _sfx_dur(path: Path) -> float:
     """Длительность SFX файла (кэшируется)."""
@@ -129,7 +154,7 @@ def _sfx_dur(path: Path) -> float:
 
 
 def _sfx_mean_db(path: Path) -> float:
-    """Средний уровень SFX файла в dBFS (кэшируется)."""
+    """Средний уровень SFX файла в dBFS (кэшируется + персистентно)."""
     key = str(path)
     if key not in _level_cache:
         try:
@@ -146,6 +171,7 @@ def _sfx_mean_db(path: Path) -> float:
                 _level_cache[key] = -20.0  # fallback
         except Exception:
             _level_cache[key] = -20.0
+        _save_peaks_cache()   # сохранить сразу после нового измерения
     return _level_cache[key]
 
 

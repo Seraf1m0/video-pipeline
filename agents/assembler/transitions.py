@@ -355,12 +355,12 @@ def crossfade_transition(clip1_path, clip2_path, output_path, duration=0.5):
     )
 
     try:
-        # 1. clip1 main — до зоны перехода
+        # 1. clip1 main — до зоны перехода (FAST: этот файл сразу ре-кодируется в _final_concat)
         subprocess.run([
             "ffmpeg", "-y", "-i", str(clip1_path),
             "-t", f"{c1_main:.4f}",
             "-vf", f"fps={fps}",
-            "-c:v", GPU_ENCODER, *GPU_PARAMS,
+            "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
             "-pix_fmt", "yuv420p", "-an", t_c1main,
         ], check=True, capture_output=True)
 
@@ -376,16 +376,19 @@ def crossfade_transition(clip1_path, clip2_path, output_path, duration=0.5):
             "-pix_fmt", "yuv420p", "-an", "-r", str(fps), t_blend,
         ], check=True, capture_output=True)
 
-        # 3. clip2 main — остаток после зоны перехода
+        # 3. clip2 main — остаток после зоны перехода (FAST: тоже ре-кодируется в _final_concat)
         subprocess.run([
             "ffmpeg", "-y", "-i", str(clip2_path),
             "-ss", f"{duration:.4f}",
             "-vf", f"fps={fps}",
-            "-c:v", GPU_ENCODER, *GPU_PARAMS,
+            "-c:v", GPU_ENCODER_FAST, *GPU_PARAMS_FAST,
             "-pix_fmt", "yuv420p", "-an", t_c2main,
         ], check=True, capture_output=True)
 
         _final_concat([t_c1main, t_blend, t_c2main], output_path)
+        # Удаляем промежуточные файлы сразу — output уже записан
+        for _tmp in [t_c1main, t_blend, t_c2main]:
+            Path(_tmp).unlink(missing_ok=True)
         print(f"  OK crossfade (opacity ease-in-out): {output_path.name}", flush=True)
         return True
 

@@ -392,7 +392,7 @@ def select_and_link_clips(
 
         t0_intro = time.time()
         ok_intro = 0
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(16, os.cpu_count() or 8)) as ex:
             futs = {ex.submit(_trim_intro, t): t for t in intro_tasks}
             for fut, t in futs.items():
                 if fut.result() and t[1].exists():
@@ -534,7 +534,7 @@ def trim_clips(
             src, dst = args
             shutil.copy2(src, dst)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(16, os.cpu_count() or 12)) as ex:
             futs = [ex.submit(_trim, t) for t in tasks] + \
                    [ex.submit(_copy, t) for t in copy_tasks]
             for fut in concurrent.futures.as_completed(futs):
