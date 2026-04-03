@@ -17,8 +17,132 @@ sfx_narrator.py — контекстный SFX и динамика музыки 
 """
 
 import json
+import os
 import random
+import re as _re
+import subprocess
 from pathlib import Path
+
+# ─── Claude-based SFX analysis ───────────────────────────────────────────────
+
+def _parse_time_val(raw) -> float:
+    """Parse time from float/int/string (supports 'mm:ss' and plain seconds)."""
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    s = str(raw).strip().lstrip("[").rstrip("s]")
+    if ":" in s:
+        parts = s.split(":")
+        try:
+            return int(parts[0]) * 60 + float(parts[1])
+        except Exception:
+            pass
+    try:
+        return float(s)
+    except Exception:
+        return 0.0
+
+
+def _call_claude_for_sfx(
+    segments:  list[dict],
+    lang:      str,
+    intro_dur: float,
+) -> "list[dict] | None":
+    """
+    Анализирует транскрипт через Claude CLI и возвращает SFX события.
+    [{time, category, score}] или None при ошибке (fallback на keyword matching).
+
+    Категории для Claude:
+      riser      — нагнетание, 0.8s ДО кульминации
+      boom       — сильная кульминация / главное откровение
+      impact     — умеренный акцент / важный факт
+      whoosh_big — смена темы / переход между секциями
+      whoosh_fast— лёгкий переход / риторический вопрос
+      downlifter — спад после кульминации, 3-5s ПОСЛЕ boom
+    """
+    # Фильтруем: только реальные сегменты с текстом (без [конец], пустых, музыки)
+    _skip = {"[конец]", "[musik]", "[music]", "[applause]", "[gelächter]", "[lachen]"}
+    lines = []
+    for seg in segments:
+        t    = float(seg.get("start", 0))
+        text = str(seg.get("text", "")).strip()
+        if t < intro_dur or not text:
+            continue
+        if text.lower() in _skip or text.startswith("[") and text.endswith("]"):
+            continue
+        lines.append(f"[{t:.1f}s] {text}")
+
+    if len(lines) < 3:
+        return None
+
+    transcript = "\n".join(lines[:200])  # max ~200 реальных сегментов
+
+    prompt = (
+        "You are a professional audio post-production editor. "
+        "Analyze this video transcript and decide WHERE to place sound effects (SFX) "
+        "to enhance the storytelling. The SFX must complement the narration — "
+        "subtle and purposeful, never distracting from the voice.\n\n"
+        "Available SFX categories:\n"
+        "  riser       — tension build-up, place 0.8s BEFORE the climax moment\n"
+        "  boom        — strong climax / major reveal (at the exact moment)\n"
+        "  impact      — moderate emphasis / important fact (at the moment)\n"
+        "  whoosh_big  — major topic shift / section change (at transition)\n"
+        "  whoosh_fast — subtle transition / rhetorical question\n"
+        "  downlifter  — emotional comedown, 3-5s AFTER a boom/impact\n\n"
+        "Rules:\n"
+        "  - Minimum 20 seconds between any two events\n"
+        "  - 8 to 14 events total for the whole video\n"
+        "  - 'riser' always precedes 'boom'/'impact' by 0.8-1.0s\n"
+        "  - 'downlifter' always follows 'boom' by 3-5s\n"
+        "  - Only mark genuinely dramatic or emotionally significant moments\n"
+        "  - intensity 1-10 (1=barely audible hint, 10=strongest moment)\n"
+        "  - Timestamps are in seconds as shown in the transcript\n\n"
+        f"Language: {lang}\n\n"
+        f"Transcript:\n{transcript}\n\n"
+        "Return ONLY a valid JSON array, no markdown, no explanation:\n"
+        '[{"time_s": 124.5, "category": "riser", "intensity": 7}, ...]'
+    )
+
+    env = os.environ.copy()
+    env.pop("CLAUDECODE", None)
+
+    try:
+        r = subprocess.run(
+            ["claude.cmd", "--model", "claude-haiku-4-5", "-p", "-"],
+            input=prompt,
+            capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+            env=env, timeout=300,
+        )
+        if r.returncode != 0:
+            print(f"  [SFX-Claude] exit {r.returncode} — fallback to keywords")
+            return None
+
+        raw = r.stdout.strip()
+        # Извлекаем JSON массив (Claude иногда добавляет markdown)
+        m = _re.search(r"\[.*?\]", raw, _re.DOTALL)
+        if not m:
+            return None
+
+        items = json.loads(m.group())
+        result = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            t   = _parse_time_val(item.get("time_s", item.get("time", 0)))
+            cat = str(item.get("category", "whoosh_fast")).lower().strip()
+            ins = float(item.get("intensity", 5))
+            if t > intro_dur:
+                result.append({"time": t, "category": cat, "score": ins})
+
+        if result:
+            result.sort(key=lambda e: e["time"])
+            print(f"  [SFX-Claude] {len(result)} событий")
+        return result if result else None
+
+    except Exception as exc:
+        print(f"  [SFX-Claude] ошибка: {exc} — fallback to keywords")
+        return None
+
 
 # ─── Словари ключевых слов ────────────────────────────────────────────────────
 
@@ -149,7 +273,13 @@ def analyze_script(
     if not result_json_path.exists():
         return {"sfx": [], "music_envelope": [], "moments": []}
 
-    with open(result_json_path, encoding="utf-8") as f:
+    # Если рядом есть result_visual.json — берём его (содержит sfx_cue от Haiku)
+    result_visual = result_json_path.parent / "result_visual.json"
+    load_path = result_visual if result_visual.exists() else result_json_path
+    if load_path != result_json_path:
+        print(f"  [SFX] Загружаем result_visual.json (Haiku уже разметил sfx_cue)")
+
+    with open(load_path, encoding="utf-8") as f:
         data = json.load(f)
 
     segments = data.get("segments", [])
@@ -189,18 +319,55 @@ def analyze_script(
     moments = filtered
 
     # ── SFX события ───────────────────────────────────────────────────────────
-    sfx_events = []
-    for m in moments:
-        t = m["time"]
-        if m["type"] == "revelation":
-            # Riser за 1.0s до момента + boom на моменте
-            sfx_events.append({"time": max(0, t - 1.0), "category": "riser",  "score": m["score"]})
-            sfx_events.append({"time": t,               "category": "boom",   "score": m["score"]})
-        elif m["type"] == "buildup":
-            sfx_events.append({"time": max(0, t - 0.5), "category": "riser",  "score": m["score"]})
-        elif m["type"] == "question":
-            sfx_events.append({"time": t,               "category": "whoosh", "score": m["score"]})
-        # calm → только музыкальный envelope, без SFX
+    # Приоритет 1: result_visual.json уже содержит sfx_cue от Haiku (visual_query_generator)
+    #              → берём оттуда, Haiku не вызываем повторно
+    # Приоритет 2: вызов Haiku через claude.cmd (если visual_query_generator не запускался)
+    # Приоритет 3: keyword matching fallback
+
+    _SFX_CUE_MAP = {
+        "riser":      "riser",
+        "boom":       "boom",
+        "riser+boom": "boom",   # riser ставим отдельно ниже
+        "impact":     "impact",
+        "downlifter": "downlifter",
+        "whoosh_big": "whoosh_big",
+        "whoosh_fast":"whoosh_fast",
+        "glitch":     "glitch",
+    }
+
+    # Проверяем: есть ли sfx_cue хотя бы в одном сегменте
+    visual_sfx = [s for s in segments if s.get("sfx_cue") and float(s.get("start", 0)) >= intro_dur]
+
+    if visual_sfx:
+        print(f"  [SFX] result_visual.json: {len(visual_sfx)} sfx_cue сегментов → без повторного вызова Haiku")
+        sfx_events = []
+        for seg in visual_sfx:
+            t   = float(seg.get("start", 0))
+            cue = str(seg.get("sfx_cue", "")).lower().strip()
+            cat = _SFX_CUE_MAP.get(cue, cue)
+            # riser+boom → добавляем riser за 0.8s до бума
+            if seg.get("sfx_cue") == "riser+boom":
+                sfx_events.append({"time": max(intro_dur, t - 0.8), "category": "riser", "score": 7})
+            sfx_events.append({"time": t, "category": cat, "score": 7})
+    else:
+        # Haiku вызов — только если visual_query_generator не запускался
+        claude_sfx = _call_claude_for_sfx(segments, lang, intro_dur)
+        if claude_sfx:
+            sfx_events = claude_sfx
+        else:
+            # Keyword matching fallback
+            sfx_events = []
+            for m in moments:
+                t = m["time"]
+                if m["type"] == "revelation":
+                    sfx_events.append({"time": max(0, t - 1.0), "category": "riser",      "score": m["score"]})
+                    sfx_events.append({"time": t,               "category": "boom",        "score": m["score"]})
+                    sfx_events.append({"time": t + 4.0,         "category": "downlifter",  "score": m["score"] * 0.6})
+                elif m["type"] == "buildup":
+                    sfx_events.append({"time": max(0, t - 0.5), "category": "riser",       "score": m["score"]})
+                elif m["type"] == "question":
+                    sfx_events.append({"time": t,               "category": "whoosh_fast", "score": m["score"]})
+                # calm → только музыкальный envelope, без SFX
 
     # ── Огибающая музыки ──────────────────────────────────────────────────────
     music_envelope = []
@@ -323,28 +490,44 @@ def build_volume_expr(envelope: list[dict], base_gain: float = 1.0) -> str:
 
 def resolve_sfx_events(sfx_events: list[dict], sfx_dir: "Path | str") -> list[dict]:
     """
-    Конвертировать [{time, category, score}] → [{time, file, vol}]
-    готовых для inject_sfx().
+    Конвертировать [{time, category, score}] → [{time, file, category, score}]
+    готовых для build_final_audio().
+
+    Все 8 SFX категорий задействованы.
+    category и score передаются дальше для правильного gain и логирования.
     """
     from sfx_mixer import (
-        _SFX_WHOOSH, _SFX_WHOOSH_BIG, _SFX_WHOOSH_FAST,
-        _SFX_RISER, _SFX_BOOM, _SFX_IMPACT,
-        _VOL_WHOOSH, _VOL_RISER, _VOL_BOOM, _VOL_IMPACT,
-        _pick, _pick_best,
+        _SFX_WHOOSH, _SFX_WHOOSH_BIG, _SFX_WHOOSH_FAST, _SFX_WHOOSH_ALL,
+        _SFX_RISER, _SFX_BOOM, _SFX_IMPACT, _SFX_DOWNLIFTER, _SFX_GLITCH,
+        _pick,
     )
 
-    _CAT_POOL = {
-        "whoosh": ([_SFX_WHOOSH,     _SFX_WHOOSH_FAST], _VOL_WHOOSH),
-        "riser":  ([_SFX_RISER                       ], _VOL_RISER),
-        "boom":   ([_SFX_BOOM,       _SFX_IMPACT     ], _VOL_BOOM),
-        "impact": ([_SFX_IMPACT                      ], _VOL_IMPACT),
+    # Маппинг категории → пул файлов
+    _CAT_POOL: dict[str, list] = {
+        "riser":       _SFX_RISER,
+        "boom":        _SFX_BOOM       or _SFX_IMPACT,
+        "impact":      _SFX_IMPACT     or _SFX_BOOM,
+        "whoosh":      _SFX_WHOOSH_ALL or _SFX_WHOOSH,
+        "whoosh_big":  _SFX_WHOOSH_BIG or _SFX_WHOOSH_ALL,
+        "whoosh_fast": _SFX_WHOOSH_FAST or _SFX_WHOOSH_ALL,
+        "downlifter":  _SFX_DOWNLIFTER,
+        "glitch":      _SFX_GLITCH,
     }
+    _FALLBACK = _SFX_WHOOSH_FAST or _SFX_WHOOSH_ALL or _SFX_WHOOSH
 
     resolved = []
     for ev in sfx_events:
-        cat = ev.get("category", "whoosh")
-        pools, vol = _CAT_POOL.get(cat, (_CAT_POOL["whoosh"]))
-        file = _pick_best(pools)
+        cat  = str(ev.get("category", "whoosh_fast")).lower().strip()
+        pool = _CAT_POOL.get(cat) or _FALLBACK
+        if not pool:
+            continue
+        file = _pick(pool, category=cat)
         if file:
-            resolved.append({"time": ev["time"], "file": file, "vol": vol})
+            resolved.append({
+                "time":     float(ev["time"]),
+                "file":     file,
+                "category": cat,
+                "score":    float(ev.get("score", 5.0)),
+            })
+    resolved.sort(key=lambda e: e["time"])
     return resolved

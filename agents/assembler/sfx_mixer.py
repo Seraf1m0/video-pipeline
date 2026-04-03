@@ -451,22 +451,47 @@ def _build_sfx_events(
 
 # ─── Haiku SFX cues → события ────────────────────────────────────────────────
 
+_SFX_MIN_GAP_S = 10.0   # секунд после ОКОНЧАНИЯ предыдущего эффекта до следующего
+
+# Примерные длительности SFX-файлов по категориям (для расчёта окончания)
+_SFX_DUR_APPROX = {
+    "riser":      4.5,
+    "boom":       1.5,
+    "riser+boom": 4.5,   # доминирует riser — он длиннее
+    "impact":     1.5,
+    "downlifter": 3.0,
+}
+
+
 def build_haiku_sfx_events(
     segments: list[dict],
     intro_duration: float = 0.0,
-    riser_offset_s: float = 0.8,
+    riser_offset_s: float = 2.5,
 ) -> list[dict]:
     """
     Конвертирует sfx_cue поля сегментов (от Haiku) в список событий SFX.
 
-    segments: список сегментов из result_visual.json с полем sfx_cue
-    intro_duration: длительность интро — события раньше него игнорируются
-    riser_offset_s: riser ставится за это время ДО начала сегмента
+    segments       : сегменты из result_visual.json с полем sfx_cue.
+                     Времена — АБСОЛЮТНЫЕ (t=0 = начало полного видео включая интро).
+    intro_duration : длина интро-блока в секундах. SFX не воспроизводится до конца интро.
+    riser_offset_s : riser ставится за это время ДО seg_start (default 2.5s).
 
-    Возвращает [{time, file, vol}, ...]
+    Правила:
+    - Первый SFX не раньше (intro_duration + _SFX_START_BUFFER) секунд от начала видео.
+    - Между эффектами минимум _SFX_MIN_GAP_S секунд ПОСЛЕ окончания предыдущего.
+    - Только там, где Haiku явно поставил sfx_cue (не пихать везде).
+
+    Возвращает [{time, file, vol, category}, ...]
     """
     events: list[dict] = []
-    sfx_min_t = intro_duration + _SFX_START_BUFFER if intro_duration > 0 else 0.0
+    # Сегменты имеют абсолютные тайминги (t=0 = начало видео включая интро).
+    # SFX не должен воспроизводиться во время интро — только после его окончания.
+    sfx_min_t   = intro_duration + _SFX_START_BUFFER
+    last_sfx_end = -9999.0             # конец последнего принятого эффекта
+
+    n_cues   = sum(1 for s in segments if s.get("sfx_cue"))
+    n_skip_t = 0
+    n_skip_g = 0
 
     for seg in segments:
         cue = seg.get("sfx_cue")
@@ -474,28 +499,51 @@ def build_haiku_sfx_events(
             continue
 
         seg_start = float(seg.get("start", 0))
+
+        # 1. Фильтр: слишком рано от начала контента
         if seg_start < sfx_min_t:
+            n_skip_t += 1
+            print(f"[SFX] skip {cue} @{seg_start:.1f}s — во время интро+буфера ({sfx_min_t:.1f}s)", flush=True)
             continue
 
-        if cue == "riser" or cue == "riser+boom":
+        # 2. Фильтр: слишком близко к предыдущему эффекту
+        if seg_start < last_sfx_end + _SFX_MIN_GAP_S:
+            n_skip_g += 1
+            print(f"[SFX] skip {cue} @{seg_start:.1f}s — gap < {_SFX_MIN_GAP_S}s "
+                  f"(prev end {last_sfx_end:.1f}s, нужно ≥ {last_sfx_end + _SFX_MIN_GAP_S:.1f}s)", flush=True)
+            continue
+
+        # Добавляем события
+        if cue in ("riser", "riser+boom"):
             riser_t = max(sfx_min_t, seg_start - riser_offset_s)
             if _SFX_RISER:
-                events.append({"time": riser_t, "file": _pick(_SFX_RISER), "vol": _VOL_RISER})
+                events.append({"time": riser_t, "file": _pick(_SFX_RISER),
+                                "vol": _VOL_RISER, "category": "riser"})
 
-        if cue == "boom" or cue == "riser+boom":
+        if cue in ("boom", "riser+boom"):
             if _SFX_BOOM:
-                events.append({"time": seg_start, "file": _pick(_SFX_BOOM), "vol": _VOL_BOOM})
+                events.append({"time": seg_start, "file": _pick(_SFX_BOOM),
+                                "vol": _VOL_BOOM, "category": "boom"})
 
         if cue == "impact":
             if _SFX_IMPACT:
-                events.append({"time": seg_start, "file": _pick(_SFX_IMPACT), "vol": _VOL_IMPACT})
+                events.append({"time": seg_start, "file": _pick(_SFX_IMPACT),
+                                "vol": _VOL_IMPACT, "category": "impact"})
 
         if cue == "downlifter":
             if _SFX_DOWNLIFTER:
-                events.append({"time": seg_start, "file": _pick(_SFX_DOWNLIFTER), "vol": _VOL_DOWNLIFTER})
+                events.append({"time": seg_start, "file": _pick(_SFX_DOWNLIFTER),
+                                "vol": _VOL_DOWNLIFTER, "category": "downlifter"})
+
+        # Обновляем конец последнего принятого эффекта
+        last_sfx_end = seg_start + _SFX_DUR_APPROX.get(cue, 2.0)
 
     events.sort(key=lambda e: e["time"])
-    print(f"[SFX] Haiku cues: {len(events)} событий из {sum(1 for s in segments if s.get('sfx_cue'))} cues", flush=True)
+    print(
+        f"[SFX] Haiku cues: {len(events)} событий из {n_cues} cues "
+        f"(пропущено: {n_skip_t} early, {n_skip_g} gap<{_SFX_MIN_GAP_S}s)",
+        flush=True,
+    )
     return events
 
 
