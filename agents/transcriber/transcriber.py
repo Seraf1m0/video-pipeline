@@ -930,6 +930,25 @@ def run():
         print(f"[Agent] Сессия: {session}")
         audio_path = move_to_session(audio_path, session, channel_root)
 
+    # Автолог в channel_root/_logs/transcriber_SESSION.log
+    try:
+        import io as _io
+        class _Tee:
+            def __init__(self, stream, filepath):
+                filepath.parent.mkdir(parents=True, exist_ok=True)
+                self._file   = open(filepath, "w", encoding="utf-8", errors="replace")
+                self._stream = stream
+            def write(self, data):
+                self._stream.write(data); self._file.write(data)
+            def flush(self):
+                self._stream.flush(); self._file.flush()
+            def __getattr__(self, attr):
+                return getattr(self._stream, attr)
+        _log_path = channel_root / "_logs" / f"transcriber_{session}.log"
+        sys.stdout = _Tee(sys.stdout, _log_path)
+    except Exception:
+        pass
+
     if args.mode:
         mode = args.mode
         label = "рандомно 3–8 сек" if mode == "random" else "ровно 10 сек (Grok)"

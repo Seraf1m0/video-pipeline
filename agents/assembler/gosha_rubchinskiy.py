@@ -115,6 +115,25 @@ _CH_ALIAS = {
 # УТИЛИТЫ
 # ─────────────────────────────────────────────────────────────────────────────
 
+class _Tee:
+    """Дублирует stdout в файл (для автоматического лога в _logs/)."""
+    def __init__(self, stream, filepath: Path):
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        self._file   = open(filepath, "w", encoding="utf-8", errors="replace")
+        self._stream = stream
+    def write(self, data):
+        self._stream.write(data)
+        self._file.write(data)
+    def flush(self):
+        self._stream.flush()
+        self._file.flush()
+    def close(self):
+        self._file.close()
+    def __getattr__(self, attr):
+        return getattr(self._stream, attr)
+
+_tee: _Tee | None = None
+
 def log(msg: str) -> None:
     print(f"[GOSHA] {msg}", flush=True)
 
@@ -1053,6 +1072,16 @@ def main() -> None:
     channel_id, style = resolve_channel(args)
     session            = resolve_session(channel_id, args.session)
     ensure_session_dirs(channel_id, session)
+
+    # Автолог в channel_root/_logs/gosha_SESSION.log
+    global _tee
+    try:
+        from paths import get_channel_dir
+        _log_path = get_channel_dir(channel_id) / "_logs" / f"gosha_{session}.log"
+        _tee = _Tee(sys.stdout, _log_path)
+        sys.stdout = _tee
+    except Exception:
+        pass
 
     intro_enabled = style.get("intro_transition", "none") != "none"
     zone_a_end_s  = float(style.get("zone_a_end_s",    300.0))
