@@ -226,7 +226,7 @@ def get_prev_video_clips(channel_id, history, n_prev=1):
 # Для каждого клипа хранится индекс видео в котором он был последний раз использован.
 # Пока прошло < COOLDOWN_VIDEOS видео → клип заблокирован (999).
 # После COOLDOWN_VIDEOS → клип снова ПРИОРИТЕТНЫЙ (penalty = 0, как будто никогда не использовался).
-COOLDOWN_VIDEOS: int = 3
+COOLDOWN_VIDEOS: int = 3   # дефолт; в select_clips_for_video пересчитывается динамически
 
 # ── Повтор внутри одного видео ────────────────
 # 1-й раз можно всегда. 2-й раз — только через 5–7 минут после первого.
@@ -257,6 +257,7 @@ def calculate_penalty(
         ignore_hard_block:  bool        = False,  # для fallback после 5 мин
         video_used_at:      dict | None = None,   # {clip_id: first_use_time_s} внутри видео
         segment_start:      float       = 0.0,    # текущее время сегмента
+        cooldown_videos:    int         = COOLDOWN_VIDEOS,  # динамический кулдаун
 ):
     """
     Рассчитать penalty для клипа.
@@ -305,13 +306,13 @@ def calculate_penalty(
     # ── 5. Notebook hard block + recency priority (clip_last_used_idx) ──────────
     if clip_last_used_idx is not None and clip_id in clip_last_used_idx:
         videos_since = current_video_idx - clip_last_used_idx[clip_id]
-        if not ignore_hard_block and videos_since < COOLDOWN_VIDEOS:
+        if not ignore_hard_block and videos_since < cooldown_videos:
             return 999
         # Cooldown прошёл: убывающий штраф по давности.
-        # Только что разблокировался (3 видео) → 0.30 (менее приоритетен чем никогда не использованный)
-        # Давно не использовался (12+ видео)   → ~0.07 (почти как новый)
+        # Только что разблокировался → 0.9/cooldown (менее приоритетен чем никогда не использованный)
+        # Давно не использовался (3×cooldown+) → ~0.07 (почти как новый)
         # Никогда не использован               → penalty = 0.0 (лучший приоритет)
-        recency_penalty = 0.9 / max(videos_since, 1)  # 3→0.30, 6→0.15, 9→0.10, 12→0.075
+        recency_penalty = 0.9 / max(videos_since, 1)
         return max(0.0, recency_penalty)
 
     # ── 6. Soft penalty ────────────────────────────────────────────────────────
@@ -402,6 +403,7 @@ def match_segment_to_clip(
         video_used_at:      dict | None = None,
         visual_embeddings: np.ndarray | None = None,  # (M, 512) CLIP visual
         visual_ids_list: list[str] | None = None,     # [clip_id, ...] для visual
+        cooldown_videos:  int             = COOLDOWN_VIDEOS,  # динамический кулдаун
 ):
     """
     Найти top_n лучших клипов по гибридному скору:
@@ -471,6 +473,7 @@ def match_segment_to_clip(
                 ignore_hard_block=ignore_hard_block,
                 video_used_at=video_used_at,
                 segment_start=segment_start,
+                cooldown_videos=cooldown_videos,
             )
             if penalty == 999:
                 continue
@@ -641,12 +644,6 @@ def select_clips_for_video(
     if phash_map:
         print(f"🖼 pHash загружен: {len(phash_map)} клипов", flush=True)
 
-    hard_blocked  = sum(1 for cid in clip_last_used_idx
-                        if (current_video_idx - clip_last_used_idx[cid]) < COOLDOWN_VIDEOS)
-    cooldown_free = sum(1 for cid in clip_last_used_idx
-                        if (current_video_idx - clip_last_used_idx[cid]) >= COOLDOWN_VIDEOS)
-    print(f"🔒 Hard-blocked: {hard_blocked}  |  Вышло из кулдауна: {cooldown_free}", flush=True)
-
     # Валидные клипы с EN+DE+FR keywords и длительностью
     available_clips = [
         (
@@ -661,6 +658,22 @@ def select_clips_for_video(
     ]
     long_clips = sum(1 for _, _, d in available_clips if d >= 10)
     print(f"📚 Доступно клипов: {len(available_clips)} (>= 10s: {long_clips})", flush=True)
+
+    # Динамический cooldown: чем больше % библиотеки используется за видео — тем короче кулдаун.
+    # Формула: round(0.8 / usage_ratio), зажато в [2, 6]
+    # ES  (323/945  = 34%) → 2  | Medium (200/945 = 21%) → 4  | Big lib (100/2000 = 5%) → 6
+    _n_segs  = len(segments)
+    _n_clips = max(len(available_clips), 1)
+    _usage   = _n_segs / _n_clips
+    cooldown_videos = max(2, min(6, round(0.8 / max(_usage, 0.01))))
+    print(f"⏳ Кулдаун: {cooldown_videos} видео "
+          f"(usage {_n_segs}/{_n_clips} = {_usage:.1%})", flush=True)
+
+    hard_blocked  = sum(1 for cid in clip_last_used_idx
+                        if (current_video_idx - clip_last_used_idx[cid]) < cooldown_videos)
+    cooldown_free = sum(1 for cid in clip_last_used_idx
+                        if (current_video_idx - clip_last_used_idx[cid]) >= cooldown_videos)
+    print(f"🔒 Hard-blocked: {hard_blocked}  |  Вышло из кулдауна: {cooldown_free}", flush=True)
 
     # Разделить сегменты на intro / main по накопленной длительности
     intro_seg_ids: set[int] = set()
@@ -692,10 +705,11 @@ def select_clips_for_video(
     main_clips         = []
     intro_total        = 0.0
     main_total         = 0.0
-    prev_clip_embeddings: list[np.ndarray]        = []   # embedding diversity window (last 5)
-    recent_phashes:     list[tuple[float, int]]   = []   # pHash window (время, хэш)
-    PHASH_WINDOW_S     = 300   # 5 минут — окно по времени, не по кол-ву клипов
-    PHASH_THRESHOLD    = 12    # hamming distance < 12 из 64 бит = визуально идентичны
+    prev_clip_embeddings: list[tuple[float, np.ndarray]] = []   # embedding diversity window (2 мин)
+    recent_phashes:      list[tuple[float, int]]         = []   # pHash window (5 мин)
+    EMB_DIVERSITY_WINDOW_S = 120   # 2 минуты — окно embedding diversity по времени
+    PHASH_WINDOW_S         = 300   # 5 минут — окно pHash по времени
+    PHASH_THRESHOLD        = 12    # hamming distance < 12 из 64 бит = визуально идентичны
     emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
 
     for i, seg in enumerate(segments):
@@ -739,14 +753,18 @@ def select_clips_for_video(
             visual_embeddings=visual_embeddings,
             visual_ids_list=visual_ids_list,
             visual_query=seg.get("visual_query", ""),
+            cooldown_videos=cooldown_videos,
         )
 
-        # [5] Embedding diversity window (last 5): cosine > 0.92 → берём следующего кандидата
+        # [5] Embedding diversity window (2 мин): cosine > 0.92 → берём следующего кандидата
+        # Сначала вычищаем устаревшие записи старше EMB_DIVERSITY_WINDOW_S секунд
+        while prev_clip_embeddings and (seg_start - prev_clip_embeddings[0][0]) > EMB_DIVERSITY_WINDOW_S:
+            prev_clip_embeddings.pop(0)
         clip_id = top_candidates[0] if top_candidates else None
         if clip_id and prev_clip_embeddings:
             idx = emb_index.get(clip_id)
             if idx is not None:
-                for prev_vec in prev_clip_embeddings:
+                for _ts, prev_vec in prev_clip_embeddings:
                     if float(clip_embeddings[idx] @ prev_vec) > 0.92 and len(top_candidates) > 1:
                         clip_id = top_candidates[1]
                         print(f"  ⚠ Emb-diversity → {clip_id}", flush=True)
@@ -767,13 +785,11 @@ def select_clips_for_video(
                             print(f"  ⚠ pHash-duplicate → {clip_id}", flush=True)
                         break
 
-        # Обновить окна: embedding window (last 5) + pHash window (5 мин)
+        # Обновить окна: embedding window (2 мин) + pHash window (5 мин)
         if clip_id:
             idx = emb_index.get(clip_id)
             if idx is not None:
-                prev_clip_embeddings.append(clip_embeddings[idx].copy())
-                if len(prev_clip_embeddings) > 5:
-                    prev_clip_embeddings.pop(0)
+                prev_clip_embeddings.append((seg_start, clip_embeddings[idx].copy()))
             if phash_map and clip_id in phash_map:
                 recent_phashes.append((seg_start, phash_map[clip_id]))
             video_used[clip_id] = video_used.get(clip_id, 0) + 1
