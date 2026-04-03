@@ -692,9 +692,9 @@ def select_clips_for_video(
     main_clips         = []
     intro_total        = 0.0
     main_total         = 0.0
-    prev_clip_embeddings: list[np.ndarray] = []   # embedding diversity window (last 5)
-    recent_phashes:     list[int]          = []   # pHash window (last 20 клипов в видео)
-    PHASH_WINDOW       = 20    # сколько последних клипов проверяем на визуальный дубль
+    prev_clip_embeddings: list[np.ndarray]        = []   # embedding diversity window (last 5)
+    recent_phashes:     list[tuple[float, int]]   = []   # pHash window (время, хэш)
+    PHASH_WINDOW_S     = 300   # 5 минут — окно по времени, не по кол-ву клипов
     PHASH_THRESHOLD    = 12    # hamming distance < 12 из 64 бит = визуально идентичны
     emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
 
@@ -752,11 +752,14 @@ def select_clips_for_video(
                         print(f"  ⚠ Emb-diversity → {clip_id}", flush=True)
                         break
 
-        # [6] pHash window (last 20): визуально идентичные кадры → берём следующего кандидата
+        # [6] pHash window (5 мин): визуально идентичные кадры → берём следующего кандидата
+        # Сначала вычищаем устаревшие записи (старше PHASH_WINDOW_S секунд)
+        while recent_phashes and (seg_start - recent_phashes[0][0]) > PHASH_WINDOW_S:
+            recent_phashes.pop(0)
         if clip_id and phash_map and recent_phashes:
             h = phash_map.get(clip_id)
             if h is not None:
-                for rh in recent_phashes:
+                for _ts, rh in recent_phashes:
                     if bin(h ^ rh).count("1") < PHASH_THRESHOLD:
                         alts = [c for c in top_candidates if c != clip_id]
                         if alts:
@@ -764,7 +767,7 @@ def select_clips_for_video(
                             print(f"  ⚠ pHash-duplicate → {clip_id}", flush=True)
                         break
 
-        # Обновить окна: embedding window (last 5) + pHash window (last 20)
+        # Обновить окна: embedding window (last 5) + pHash window (5 мин)
         if clip_id:
             idx = emb_index.get(clip_id)
             if idx is not None:
@@ -772,9 +775,7 @@ def select_clips_for_video(
                 if len(prev_clip_embeddings) > 5:
                     prev_clip_embeddings.pop(0)
             if phash_map and clip_id in phash_map:
-                recent_phashes.append(phash_map[clip_id])
-                if len(recent_phashes) > PHASH_WINDOW:
-                    recent_phashes.pop(0)
+                recent_phashes.append((seg_start, phash_map[clip_id]))
             video_used[clip_id] = video_used.get(clip_id, 0) + 1
             if clip_id not in video_used_at:
                 video_used_at[clip_id] = seg_start
