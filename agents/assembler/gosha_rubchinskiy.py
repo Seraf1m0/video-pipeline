@@ -1372,6 +1372,20 @@ def main() -> None:
             output_path     = timeline_path,
         )
 
+        # ── CTA timestamps для GPU compositor ────────────────────────────────
+        _cta_mov_path = style.get("cta_mov")
+        _cta_ts_for_gpu: list[float] = []
+        if _cta_mov_path and Path(_cta_mov_path).exists():
+            from apply_cta import compute_timestamps, get_duration as _cta_dur
+            _cta_dur_s  = _cta_dur(Path(_cta_mov_path))
+            _cta_min_g  = float(style.get("cta_min_gap_s", 90))
+            _cta_max_g  = float(style.get("cta_max_gap_s", 120))
+            _cta_ts_for_gpu = compute_timestamps(
+                total_dur, intro_dur, _cta_dur_s, _cta_min_g, _cta_max_g
+            )
+            if _cta_ts_for_gpu:
+                log(f"CTA: {len(_cta_ts_for_gpu)} плашек → {[f'{t:.0f}s' for t in _cta_ts_for_gpu]}")
+
         render_ok = _gpu_composite(
             timeline         = timeline_path,
             output           = final_output,
@@ -1385,6 +1399,9 @@ def main() -> None:
             font_path        = _font_path,
             subtitle_style   = sub_style,
             subtitle_anim    = _sub_anim,
+            cta_path         = Path(_cta_mov_path) if _cta_mov_path and _cta_ts_for_gpu else None,
+            cta_timestamps   = _cta_ts_for_gpu or None,
+            cta_intro_dur    = intro_dur,
         )
         if not render_ok:
             log("  ⚠️ GPU compositor не удался — fallback на CPU render")
@@ -1469,33 +1486,6 @@ def main() -> None:
 
     shutil.rmtree(temp_dir, ignore_errors=True)
     log("Временные файлы удалены")
-
-    # ── 6. CTA OVERLAY ───────────────────────────────────────────────────────
-    cta_mov = style.get("cta_mov")
-    if cta_mov and Path(cta_mov).exists() and final_output.exists():
-        try:
-            _cta_script = Path(__file__).parent / "apply_cta.py"
-            _cta_out    = final_output.with_stem(final_output.stem + "_cta")
-            _min_gap    = str(style.get("cta_min_gap_s", 90))
-            _max_gap    = str(style.get("cta_max_gap_s", 120))
-            _intro_s    = str(round(intro_dur, 1))
-            log(f"CTA: запускаем apply_cta.py → {_cta_out.name}")
-            rc = subprocess.run(
-                [sys.executable, str(_cta_script),
-                 str(final_output), str(cta_mov),
-                 "--output", str(_cta_out),
-                 "--intro-dur", _intro_s,
-                 "--min-gap", _min_gap, "--max-gap", _max_gap],
-                stdin=subprocess.DEVNULL,
-            )
-            if rc.returncode == 0 and _cta_out.exists():
-                log(f"CTA: ✅ {_cta_out.name}  {_cta_out.stat().st_size//1024//1024}MB")
-            else:
-                log(f"CTA: ✗ rc={rc.returncode}")
-        except Exception as e:
-            log(f"CTA: ошибка — {e}")
-    elif cta_mov and not Path(cta_mov).exists():
-        log(f"CTA: файл не найден ({cta_mov}) — пропуск")
 
     elapsed = time.time() - t_start
     m, s = divmod(int(elapsed), 60)

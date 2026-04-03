@@ -621,6 +621,73 @@ def composite_subtitles(frame: torch.Tensor,
     return frame
 
 
+# ─── CTA overlay ──────────────────────────────────────────────────────────────
+
+def prerender_cta(cta_path: Path, fps: float) -> dict | None:
+    """Декодирует CTA .mov → numpy RGBA [N, H, W, 4] uint8 на CPU."""
+    r = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "stream=width,height,nb_frames,duration,r_frame_rate",
+         "-of", "json", str(cta_path)],
+        capture_output=True, text=True, stdin=subprocess.DEVNULL,
+    )
+    s = json.loads(r.stdout)["streams"][0]
+    cw, ch = int(s["width"]), int(s["height"])
+    dur = float(s.get("duration", 0) or 0)
+    num, den = s.get("r_frame_rate", "25/1").split("/")
+    cta_fps  = float(num) / float(den)
+    n_frames = int(s.get("nb_frames", 0) or 0) or int(dur * cta_fps)
+
+    dec = subprocess.Popen(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error",
+         "-i", str(cta_path),
+         "-f", "rawvideo", "-pix_fmt", "rgba", "pipe:1"],
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+    )
+    frame_bytes = cw * ch * 4
+    frames = []
+    while True:
+        raw = dec.stdout.read(frame_bytes)
+        if len(raw) < frame_bytes:
+            break
+        frames.append(np.frombuffer(raw, dtype=np.uint8).reshape(ch, cw, 4).copy())
+    dec.stdout.close()
+    dec.wait()
+
+    if not frames:
+        return None
+    return {
+        "frames_np": np.stack(frames, axis=0),  # [N, H_cta, W_cta, 4]
+        "n": len(frames),
+        "dur": len(frames) / cta_fps,
+        "fps": cta_fps,
+        "w": cw, "h": ch,
+    }
+
+
+def composite_cta(
+    frame:      torch.Tensor,
+    frame_num:  int,
+    fps:        float,
+    cta_data:   dict,
+    timestamps: list[float],
+) -> torch.Tensor:
+    """Накладывает CTA если frame_num попадает в одно из временных окон."""
+    t = frame_num / fps
+    frames_np = cta_data["frames_np"]
+    n   = cta_data["n"]
+    dur = cta_data["dur"]
+
+    for ts in timestamps:
+        if ts <= t < ts + dur:
+            cta_f  = min(int((t - ts) * cta_data["fps"]), n - 1)
+            tensor = torch.from_numpy(frames_np[cta_f]).to(DEVICE, non_blocking=False)
+            return _composite_one(frame, tensor, 0, 0, 1.0)
+
+    return frame
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # 4. COLOR GRADE (GPU)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1019,6 +1086,9 @@ def run(
     subtitle_style:   str            = "default",
     subtitle_anim:    str            = ANIM_SLIDE_UP,
     timeline:         Path | None    = None,  # single-pass режим
+    cta_path:         Path | None    = None,  # CTA .mov (RGBA)
+    cta_timestamps:   list[float] | None = None,  # абс. тайминги от начала видео
+    cta_intro_dur:    float          = 0.0,   # длительность интро (для offset)
 ) -> bool:
     """
     GPU финальный рендер.
@@ -1056,6 +1126,19 @@ def run(
                                          subtitle_anim=subtitle_anim)
         print(f"[GPU] Subtitle pre-render: {time.time()-t0:.1f}s "
               f"({len(sub_events)} строк)")
+
+    # ── CTA: декодируем .mov → CPU numpy ─────────────────────────────────────
+    _cta_data: dict | None = None
+    _cta_ts:   list[float] = []
+    if cta_path and cta_timestamps and Path(cta_path).exists():
+        t0 = time.time()
+        _cta_data = prerender_cta(Path(cta_path), fps)
+        if _cta_data:
+            # Переводим в content-relative тайминги (вычитаем длительность интро)
+            _cta_ts = [max(0.0, ts - cta_intro_dur) for ts in cta_timestamps]
+            print(f"[GPU] CTA pre-render: {_cta_data['n']} кадров "
+                  f"({_cta_data['dur']:.1f}s), {len(_cta_ts)} плашек — "
+                  f"{time.time()-t0:.1f}s")
 
     # ── Single-pass (timeline) или legacy (merged_tmp) ───────────────────────
     _frame_source:  object    = None   # generator для timeline-режима
@@ -1249,6 +1332,8 @@ def run(
                     frame = color_grade_gpu(frame, grade_p, vignette)
                 if sub_idx is not None:
                     frame = composite_subtitles(frame, frame_num, sub_idx)
+                if _cta_data is not None and _cta_ts:
+                    frame = composite_cta(frame, frame_num, fps_actual, _cta_data, _cta_ts)
                 result = (frame.clamp(0.0, 1.0) * 255.0).byte()
 
             # 4. GPU → pinned CPU (синхронно — CPU должен дождаться D2H перед чтением)
