@@ -364,14 +364,21 @@ def select_and_link_clips(
     lib_dir = temp_dir / "lib_clips"
     lib_dir.mkdir(parents=True, exist_ok=True)
 
+    # Пул запасных клипов — для сегментов у которых файл не найден в библиотеке
+    _fallback_pool = [p for p in lib_clips_dir.glob("*.mp4") if p.is_file()]
+
     matched = 0
     for seg_id, clip_id, _ in main_clips:
         if clip_id is None:
             continue
         src = lib_clips_dir / f"{clip_id}.mp4"
         if not src.exists():
-            log(f"  [{int(seg_id):03d}] файл не найден: {clip_id}.mp4")
-            continue
+            if _fallback_pool:
+                src = random.choice(_fallback_pool)
+                log(f"  [{int(seg_id):03d}] не найден {clip_id}.mp4 → fallback {src.name}")
+            else:
+                log(f"  [{int(seg_id):03d}] файл не найден: {clip_id}.mp4")
+                continue
         dst = lib_dir / f"clip_{int(seg_id):03d}.mp4"
         if dst.exists():
             dst.unlink()
