@@ -292,37 +292,79 @@ def final_mix(voice_path, music_path, output_path,
 #   riser/boom/impact/hit: 10–15%  (-20.0 … -16.5 dB)
 #   default:       10–15%
 
-_SFX_GAIN_RANGES: dict[str, tuple[float, float]] = {
-    # Еле заметный, атмосферный — не должен перебивать голос
-    # whoosh/swish: чуть громче остальных (движение), но всё равно фоновые
-    "whoosh":  (0.08, 0.12),
-    "swish":   (0.08, 0.12),
-    "sweep":   (0.08, 0.12),
-    "fly":     (0.08, 0.12),
-    # Остальные — едва слышны, только ощущение атмосферы
-    "riser":   (0.05, 0.08),
-    "rise":    (0.05, 0.08),
-    "boom":    (0.05, 0.08),
-    "impact":  (0.05, 0.08),
-    "hit":     (0.05, 0.08),
-    "drop":    (0.05, 0.08),
-    "slam":    (0.05, 0.08),
-    "crash":   (0.05, 0.08),
-    "default": (0.05, 0.08),
+# ─── SFX loudness normalization ──────────────────────────────────────────────
+# Целевой пик по категориям (откалибровано на слух):
+#   riser:      -47 dBFS  — нарастание, фоновый элемент
+#   boom:       -37 dBFS  — главный удар, самый слышимый
+#   downlifter: -47 dBFS  — мягкий спад после бума
+#   whoosh/whoosh_big/impact: -39 dBFS  — акценты и переходы
+# intensity 1-10 (от Claude) → ±2.2 dB сдвиг относительно цели.
+
+_SFX_CAT_TARGET_DB: dict = {
+    "riser":      -47.0,
+    "boom":       -37.0,
+    "downlifter": -47.0,
+    "whoosh":     -39.0,
+    "whoosh_fast":-39.0,
+    "whoosh_big": -39.0,
+    "impact":     -39.0,
+    "glitch":     -39.0,
+}
+_SFX_TARGET_PEAK_DB: float = -39.0   # дефолт для неизвестных категорий
+
+# Fade-in / fade-out по категориям (curve=qsin — плавный синус)
+_SFX_CAT_FADE: dict = {
+    #               fade_in  fade_out
+    "riser":      (0.40,    0.50),   # плавный вход, мягкий аут
+    "boom":       (0.00,    0.00),   # без фейдов — бьёт сразу
+    "downlifter": (0.50,    1.00),   # очень плавный вход и аут
+    "whoosh":     (0.12,    0.00),
+    "whoosh_fast":(0.10,    0.00),
+    "whoosh_big": (0.15,    0.00),
+    "impact":     (0.10,    0.00),
+    "glitch":     (0.05,    0.00),
 }
 
+_sfx_peak_cache: dict[str, float] = {}
 
-def _sfx_gain_for_category(category: str, emotion: float = 5.0) -> float:
+
+def _sfx_peak_db(path: "Path | str") -> float:
+    """Пиковый уровень SFX файла в dBFS (кэшируется)."""
+    import subprocess as _sp
+    key = str(path)
+    if key in _sfx_peak_cache:
+        return _sfx_peak_cache[key]
+    try:
+        r = _sp.run(
+            ["ffmpeg", "-i", key, "-af", "volumedetect", "-f", "null", "-"],
+            capture_output=True, text=True,
+        )
+        for line in r.stderr.splitlines():
+            if "max_volume:" in line:
+                val = float(line.split("max_volume:")[1].split("dB")[0].strip())
+                _sfx_peak_cache[key] = val
+                return val
+    except Exception:
+        pass
+    _sfx_peak_cache[key] = -3.0  # safe fallback
+    return -3.0
+
+
+def _sfx_gain_normalized(path: "Path | str", score: float = 5.0,
+                          category: str = "") -> float:
     """
-    Линейный gain для SFX события.
-    Внутри диапазона категории масштабируется по emotion (1-10):
-      emotion=1 → нижняя граница диапазона
-      emotion=10 → верхняя граница диапазона
+    Линейный gain для SFX: нормализует файл к целевому dBFS по категории.
+    score 1-10 → ±2.2 dB offset:
+      score=1  → -2.2 dB (тише)
+      score=5  →  0 dB  (нейтрально)
+      score=10 → +2.2 dB (чуть громче)
     """
-    key = (category or "default").lower().split("_")[0]
-    lo, hi = _SFX_GAIN_RANGES.get(key, _SFX_GAIN_RANGES["default"])
-    t = max(0.0, min(1.0, (max(1.0, min(10.0, float(emotion))) - 1.0) / 9.0))
-    return lo + t * (hi - lo)
+    import math as _math
+    target_db     = _SFX_CAT_TARGET_DB.get(category, _SFX_TARGET_PEAK_DB)
+    peak_db       = _sfx_peak_db(path)
+    intensity_db  = (float(score) - 5.0) / 9.0 * 4.0   # ±2.2 dB
+    gain_db       = target_db - peak_db + intensity_db
+    return 10 ** (gain_db / 20.0)
 
 
 # ─── НОВЫЙ ЕДИНЫЙ АУДИО ПАСС — ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ──────────────────────
@@ -569,16 +611,20 @@ def build_final_audio(
         fc = []
         for k, ev in enumerate(sfx_events):
             delay_ms = max(0, int(float(ev.get("time_s", ev.get("time", 0))) * 1000))
-            # Gain по таблице категорий (whoosh 17-20%, остальные 10-15%)
-            category = str(ev.get("category", ev.get("type", "default")))
-            emotion  = float(ev.get("emotion", 5.0))
-            gain     = _sfx_gain_for_category(category, emotion)
-            sfx_dur  = get_audio_duration(str(ev["file"]))
-            fo_d     = min(0.15, sfx_dur * 0.3)
+            cat     = str(ev.get("category", ""))
+            score   = float(ev.get("score", 5.0))
+            gain    = _sfx_gain_normalized(ev["file"], score, category=cat)
+            sfx_dur = get_audio_duration(str(ev["file"]))
+            fi_d, fo_d = _SFX_CAT_FADE.get(cat, (0.12, 0.00))
+            # Строим цепочку фейдов только если ненулевые
+            fade_chain = "aresample=44100,aformat=channel_layouts=stereo"
+            if fi_d > 0:
+                fade_chain += f",afade=t=in:st=0:d={fi_d:.3f}:curve=qsin"
+            if fo_d > 0:
+                fo_st = max(0.0, sfx_dur - fo_d)
+                fade_chain += f",afade=t=out:st={fo_st:.3f}:d={fo_d:.3f}:curve=qsin"
             fc.append(
-                f"[{k}:a]aresample=44100,aformat=channel_layouts=stereo,"
-                f"afade=t=in:st=0:d=0.04,"
-                f"afade=t=out:st={max(0.0,sfx_dur-fo_d):.3f}:d={fo_d:.3f},"
+                f"[{k}:a]{fade_chain},"
                 f"adelay={delay_ms}|{delay_ms},volume={gain:.6f}[s{k}]"
             )
         ins = "".join(f"[s{k}]" for k in range(len(sfx_events)))
@@ -624,62 +670,77 @@ def build_final_audio(
         if _w:
             _wavs.append(_w)
 
-    # ── Шаг 4a: voice_proc.wav — полный голосовой процессинг ───────────────────
-    # Stage 1: afftdn        — шумоподавление Wiener (noise floor -25dB)
-    # Stage 2: Multi-band EQ — HP 80Hz + mud -3dB@200Hz + presence +3dB@3kHz + air +2dB@10kHz
-    # Stage 3: mcompand      — 2-полосный компрессор (split @ 2kHz)
-    #             lo band: 2.5:1, attack 8ms, decay 150ms
-    #             hi band: 3:1,   attack 3ms, decay 80ms  (тighter на высоких)
-    # Stage 4: De-esser      — sidechaincompress, sidechain = HP>7kHz копия
-    #             убирает шипящие без влияния на остальной спектр
-    # Stage 5: Reverb        — aecho 35ms (ранние отражения), dry/wet = 88/12%
+    # ── Шаг 4a: voice_proc.wav — голосовой процессинг ────────────────────────
+    # Предварительное декодирование в PCM: некоторые MP3-файлы (особенно с большим
+    # timebase, например 14.112 MHz у DE) создают нестабильные DTS при прямой
+    # подаче в dynaudnorm=f=4000:g=31. Это приводит к "Non-monotonic DTS" и
+    # обрезке выхода до ~25% от реальной длины. Решение: декодировать MP3 в PCM
+    # WAV (с sample-accurate timestamps) ДО применения filter complex.
+    voice_raw_wav  = temp_dir / "_voice_raw.wav"
+    _wavs.append(voice_raw_wav)
+    _run([
+        "ffmpeg", "-y", "-i", str(voice_path),
+        "-c:a", "pcm_f32le", "-ar", "44100",
+        "-loglevel", "warning",
+        str(voice_raw_wav),
+    ], "voice pre-decode PCM")
+    # Если pre-decode упал — работаем с оригиналом (FR, ES обычно не требуют)
+    _voice_input = voice_raw_wav if voice_raw_wav.exists() else voice_path
+
+    # Stage 1: EQ         — HP 80Hz, warmth +1dB@150Hz, mud -3dB@200Hz,
+    #                        presence +3dB@3kHz, air +2dB@8kHz, shelf +1dB@12kHz
+    # Stage 2: dynaudnorm — мягкое выравнивание к -6dBFS (f=4000ms — очень
+    #                        медленное окно, без pumping и warmup-артефакта)
+    # Stage 3: acompressor— прозрачная компрессия 2.5:1, attack 20ms
+    # Stage 4: alimiter   — потолок -3 dBFS
+    # Stage 5: de-esser   — sidechaincompress HP>7kHz
+    # Stage 6: room reverb— ранние отражения 80ms+150ms, 6% wet
+    #                        (выше 40ms Haas-порога → нет удвоения, звучит как студия)
     voice_proc_wav = temp_dir / "_voice_proc.wav"
     _wavs.append(voice_proc_wav)
 
     _voice_fc = (
-        # Stage 1: Шумоподавление (Wiener FFT, floor -25dB)
+        # Stage 1: EQ
         "[0:a]"
-        "afftdn=nf=-25,"
-        # Stage 2: Noise gate — подавляем фоновый шум в паузах
-        #   threshold=0.015 ≈ -36dBFS | range=0.04 = -28dB подавление (не полное молчание)
-        "agate=threshold=0.015:attack=10:release=300:range=0.04,"
-        # Stage 3: Multi-band EQ
-        "highpass=f=80,"                                      # rumble cut
-        "equalizer=f=200:width_type=o:width=1.0:g=-3,"       # mud cut
-        "equalizer=f=3000:width_type=o:width=1.4:g=3,"       # presence
-        "equalizer=f=10000:width_type=o:width=1.0:g=2,"      # air
-        # Stage 4: Двухполосный компрессор (crossover @ 2kHz)
-        #   Синтаксис args: "attack,decay soft_knee points crossover | ..."
-        #   lo band (0-2kHz):  attack 35ms — медленная, пропускает согласные
-        #   hi band (2k-22kHz): attack 15ms — быстрее, контроль высоких
-        "mcompand=args="
-        "'0.035,0.08 6 -47/-40,-22/-22,0/-13 2000"
-        " | "
-        "0.015,0.08 6 -47/-40,-22/-22,0/-15 22000',"
-        # Stage 5: Динамический нормализатор → цель -6 dBFS (p=0.50)
-        #   f=250ms окна | g=15 Gaussian | m=20 макс. буст +20dB
-        "dynaudnorm=f=250:g=15:p=0.50:m=20,"
-        # Stage 6: Hard ceiling -3 dBFS (limit=0.708 ≈ -3dBFS)
+        "highpass=f=80,"
+        "equalizer=f=150:width_type=o:width=1.2:g=1,"
+        "equalizer=f=200:width_type=o:width=1.0:g=-3,"
+        "equalizer=f=3000:width_type=o:width=1.4:g=3,"
+        "equalizer=f=8000:width_type=o:width=1.0:g=2,"
+        "equalizer=f=12000:width_type=o:width=0.8:g=1,"
+        # Stage 2: Мягкое выравнивание уровня к -6dBFS
+        #   f=4000ms — 4-секундное окно, gain меняется очень медленно (не слышно)
+        #   g=31     — максимальное Gaussian сглаживание
+        #   p=0.501  — target peak -6dBFS (0.501 = 10^(-6/20))
+        #   m=10     — макс. буст +10dB (не перегоняет тихие паузы)
+        "dynaudnorm=f=4000:g=31:p=0.501:m=10,"
+        # Stage 3: Прозрачная компрессия
+        "acompressor=threshold=0.126:ratio=2.5:attack=20:release=200:"
+        "knee=2.828:makeup=1.2,"
+        # Stage 4: Hard ceiling -3 dBFS
         "alimiter=limit=0.708:attack=5:release=20:level=false,"
-        # Stage 7: De-esser — sidechain HP>7kHz
+        # Stage 5: De-esser
         "asplit=2[main][sc_src];"
         "[sc_src]highpass=f=7000[sc_hf];"
         "[main][sc_hf]sidechaincompress="
         "threshold=0.025:ratio=3:attack=1:release=60:"
         "level_sc=2.5[deessed];"
-        # Stage 8: Reverb — ранние отражения 35ms, dry/wet 88/12%
+        # Stage 6: Room reverb — студийное помещение, 6% wet
+        #   80ms + 150ms отражения (> 40ms Haas-порог → нет удвоения)
+        #   decay 0.08/0.04 — короткое затухание (маленькая комната, не зал)
         "[deessed]asplit=2[dry][wet_in];"
-        "[wet_in]aecho=0.8:0.88:35:0.25[reverb];"
-        "[dry][reverb]amix=inputs=2:weights=0.88 0.12[voice_out]"
+        "[wet_in]aecho=0.8:0.88:80:0.08[r1];"
+        "[r1]aecho=0.9:0.88:150:0.04[room];"
+        "[dry][room]amix=inputs=2:weights=0.94 0.06[voice_out]"
     )
 
     voice_proc_ok = _run([
-        "ffmpeg", "-y", "-i", str(voice_path),
+        "ffmpeg", "-y", "-i", str(_voice_input),
         "-filter_complex", _voice_fc,
         "-map", "[voice_out]",
         "-c:a", "pcm_f32le", "-ar", "44100",
         str(voice_proc_wav),
-    ], "voice EQ+mcomp+deess+reverb")
+    ], "voice gate+EQ+mcomp+deess")
     # Если EQ/comp упал — используем исходный голос
     _voice_for_mix = voice_proc_wav if voice_proc_ok and voice_proc_wav.exists() else voice_path
 
@@ -700,11 +761,15 @@ def build_final_audio(
             # EQ notch на музыке: -4dB @ 300Hz (фундаментал голоса) + -3dB @ 2500Hz (разборчивость)
             # Создаёт spectral space для голоса без агрессивного level ducking
             f"[0:a]aresample=44100,aformat=channel_layouts=stereo,volume={music_vol_db}dB,"
+            # Срез низов музыки: освобождает пространство для голоса (особенно на наушниках)
+            "highpass=f=120:poles=2,"
+            # Notch EQ: убираем частоты где голос наиболее активен
             "equalizer=f=300:width_type=o:width=1.5:g=-4,"
             "equalizer=f=2500:width_type=o:width=1.2:g=-3[music_in];"
             "[1:a]aresample=44100,aformat=channel_layouts=stereo[sc];"
+            # Sidechain ducking: attack=20ms (плавнее), release=500ms (мягче возврат)
             "[music_in][sc]sidechaincompress="
-            "threshold=0.03:ratio=4:attack=10:release=300:"
+            "threshold=0.03:ratio=4:attack=20:release=500:"
             "makeup=1:mix=0.9[music_out]",
             "-map", "[music_out]",
             "-c:a", "pcm_f32le", "-ar", "44100", str(music_sc_wav),
