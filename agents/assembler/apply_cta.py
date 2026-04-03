@@ -84,24 +84,28 @@ def apply_cta(
     print(f"[CTA] Тайминги: {[f'{t:.0f}s' for t in timestamps]}")
     print(f"[CTA] Выход:    {output_path.name}")
 
-    cmd = ["ffmpeg", "-y", "-i", str(video_path)]
-    for _ in timestamps:
-        cmd += ["-i", str(cta_path)]
+    # Вычисляем длительность CTA для enable-выражений
+    cta_dur = get_duration(cta_path)
+    if cta_dur <= 0:
+        cta_dur = 10.0  # fallback
 
-    filter_parts = []
-    prev = "0:v"
-    for i, ts in enumerate(timestamps):
-        idx     = i + 1
-        out_lbl = f"v{idx}"
-        filter_parts.append(
-            f"[{idx}:v]setpts=PTS+{ts}/TB[cta{idx}];"
-            f"[{prev}][cta{idx}]overlay=0:0:eof_action=pass[{out_lbl}]"
-        )
-        prev = out_lbl
+    # enable='between(t,ts,ts+dur)+...' — один looped вход, нет буферизации
+    enable_parts = [f"between(t,{ts},{ts + cta_dur:.3f})" for ts in timestamps]
+    enable_expr  = "+".join(enable_parts)
 
-    cmd += [
-        "-filter_complex", ";".join(filter_parts),
-        "-map", f"[{prev}]",
+    # stream_loop=-1 зацикливает CTA; setpts=PTS-STARTPTS сбрасывает PTS к 0
+    # overlay активируется только в нужные окна через enable
+    filter_complex = (
+        f"[1:v]setpts=PTS-STARTPTS[cta];"
+        f"[0:v][cta]overlay=0:0:eof_action=pass:enable='{enable_expr}'[out]"
+    )
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(video_path),
+        "-stream_loop", "-1", "-i", str(cta_path),
+        "-filter_complex", filter_complex,
+        "-map", "[out]",
         "-map", "0:a",
         "-c:v", "h264_nvenc", "-preset", NVENC_PRESET, "-cq", "26",
         "-c:a", "copy",
@@ -109,7 +113,7 @@ def apply_cta(
     ]
 
     t0 = time.time()
-    rc = subprocess.run(cmd, capture_output=True)
+    rc = subprocess.run(cmd, stdin=subprocess.DEVNULL, stderr=subprocess.PIPE)
     elapsed = time.time() - t0
 
     if rc.returncode != 0:

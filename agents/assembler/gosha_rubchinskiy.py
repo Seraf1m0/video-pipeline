@@ -1474,24 +1474,24 @@ def main() -> None:
     cta_mov = style.get("cta_mov")
     if cta_mov and Path(cta_mov).exists() and final_output.exists():
         try:
-            from apply_cta import compute_timestamps, apply_cta
-            cta_path   = Path(cta_mov)
-            cta_out    = final_output.with_stem(final_output.stem + "_cta")
-            cta_dur    = get_duration(cta_path)
-            min_gap    = float(style.get("cta_min_gap_s", 90))
-            max_gap    = float(style.get("cta_max_gap_s", 120))
-            timestamps = compute_timestamps(
-                total_dur, intro_dur, cta_dur, min_gap, max_gap
+            _cta_script = Path(__file__).parent / "apply_cta.py"
+            _cta_out    = final_output.with_stem(final_output.stem + "_cta")
+            _min_gap    = str(style.get("cta_min_gap_s", 90))
+            _max_gap    = str(style.get("cta_max_gap_s", 120))
+            _intro_s    = str(round(intro_dur, 1))
+            log(f"CTA: запускаем apply_cta.py → {_cta_out.name}")
+            rc = subprocess.run(
+                [sys.executable, str(_cta_script),
+                 str(final_output), str(cta_mov),
+                 "--output", str(_cta_out),
+                 "--intro-dur", _intro_s,
+                 "--min-gap", _min_gap, "--max-gap", _max_gap],
+                stdin=subprocess.DEVNULL,
             )
-            if timestamps:
-                log(f"CTA: {len(timestamps)} плашки → {[f'{t:.0f}s' for t in timestamps]}")
-                ok = apply_cta(final_output, cta_path, timestamps, cta_out)
-                if ok:
-                    log(f"CTA: ✅ {cta_out.name}  {cta_out.stat().st_size//1024//1024}MB")
-                else:
-                    log("CTA: ✗ не удалось наложить")
+            if rc.returncode == 0 and _cta_out.exists():
+                log(f"CTA: ✅ {_cta_out.name}  {_cta_out.stat().st_size//1024//1024}MB")
             else:
-                log("CTA: видео слишком короткое — пропуск")
+                log(f"CTA: ✗ rc={rc.returncode}")
         except Exception as e:
             log(f"CTA: ошибка — {e}")
     elif cta_mov and not Path(cta_mov).exists():
