@@ -59,3 +59,4 @@ tmp_*.png
 bot/logs/
 bot/active_channel.json
 .claude/
+data/transcripts_cache/
