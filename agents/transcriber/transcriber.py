@@ -673,15 +673,68 @@ def preprocess_voice(audio_path: Path,
         print(f"[Preprocess] Нечего вырезать")
         return audio_path
 
-    # ── Шаг 3: ffconcat (надёжнее filter_complex для 100+ сегментов) ─────
-    out_tmp    = audio_path.parent / f"_vc_tmp{audio_path.suffix}"
+    # ── Шаг 3: decode → PCM, нарезать через atrim (сэмплоточно), склеить ──
+    # ffconcat inpoint/outpoint — пакетная точность (~1024 сэмпла = 23ms).
+    # atrim в filter_complex — точность до одного сэмпла, без двоения/сдвигов.
+    # Батчи по 25 сегментов → нет ограничения длины команды.
+    pcm_wav = audio_path.parent / "_vc_pcm.wav"
+    out_tmp = audio_path.parent / f"_vc_tmp{audio_path.suffix}"
+
+    r_pcm = subprocess.run([
+        "ffmpeg", "-y", "-i", str(audio_path),
+        "-c:a", "pcm_f32le", "-ar", "44100", str(pcm_wav),
+    ], capture_output=True)
+    if r_pcm.returncode != 0 or not pcm_wav.exists():
+        print("[Preprocess] decode to PCM failed — используем оригинал")
+        return audio_path
+
+    BATCH = 25
+    batches    = [keep_segs[i:i + BATCH] for i in range(0, len(keep_segs), BATCH)]
+    batch_wavs: list[Path] = []
+    failed = False
+
+    for b_idx, batch in enumerate(batches):
+        n     = len(batch)
+        b_out = audio_path.parent / f"_vc_b{b_idx}.wav"
+        # asplit → N копий входа, каждая обрезается atrim + микрофейд 4ms
+        # Фейды убирают щелчки на стыках (ненулевой сэмпл при обрезке)
+        fc = [f"[0:a]asplit={n}" + "".join(f"[sp{j}]" for j in range(n))]
+        for j, (st, en) in enumerate(batch):
+            seg_dur = en - st
+            fo_st   = max(0.0, seg_dur - 0.004)
+            fc.append(
+                f"[sp{j}]atrim=start={st:.6f}:end={en:.6f},"
+                f"asetpts=PTS-STARTPTS,"
+                f"afade=t=in:st=0:d=0.004,"
+                f"afade=t=out:st={fo_st:.6f}:d=0.004"
+                f"[seg{j}]"
+            )
+        labels = "".join(f"[seg{j}]" for j in range(n))
+        fc.append(f"{labels}concat=n={n}:v=0:a=1[out]")
+        rb = subprocess.run([
+            "ffmpeg", "-y", "-i", str(pcm_wav),
+            "-filter_complex", ";".join(fc),
+            "-map", "[out]", "-c:a", "pcm_f32le", "-ar", "44100", str(b_out),
+        ], capture_output=True)
+        if rb.returncode != 0 or not b_out.exists():
+            err = rb.stderr.decode(errors="replace")[-300:]
+            print(f"[Preprocess] batch {b_idx} failed\n{err}")
+            failed = True
+            break
+        batch_wavs.append(b_out)
+
+    pcm_wav.unlink(missing_ok=True)
+
+    if failed or not batch_wavs:
+        for bw in batch_wavs:
+            bw.unlink(missing_ok=True)
+        return audio_path
+
+    # ── Шаг 4: склеиваем батчи через ffconcat (уже точно обрезанные WAV) ──
     concat_txt = audio_path.parent / "_vc_concat.txt"
-    abs_path   = str(audio_path.resolve()).replace("\\", "/")
     lines = ["ffconcat version 1.0"]
-    for st, en in keep_segs:
-        lines.append(f"file '{abs_path}'")
-        lines.append(f"inpoint {st:.6f}")
-        lines.append(f"outpoint {en:.6f}")
+    for bw in batch_wavs:
+        lines.append(f"file '{str(bw.resolve()).replace(chr(92), '/')}'")
     concat_txt.write_text("\n".join(lines), encoding="utf-8")
 
     r2 = subprocess.run([
@@ -693,10 +746,12 @@ def preprocess_voice(audio_path: Path,
     ], capture_output=True)
 
     concat_txt.unlink(missing_ok=True)
+    for bw in batch_wavs:
+        bw.unlink(missing_ok=True)
 
     if r2.returncode != 0 or not out_tmp.exists():
         err = r2.stderr.decode(errors="replace")[-400:]
-        print(f"[Preprocess] concat failed — используем оригинал\n{err}")
+        print(f"[Preprocess] final concat failed — используем оригинал\n{err}")
         out_tmp.unlink(missing_ok=True)
         return audio_path
 

@@ -32,7 +32,7 @@ from paths import (
 )
 
 _EMBED_SERVER    = "http://127.0.0.1:8765"
-VISUAL_WEIGHT    = 0.50   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score
+VISUAL_WEIGHT    = 0.40   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score (60/40)
 
 # ─── Embedding — сервер или локальная модель ──────────────────────────
 
@@ -405,16 +405,17 @@ def match_segment_to_clip(
 ):
     """
     Найти top_n лучших клипов по гибридному скору:
-      text_score   = cosine(e5(query), e5(keywords))        [65%]
-      visual_score = cosine(clip_text(query), clip_visual)  [35%]
+      text_score   = cosine(e5(visual_query), e5(keywords))  [60%]
+      visual_score = cosine(clip_text(visual_query), clip_visual)  [40%]
 
-    Text query строится как:
-      [2] window_text (prev + current + next сегменты)
-      [1] усиливается глобальным топиком видео (0.75 seg + 0.25 topic)
-      [3] усиливается embedding главы           (0.85 seg + 0.15 chapter)
+    Text query приоритет: visual_query (Haiku) > window_text > segment_text
+    visual_query — готовое визуальное описание сцены от Haiku, e5 матчит точнее.
+    Дополнительно: +global_topic (0.75/0.25) + chapter_vec (0.85/0.15)
     """
     # ── Text score (e5-large) ─────────────────────────────────────────────────
-    query_text = window_text if window_text.strip() else segment_text
+    # Приоритет: visual_query (Haiku) > window_text > segment_text
+    # visual_query содержит готовое визуальное описание сцены — e5 матчит по нему точнее
+    query_text = visual_query if visual_query.strip() else (window_text if window_text.strip() else segment_text)
     seg_vec    = encode_query(query_text)
     seg_vec    = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
 
