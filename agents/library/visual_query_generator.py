@@ -68,43 +68,58 @@ NICHE_PROMPTS = {
     "cosmos": (
         "You are a visual director and sound designer for a space documentary YouTube channel.\n\n"
         "For each segment return TWO things:\n"
-        "  vq  — SHORT English visual description (8-10 words) of what footage should play\n"
+        "  vq  — English visual description (10-14 words) of what footage should play\n"
         "  sfx — sound effect cue (or null)\n\n"
         "Visual rules:\n"
-        "- Name exact objects ONLY if explicitly mentioned in segment text\n"
-        "- If unsure about specific object → use generic visual analogy\n"
-        "- Always positive descriptions, never use \"not\", \"unlike\", \"without\"\n"
+        "- Be SPECIFIC: name exact celestial objects, phenomena, missions if mentioned\n"
+        "- Match the SCALE: cosmic/galactic vs planetary vs human-scale scenes\n"
+        "- Include visual atmosphere: colors, lighting, motion (spinning, drifting, exploding)\n"
+        "- If unsure about specific object → use descriptive visual analogy with atmosphere\n"
+        "- Always positive visual descriptions, never use \"not\", \"unlike\", \"without\"\n"
         "- Segments may be in any language — always respond in English\n"
-        "- If segment text is unclear/corrupted → fallback: \"deep space starfield galaxy nebula glowing\"\n"
-        "- Optimize for stock footage library search\n\n"
+        "- If segment text is unclear/corrupted → fallback: \"deep space starfield galaxy nebula glowing purple blue\"\n"
+        "- Optimize for cinematic stock footage library — think like a film editor\n\n"
         + SFX_RULES_COSMOS +
         "\nExamples:\n"
-        '"En 1977 nous avons reçu un message" → vq: "radio telescope dish night sky receiving signal", sfx: null\n'
-        '"quelque chose fonce vers nous" → vq: "bright comet streaking toward camera deep space", sfx: "riser"\n'
-        '"Ce signal venait des étoiles" → vq: "stars twinkling vast cosmic void deep space", sfx: "boom"\n'
-        '"des décennies de silence" → vq: "empty dark observatory dust gathering silence", sfx: "downlifter"\n'
-        '"тёмная материя невидима" → vq: "deep space dark nebula mysterious cosmic void", sfx: null\n'
+        '"En 1977 nous avons reçu un signal" → vq: "radio telescope dish rotating night sky stars signal beam", sfx: null\n'
+        '"Voyager traverse les confins du système solaire" → vq: "Voyager spacecraft drifting endless dark void distant sun tiny", sfx: "riser"\n'
+        '"une explosion cent fois plus grande que le Soleil" → vq: "massive supernova explosion shockwave expanding orange red plasma", sfx: "riser+boom"\n'
+        '"des milliards d\'années de silence cosmique" → vq: "empty dark universe slow drift ancient starfield cold void", sfx: "downlifter"\n'
+        '"la matière noire invisible" → vq: "deep space dark nebula mysterious gravitational lensing blue glow", sfx: null\n'
+        '"la vie est peut-être là-bas" → vq: "exoplanet blue green atmosphere ocean swirling clouds orbit", sfx: "boom"\n'
+        '"la Terre vue depuis la Lune" → vq: "Earth rising over lunar horizon blue marble fragile beautiful", sfx: null\n'
+        '"тёмная энергия ускоряет расширение вселенной" → vq: "universe expanding galaxy clusters accelerating infinite dark energy glow", sfx: null\n'
     ),
     "religion": (
-        "You are a visual director and sound designer for a spiritual documentary YouTube channel.\n\n"
+        "You are a visual director for a CHRISTIAN documentary YouTube channel about Jesus Christ and the Gospel.\n\n"
         "For each segment return TWO things:\n"
-        "  vq  — SHORT English visual description (8-10 words) of what footage should play\n"
+        "  vq  — English visual description (10-14 words) of what footage should play\n"
         "  sfx — soft sound effect cue (or null)\n\n"
+        "LIBRARY CONTENT: footage is a MIX of two visual styles:\n"
+        "  A) Renaissance/Baroque OIL PAINTINGS of biblical scenes (Rembrandt, Caravaggio style)\n"
+        "  B) Cinematic MODERN footage: nature (sunsets, rivers, forests), cathedrals, candles, people praying\n\n"
         "Visual rules:\n"
-        "- Name exact places ONLY if explicitly mentioned in segment text\n"
-        "- If unsure about specific place → use generic spiritual visual analogy\n"
-        "- Always positive, warm, uplifting descriptions\n"
-        "- Never use \"not\", \"unlike\", \"without\"\n"
+        "- For SPECIFIC biblical events (Crucifixion, Resurrection, Last Supper, Baptism, Sermon, Gethsemane) → use style A\n"
+        "- For general spiritual themes (faith, hope, prayer, eternity) → use style B\n"
+        "- Style A format: \"[scene] [figures] Renaissance oil painting dramatic chiaroscuro\"\n"
+        "- Style B format: \"[mood] [natural element or place] cinematic warm golden light\"\n"
+        "- Always warm, reverent, uplifting — never dark or negative framing\n"
         "- Segments may be in any language — always respond in English\n"
-        "- If segment text is unclear/corrupted → fallback: \"golden sunset ocean horizon peaceful warm light\"\n"
-        "- Optimize for stock footage library search\n\n"
+        "- If segment text is unclear/corrupted → fallback: \"golden sunlight rays cathedral interior warm peaceful\"\n\n"
         + SFX_RULES_RELIGION +
-        "\nExamples:\n"
-        '"Dios creó el mundo" → vq: "golden sunrise over mountain peaceful valley light rays", sfx: null\n'
-        '"la fe mueve montañas" → vq: "person praying hands folded warm candlelight church", sfx: null\n'
-        '"catedral de Notre Dame" → vq: "Notre Dame cathedral gothic architecture Paris exterior", sfx: null\n'
-        '"el cielo es eterno" → vq: "dramatic clouds parting golden light rays heavenly sky", sfx: "riser"\n'
-        '"[unclear/corrupted text]" → vq: "golden sunset ocean horizon peaceful warm light", sfx: null\n'
+        "\nExamples (biblical → style A):\n"
+        '"Jesús murió en la cruz" → vq: "Jesus crucifixion cross Golgotha crowd weeping Renaissance oil painting", sfx: "downlifter"\n'
+        '"resucitó al tercer día" → vq: "risen Christ empty tomb radiant white light angels Renaissance painting", sfx: "riser"\n'
+        '"la Última Cena con sus discípulos" → vq: "Last Supper Jesus twelve apostles candlelit table bread wine painting", sfx: null\n'
+        '"fue bautizado por Juan" → vq: "Baptism of Jesus Jordan river John dove Holy Spirit painting", sfx: null\n'
+        '"el Sermón de la Montaña" → vq: "Jesus teaching crowds hillside Sermon Mount disciples listening painting", sfx: null\n'
+        '"oró en el huerto de Getsemaní" → vq: "Jesus praying Gethsemane garden night anguish disciples sleeping painting", sfx: null\n'
+        "\nExamples (general → style B):\n"
+        '"la fe mueve montañas" → vq: "person kneeling prayer hands folded warm candlelight church golden", sfx: null\n'
+        '"Dios creó el cielo y la tierra" → vq: "breathtaking sunrise mountain valley golden rays mist cinematic", sfx: null\n'
+        '"el amor de Dios es eterno" → vq: "peaceful river forest golden light flowing serene cinematic", sfx: "riser"\n'
+        '"catedral de Notre Dame" → vq: "Notre Dame cathedral gothic stone architecture Paris exterior sunlight", sfx: null\n'
+        '"[unclear/corrupted text]" → vq: "golden sunlight rays cathedral interior warm peaceful cinematic", sfx: null\n'
     ),
 }
 
@@ -113,7 +128,7 @@ def _call_claude(prompt: str) -> str:
     env = os.environ.copy()
     env.pop("CLAUDECODE", None)
     r = subprocess.run(
-        ["claude", "-p", prompt, "--model", "claude-3-haiku-20240307"],
+        ["claude", "-p", prompt, "--model", "claude-haiku-4-5-20251001"],
         capture_output=True, text=True,
         encoding="utf-8", errors="replace",
         timeout=90, env=env,
@@ -126,7 +141,44 @@ def _call_claude(prompt: str) -> str:
 _VALID_SFX = {"riser", "boom", "riser+boom", "impact", "downlifter"}
 
 
-def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, dict]:
+def _extract_global_context(segments: list, niche: str) -> str:
+    """
+    Один вызов Haiku на весь скрипт — получить 2-3 строки контекста нарратива.
+    Используется потом в каждом батче чтобы Haiku понимал общий смысл видео.
+    """
+    # Берём первые 60 сегментов для контекста (обычно ~5-8 мин)
+    sample = segments[:60]
+    text_block = " ".join(seg.get("text", "") for seg in sample if seg.get("text", "").strip())
+    if not text_block.strip():
+        return ""
+
+    if niche == "religion":
+        instruction = (
+            "You are analyzing a Christian documentary script. "
+            "In 2-3 sentences describe: (1) the main topic/story, (2) the emotional arc, (3) key visual themes. "
+            "Be specific — name Jesus, biblical events, places if present. "
+            "Respond in English only, plain text, no lists."
+        )
+    else:
+        instruction = (
+            "You are analyzing a space documentary script. "
+            "In 2-3 sentences describe: (1) the main topic, (2) the emotional arc, (3) key visual themes. "
+            "Be specific — name celestial objects, missions, phenomena if present. "
+            "Respond in English only, plain text, no lists."
+        )
+
+    prompt = f"{instruction}\n\nScript excerpt:\n{text_block[:3000]}"
+    try:
+        ctx = _call_claude(prompt)
+        ctx = ctx.strip()
+        print(f"🧠 Global context: {ctx[:120]}...", flush=True)
+        return ctx
+    except Exception as e:
+        print(f"  ⚠ Global context failed: {e}", flush=True)
+        return ""
+
+
+def _generate_batch(batch: list[tuple[int, str]], niche: str, global_context: str = "") -> dict[int, dict]:
     """
     batch: [(seg_id, text), ...]
     Returns: {seg_id: {"vq": "...", "sfx": "riser"|null}}
@@ -135,8 +187,14 @@ def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, dict]
     lines = "\n".join(f"{i+1}. {text}" for i, (_, text) in enumerate(batch))
     seg_ids = [seg_id for seg_id, _ in batch]
 
+    context_block = (
+        f"SCRIPT CONTEXT (use this to understand the overall narrative):\n{global_context}\n\n"
+        if global_context else ""
+    )
+
     prompt = (
         f"{base_prompt}"
+        f"{context_block}"
         f"Segments:\n{lines}\n\n"
         f"Respond ONLY with valid JSON, no markdown:\n"
         f'{{"1": {{"vq": "visual description", "sfx": null}}, '
@@ -156,7 +214,6 @@ def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, dict]
             for i, seg_id in enumerate(seg_ids):
                 key = str(i + 1)
                 entry = data.get(key, {})
-                # Поддержка старого формата (строка) и нового (объект)
                 if isinstance(entry, str):
                     result[seg_id] = {"vq": entry.strip(), "sfx": None}
                 elif isinstance(entry, dict):
@@ -167,11 +224,13 @@ def _generate_batch(batch: list[tuple[int, str]], niche: str) -> dict[int, dict]
                     result[seg_id] = {"vq": vq, "sfx": sfx}
             return result
         except Exception as e:
+            wait = 5 * (attempt + 1)
             if attempt < RETRY_LIMIT:
-                time.sleep(2)
+                print(f"  ↩ Batch attempt {attempt+1} failed ({e}) — retry in {wait}s", flush=True)
+                time.sleep(wait)
             else:
-                print(f"  ⚠ Batch failed after {RETRY_LIMIT+1} attempts: {e}", flush=True)
-                return {}
+                print(f"  ✗ Batch FAILED after {RETRY_LIMIT+1} attempts: {e}", flush=True)
+                return {}  # возвращаем пустой — retry на уровне generate_visual_queries
 
 
 def generate_visual_queries(
@@ -200,6 +259,9 @@ def generate_visual_queries(
 
     print(f"🎬 Генерация visual queries: {len(segments)} сегментов, {niche}, {workers} потоков", flush=True)
 
+    # Один вызов для понимания общего нарратива
+    global_context = _extract_global_context(segments, niche)
+
     # Разбить на батчи
     batches = []
     for i in range(0, len(segments), BATCH_SIZE):
@@ -208,21 +270,52 @@ def generate_visual_queries(
 
     print(f"📦 Батчей: {len(batches)} × {BATCH_SIZE}", flush=True)
 
-    # Параллельная генерация
+    # Параллельная генерация с retry на уровне провалившихся батчей
     result_map: dict[int, dict] = {}
     t0 = time.time()
+    all_seg_ids = {seg["id"] for seg in segments}
 
-    with ThreadPoolExecutor(max_workers=workers) as exe:
-        futures = {exe.submit(_generate_batch, batch, niche): idx for idx, batch in enumerate(batches)}
-        for future in as_completed(futures):
-            idx = futures[future]
-            try:
-                result = future.result()
-                result_map.update(result)
-                sfx_count = sum(1 for v in result.values() if v.get("sfx"))
-                print(f"  ✓ Батч {idx+1}/{len(batches)}: {len(result)} queries, {sfx_count} SFX cues", flush=True)
-            except Exception as e:
-                print(f"  ✗ Батч {idx+1} ошибка: {e}", flush=True)
+    def _run_batches(batch_list: list) -> list:
+        """Запустить батчи параллельно, вернуть список провалившихся."""
+        failed = []
+        with ThreadPoolExecutor(max_workers=workers) as exe:
+            futures = {exe.submit(_generate_batch, b, niche, global_context): b for b in batch_list}
+            for future in as_completed(futures):
+                batch = futures[future]
+                try:
+                    result = future.result()
+                    if result:
+                        result_map.update(result)
+                        sfx_count = sum(1 for v in result.values() if v.get("sfx"))
+                        print(f"  ✓ {len(result)} queries, {sfx_count} SFX", flush=True)
+                    else:
+                        failed.append(batch)
+                except Exception as e:
+                    print(f"  ✗ Batch exception: {e}", flush=True)
+                    failed.append(batch)
+        return failed
+
+    failed_batches = _run_batches(batches)
+
+    # Retry провалившихся батчей (до 2 раундов)
+    for retry_round in range(1, 3):
+        if not failed_batches:
+            break
+        missing = all_seg_ids - set(result_map.keys())
+        print(f"🔄 Retry round {retry_round}: {len(failed_batches)} батч(ей), {len(missing)} сегментов без vq", flush=True)
+        time.sleep(10 * retry_round)
+        failed_batches = _run_batches(failed_batches)
+
+    # Проверка покрытия
+    missing_final = all_seg_ids - set(result_map.keys())
+    if missing_final:
+        pct = len(missing_final) / len(segments) * 100
+        if pct > 15:
+            raise RuntimeError(
+                f"Visual queries: {len(missing_final)}/{len(segments)} сегментов ({pct:.0f}%) "
+                f"не получили vq после всех retry — остановка."
+            )
+        print(f"  ⚠ {len(missing_final)} сегментов без vq ({pct:.0f}%) — допустимо, продолжаем", flush=True)
 
     elapsed = time.time() - t0
     sfx_total = sum(1 for v in result_map.values() if v.get("sfx"))

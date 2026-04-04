@@ -1160,13 +1160,16 @@ def main() -> None:
             segments, _ = load_segments(result_visual_json)
             log(f"✅ Visual queries готовы: {result_visual_json.name}")
         except Exception as _vq_err:
-            log(f"⚠️  Visual queries пропущены: {_vq_err}")
+            log(f"✗ Visual queries FAILED: {_vq_err}")
+            log("Останавливаемся — запустите снова или используйте --skip-visual-queries для пропуска.")
+            sys.exit(1)
     elif result_visual_json.exists():
         log("Visual queries: загружаем result_visual.json")
         try:
             segments, _ = load_segments(result_visual_json)
-        except Exception:
-            pass  # оставляем оригинальные segments
+        except Exception as _vq_load_err:
+            log(f"✗ Не удалось загрузить result_visual.json: {_vq_load_err}")
+            sys.exit(1)
 
     # ── 2. CLIPS ──────────────────────────────────────────────────────────────
     t_clips = time.time()

@@ -33,9 +33,9 @@ from qwen_vl_utils import process_vision_info
 # ── Константы ──────────────────────────────────────────────────────────────
 
 FRAME_SIZE   = 336
-MAX_NEW_TOK  = 50
-BATCH_TOK    = 100
-BATCH4_TOK   = 200
+MAX_NEW_TOK  = 80    # увеличено для religion (детальные описания Jesus Christ, biblical scenes)
+BATCH_TOK    = 160
+BATCH4_TOK   = 320
 BLACK_THRESH = 5.0   # mean порог (космос имеет mean 3-5 но max 255)
 BLACK_MAX    = 30    # если max пикселя > этого — точно не чёрный экран
 FROZEN_DIFF  = 0.5   # нижний порог для тёмного космоса (медленный зум diff ~1.0-1.6)
@@ -50,10 +50,13 @@ PROMPTS = {
         "planet, galaxy, spacecraft."
     ),
     "religion": (
-        "Identify the main subject shown. "
-        "Describe in max 50 characters. "
-        "Focus on: spiritual places, nature, "
-        "light, people, architecture."
+        "Christian religion footage. "
+        "Identify exactly what is shown in max 60 characters. "
+        "Name specific Christian elements: Jesus Christ, cross, crucifix, "
+        "church, cathedral, altar, Bible, prayer, baptism, crucifixion, "
+        "resurrection, Last Supper, disciples, apostles, Virgin Mary, "
+        "angels, Holy Spirit, pilgrims, stained glass, candles, rosary, "
+        "sermon, icon, fresco, baptismal font, dove, nativity, Golgotha."
     ),
 }
 
@@ -359,7 +362,7 @@ def create_app(port: int) -> FastAPI:
             for line in response.split("\n"):
                 line = line.strip()
                 if line.lower().startswith(prefix.lower()):
-                    desc = line[len(prefix):].strip()[:50]
+                    desc = line[len(prefix):].strip()
                     break
             clip_results[key] = {
                 "valid":    bool(desc),

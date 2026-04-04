@@ -414,7 +414,7 @@ def _build_fixed_segments(duration: float, seg_dur: float) -> list[tuple[float, 
     """Нарезать видео на равные куски по seg_dur секунд (без trim с краёв)."""
     segs = []
     t = 0.0
-    while t + seg_dur <= duration - 0.1:   # 0.1s tolerance
+    while t + seg_dur - 0.05 <= duration:   # 0.05s tolerance
         segs.append((t, t + seg_dur))
         t += seg_dur
     return segs
