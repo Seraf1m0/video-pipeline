@@ -32,7 +32,9 @@ from paths import (
 )
 
 _EMBED_SERVER    = "http://127.0.0.1:8765"
-VISUAL_WEIGHT    = 0.40   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score (60/40)
+VISUAL_WEIGHT    = 0.10   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score (90/10)
+# CLIP добавляет шум для cosmos-клипов (все тёмные, похожие визуально).
+# Снижено с 0.40 → 0.10: E5 текст теперь 90% сигнала, CLIP только tie-breaker.
 
 # ─── Embedding — сервер или локальная модель ──────────────────────────
 
@@ -736,7 +738,7 @@ def select_clips_for_video(
             max_repeats_in_video=max_repeats_in_video,
             max_from_prev=max_from_prev,
             segment_duration=seg_duration,
-            top_n=3,
+            top_n=8,
             context_vec=video_context_vec,
             chapter_vec=chapter_vec,
             window_text=window_text,

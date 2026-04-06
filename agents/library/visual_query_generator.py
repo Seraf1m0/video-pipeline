@@ -70,15 +70,24 @@ NICHE_PROMPTS = {
         "For each segment return TWO things:\n"
         "  vq  — English visual description (10-14 words) of what footage should play\n"
         "  sfx — sound effect cue (or null)\n\n"
+        "LIBRARY CONTENT — these are the ONLY clip categories available:\n"
+        "  1. NEBULAS/GALAXIES: colorful gas clouds, spiral/elliptical galaxies, star clusters, deep space\n"
+        "  2. SPACE PHENOMENA: black holes, supernovas, solar flares, cosmic plasma, energy fields, radiation\n"
+        "  3. SOLAR SYSTEM: Sun surface, planets (Mars/Saturn/Jupiter), moons, asteroids, comets, orbits\n"
+        "  4. SPACECRAFT: rockets launching, satellites orbiting, probes drifting (Voyager/New Horizons style)\n"
+        "  5. ASTRONAUTS: floating in ISS, spacewalk, working at consoles, suits in space\n"
+        "  6. SCIENTISTS/ENGINEERS: at computer screens, analyzing data, in labs/clean rooms, discussing\n"
+        "  7. EARTH FROM SPACE: blue marble, clouds, continents, aurora, atmosphere edge\n"
+        "  8. TELESCOPES/INSTRUMENTS: observatory domes, radio dishes, satellite dishes, space telescopes\n\n"
         "Visual rules:\n"
-        "- Be SPECIFIC: name exact celestial objects, phenomena, missions if mentioned\n"
+        "- ALWAYS map to one of the 8 categories above — choose the nearest visual category\n"
+        "- If segment describes abstract physics (dark energy, heliosphere boundary, quantum effects) → use visual analogy from category 2 (plasma/energy fields) or category 1 (deep space)\n"
+        "- If segment mentions specific mission/probe → use category 4; if mentions scientists → use category 6\n"
         "- Match the SCALE: cosmic/galactic vs planetary vs human-scale scenes\n"
         "- Include visual atmosphere: colors, lighting, motion (spinning, drifting, exploding)\n"
-        "- If unsure about specific object → use descriptive visual analogy with atmosphere\n"
         "- Always positive visual descriptions, never use \"not\", \"unlike\", \"without\"\n"
         "- Segments may be in any language — always respond in English\n"
-        "- If segment text is unclear/corrupted → fallback: \"deep space starfield galaxy nebula glowing purple blue\"\n"
-        "- Optimize for cinematic stock footage library — think like a film editor\n\n"
+        "- If segment text is unclear/corrupted → fallback: \"deep space starfield galaxy nebula glowing purple blue\"\n\n"
         + SFX_RULES_COSMOS +
         "\nExamples:\n"
         '"En 1977 nous avons reçu un signal" → vq: "radio telescope dish rotating night sky stars signal beam", sfx: null\n'
@@ -89,6 +98,9 @@ NICHE_PROMPTS = {
         '"la vie est peut-être là-bas" → vq: "exoplanet blue green atmosphere ocean swirling clouds orbit", sfx: "boom"\n'
         '"la Terre vue depuis la Lune" → vq: "Earth rising over lunar horizon blue marble fragile beautiful", sfx: null\n'
         '"тёмная энергия ускоряет расширение вселенной" → vq: "universe expanding galaxy clusters accelerating infinite dark energy glow", sfx: null\n'
+        '"heliosphere boundary ultraviolet wall" → vq: "glowing plasma energy field cosmic boundary shimmering blue void", sfx: null\n'
+        '"scientists analyzing probe data" → vq: "scientists focused computer screens data analysis blue ambient light", sfx: null\n'
+        '"solar wind charged particles streaming" → vq: "sun corona plasma flare streaming outward glowing golden dynamic", sfx: null\n'
     ),
     "religion": (
         "You are a visual director for a CHRISTIAN documentary YouTube channel about Jesus Christ and the Gospel.\n\n"
