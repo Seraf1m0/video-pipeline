@@ -242,7 +242,9 @@ INTRA_REPEAT_MAX_S: float = 420.0   # 7 мин
 # embeddings (кластер 0.70–0.76). Без jitter ВСЕГДА побеждает один и тот же клип
 # который случайно оказался первым в отсортированном массиве.
 # С jitter ±0.04 каждый раз случайно побеждает разный из кластера.
-SCORE_JITTER: float = 0.04
+SCORE_JITTER: float = 0.005
+# Снижено с 0.04 → 0.005: разброс E5 между релевантным и нерелевантным клипом
+# всего 0.005–0.01, jitter 0.04 полностью уничтожал сигнал.
 
 
 # ─── Penalty система ──────────────────────────
@@ -410,8 +412,10 @@ def match_segment_to_clip(
     seg_vec    = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
 
     if context_vec is not None:
-        seg_vec = 0.75 * seg_vec + 0.25 * context_vec
+        seg_vec = 0.90 * seg_vec + 0.10 * context_vec
         seg_vec = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
+        # Снижено с 0.75/0.25 → 0.90/0.10: контекст сжимал все запросы к
+        # общему "space" вектору, уничтожая специфику (spacecraft vs nebula)
 
     if chapter_vec is not None and np.any(chapter_vec):
         seg_vec = 0.85 * seg_vec + 0.15 * chapter_vec
