@@ -697,12 +697,15 @@ def select_clips_for_video(
     main_clips         = []
     intro_total        = 0.0
     main_total         = 0.0
-    prev_clip_embeddings: list[tuple[float, np.ndarray]] = []   # embedding diversity window (2 мин)
+    prev_clip_embeddings: list[tuple[float, np.ndarray]] = []   # E5 text diversity window (2 мин)
+    prev_visual_embeddings: list[tuple[float, np.ndarray]] = [] # CLIP visual diversity window (2 мин)
     recent_phashes:      list[tuple[float, int]]         = []   # pHash window (5 мин)
-    EMB_DIVERSITY_WINDOW_S = 120   # 2 минуты — окно embedding diversity по времени
-    PHASH_WINDOW_S         = 300   # 5 минут — окно pHash по времени
-    PHASH_THRESHOLD        = 12    # hamming distance < 12 из 64 бит = визуально идентичны
+    EMB_DIVERSITY_WINDOW_S  = 120   # 2 минуты — окно embedding diversity по времени
+    PHASH_WINDOW_S          = 300   # 5 минут — окно pHash по времени
+    PHASH_THRESHOLD         = 12    # hamming distance < 12 из 64 бит = визуально идентичны
+    VIS_DIVERSITY_THRESHOLD = 0.88  # CLIP visual: выше этого → визуально слишком похожи
     emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
+    vis_emb_index = {cid: i for i, cid in enumerate(visual_ids_list)} if visual_ids_list else {}
 
     for i, seg in enumerate(segments):
         seg_id       = seg.get("id", 0)
@@ -748,8 +751,7 @@ def select_clips_for_video(
             prev_video_centroid=prev_video_centroid,
         )
 
-        # [5] Embedding diversity window (2 мин): cosine > 0.92 → берём следующего кандидата
-        # Сначала вычищаем устаревшие записи старше EMB_DIVERSITY_WINDOW_S секунд
+        # [5a] E5 text diversity window (2 мин): cosine > 0.92 → берём следующего кандидата
         while prev_clip_embeddings and (seg_start - prev_clip_embeddings[0][0]) > EMB_DIVERSITY_WINDOW_S:
             prev_clip_embeddings.pop(0)
         clip_id = top_candidates[0] if top_candidates else None
@@ -760,6 +762,20 @@ def select_clips_for_video(
                     if float(clip_embeddings[idx] @ prev_vec) > 0.92 and len(top_candidates) > 1:
                         clip_id = top_candidates[1]
                         print(f"  ⚠ Emb-diversity → {clip_id}", flush=True)
+                        break
+
+        # [5b] CLIP visual diversity window (2 мин): cosine > 0.88 → визуально слишком похожи
+        while prev_visual_embeddings and (seg_start - prev_visual_embeddings[0][0]) > EMB_DIVERSITY_WINDOW_S:
+            prev_visual_embeddings.pop(0)
+        if clip_id and prev_visual_embeddings and visual_embeddings is not None:
+            vis_idx = vis_emb_index.get(clip_id)
+            if vis_idx is not None:
+                for _ts, prev_vis_vec in prev_visual_embeddings:
+                    if float(visual_embeddings[vis_idx] @ prev_vis_vec) > VIS_DIVERSITY_THRESHOLD:
+                        alts = [c for c in top_candidates if c != clip_id]
+                        if alts:
+                            clip_id = alts[0]
+                            print(f"  ⚠ Vis-diversity → {clip_id}", flush=True)
                         break
 
         # [6] pHash window (5 мин): визуально идентичные кадры → берём следующего кандидата
@@ -777,11 +793,14 @@ def select_clips_for_video(
                             print(f"  ⚠ pHash-duplicate → {clip_id}", flush=True)
                         break
 
-        # Обновить окна: embedding window (2 мин) + pHash window (5 мин)
+        # Обновить окна: E5 text (2 мин) + CLIP visual (2 мин) + pHash (5 мин)
         if clip_id:
             idx = emb_index.get(clip_id)
             if idx is not None:
                 prev_clip_embeddings.append((seg_start, clip_embeddings[idx].copy()))
+            vis_idx = vis_emb_index.get(clip_id)
+            if vis_idx is not None and visual_embeddings is not None:
+                prev_visual_embeddings.append((seg_start, visual_embeddings[vis_idx].copy()))
             if phash_map and clip_id in phash_map:
                 recent_phashes.append((seg_start, phash_map[clip_id]))
             video_used[clip_id] = video_used.get(clip_id, 0) + 1
