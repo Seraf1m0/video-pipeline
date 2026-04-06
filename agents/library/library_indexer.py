@@ -381,7 +381,9 @@ def load_library() -> dict:
 
 
 def save_library(lib: dict) -> None:
-    """Сохранить library.json атомарно с файловой блокировкой."""
+    """Сохранить library.json атомарно с файловой блокировкой.
+    Авто-бэкап каждые 500 проиндексированных клипов (хранить 3 последних).
+    """
     with _get_lock():
         lib["indexed_at"] = datetime.now(timezone.utc).isoformat()
         lib.setdefault("photos", {})
@@ -390,6 +392,18 @@ def save_library(lib: dict) -> None:
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(lib, f, ensure_ascii=False, indent=2)
         tmp.replace(_LIB_JSON)
+
+        # Авто-бэкап каждые 500 проиндексированных клипов
+        indexed_count = sum(1 for c in lib["clips"].values() if c.get("indexed"))
+        if indexed_count > 0 and indexed_count % 500 == 0:
+            date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            bak = _LIB_JSON.with_name(f"library.json.bak.{date_str}")
+            shutil.copy2(_LIB_JSON, bak)
+            for old in sorted(_LIB_JSON.parent.glob("library.json.bak.*"))[:-3]:
+                try:
+                    old.unlink()
+                except Exception:
+                    pass
 
 
 def next_clip_id(lib: dict) -> str:

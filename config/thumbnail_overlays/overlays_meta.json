@@ -1,0 +1,156 @@
+{
+  "_comment": "Metadata for thumbnail overlays. Used by meta_agent to auto-select overlays. 'tags' are search keywords in EN/RU.",
+
+  "голубь.png": {
+    "label": "Голубь белый",
+    "tags": ["dove", "bird", "peace", "holy spirit", "pigeon", "голубь", "птица", "мир", "дух святой", "белая птица"]
+  },
+  "dove_white.png": {
+    "label": "Голубь (силуэт)",
+    "tags": ["dove", "bird", "peace", "holy spirit", "голубь", "птица", "мир", "дух святой"]
+  },
+  "Крест.png": {
+    "label": "Крест (фото)",
+    "tags": ["cross", "christian", "religion", "крест", "христианство", "религия", "christian cross"]
+  },
+  "крест 1.png": {
+    "label": "Крест 1",
+    "tags": ["cross", "christian", "religion", "крест", "христианство"]
+  },
+  "gold_cross.png": {
+    "label": "Золотой крест",
+    "tags": ["cross", "gold", "christian", "religion", "крест", "золотой крест", "золото", "христианство"]
+  },
+  "orthodox_cross.png": {
+    "label": "Православный крест",
+    "tags": ["orthodox cross", "cross", "religion", "православный крест", "православие", "крест", "христианство"]
+  },
+  "cross_with_rays.png": {
+    "label": "Крест со светом",
+    "tags": ["cross", "light", "rays", "divine", "крест", "свет", "лучи", "божественный", "сияние"]
+  },
+  "Просьба.png": {
+    "label": "Молящийся человек",
+    "tags": ["prayer", "person", "worship", "kneeling", "молитва", "молящийся", "человек", "поклонение", "просьба"]
+  },
+  "молящие_руки.png": {
+    "label": "Молящиеся руки",
+    "tags": ["praying hands", "hands", "prayer", "worship", "молящиеся руки", "руки", "молитва", "молиться"]
+  },
+  "поднятые руки.png": {
+    "label": "Поднятые руки",
+    "tags": ["raised hands", "hands", "worship", "praise", "поднятые руки", "руки вверх", "хвала", "поклонение"]
+  },
+  "стрелочка.png": {
+    "label": "Стрелка (пользовательская)",
+    "tags": ["arrow", "direction", "стрелка", "направление"]
+  },
+  "arrow_right.png": {
+    "label": "Стрелка вправо",
+    "tags": ["arrow", "right", "direction", "pointer", "стрелка", "вправо", "направление"]
+  },
+  "halo_gold.png": {
+    "label": "Золотой нимб",
+    "tags": ["halo", "gold", "holy", "saint", "нимб", "ореол", "золотой", "святой"]
+  },
+  "light_rays.png": {
+    "label": "Лучи света",
+    "tags": ["light rays", "rays", "sun", "divine", "light", "лучи", "свет", "солнце", "божественный свет", "сияние"]
+  },
+  "lens_flare.png": {
+    "label": "Световая вспышка",
+    "tags": ["lens flare", "light", "flash", "glow", "световая вспышка", "блик", "свет", "сияние"]
+  },
+  "church_silhouette.png": {
+    "label": "Силуэт церкви",
+    "tags": ["church", "building", "religion", "silhouette", "церковь", "храм", "здание", "силуэт"]
+  },
+  "candle.png": {
+    "label": "Свеча",
+    "tags": ["candle", "flame", "light", "prayer", "свеча", "огонь", "пламя", "молитва", "свет"]
+  },
+  "rosary.png": {
+    "label": "Чётки / Розарий",
+    "tags": ["rosary", "beads", "prayer", "catholic", "чётки", "розарий", "бусы", "молитва", "католицизм"]
+  },
+  "star_of_bethlehem.png": {
+    "label": "Вифлеемская звезда",
+    "tags": ["star of bethlehem", "star", "christmas", "birth of christ", "звезда", "вифлеем", "рождество", "звезда востока"]
+  },
+  "star_of_david.png": {
+    "label": "Звезда Давида",
+    "tags": ["star of david", "judaism", "jewish", "hexagram", "звезда давида", "иудаизм", "еврейский", "шестиконечная звезда"]
+  },
+  "crescent_star.png": {
+    "label": "Полумесяц со звездой",
+    "tags": ["crescent", "moon", "star", "islam", "muslim", "полумесяц", "луна", "звезда", "ислам", "мусульманство"]
+  },
+  "eye_of_providence.png": {
+    "label": "Всевидящее Oko",
+    "tags": ["eye of providence", "triangle", "masonic", "god", "всевидящее oko", "треугольник", "глаз", "бог", "провидение"]
+  },
+  "alpha_omega.png": {
+    "label": "Альфа и Омега",
+    "tags": ["alpha", "omega", "god", "christian", "beginning end", "альфа", "омега", "бог", "начало конец", "христианство"]
+  },
+  "ichthys_fish.png": {
+    "label": "Рыба Иисуса (Ихтус)",
+    "tags": ["ichthys", "fish", "christian", "symbol", "рыба", "ихтус", "христианство", "символ"]
+  },
+  "lotus_flower.png": {
+    "label": "Цветок лотоса",
+    "tags": ["lotus", "flower", "spiritual", "buddhism", "лотос", "цветок", "духовность", "буддизм"]
+  },
+  "mountains.png": {
+    "label": "Горы (силуэт)",
+    "tags": ["mountains", "landscape", "nature", "горы", "пейзаж", "природа", "вершины"]
+  },
+  "heart_red.png": {
+    "label": "Красное сердце",
+    "tags": ["heart", "love", "red", "сердце", "любовь", "красное сердце", "красный"]
+  },
+  "heart_white.png": {
+    "label": "Белое сердце",
+    "tags": ["heart", "love", "white", "pure", "сердце", "любовь", "белое сердце", "чистота"]
+  },
+  "crown_gold.png": {
+    "label": "Золотая корона",
+    "tags": ["crown", "gold", "king", "royal", "корона", "золотая корона", "царь", "король"]
+  },
+  "gold_banner.png": {
+    "label": "Золотая лента",
+    "tags": ["banner", "ribbon", "gold", "label", "лента", "баннер", "золотая лента", "заголовок"]
+  },
+  "sparkles.png": {
+    "label": "Блёстки / Искры",
+    "tags": ["sparkles", "stars", "glitter", "magic", "блёстки", "искры", "звёздочки", "магия", "сияние"]
+  },
+  "star_burst.png": {
+    "label": "Вспышка-звезда",
+    "tags": ["star burst", "explosion", "shine", "вспышка", "звезда", "сияние", "взрыв"]
+  },
+  "holy_flame.png": {
+    "label": "Священное пламя",
+    "tags": ["flame", "fire", "holy spirit", "spirit", "пламя", "огонь", "святой дух", "дух"]
+  },
+  "holy_mist.png": {
+    "label": "Священный туман",
+    "tags": ["mist", "fog", "holy", "atmosphere", "туман", "дымка", "священный", "атмосфера"]
+  },
+  "warning_triangle.png": {
+    "label": "Предупреждение",
+    "tags": ["warning", "alert", "danger", "triangle", "предупреждение", "опасность", "треугольник"]
+  },
+  "question_mark.png": {
+    "label": "Вопросительный знак",
+    "tags": ["question", "mystery", "unknown", "вопрос", "тайна", "вопросительный знак", "загадка"]
+  },
+  "checkmark.png": {
+    "label": "Галочка / Успех",
+    "tags": ["checkmark", "success", "done", "correct", "галочка", "успех", "готово", "правильно"]
+  },
+  "label_new.png": {
+    "label": "Лейбл NEW",
+    "tags": ["new", "label", "badge", "новый", "лейбл", "значок"]
+  }
+}

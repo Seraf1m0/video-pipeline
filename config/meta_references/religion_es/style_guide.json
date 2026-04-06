@@ -1,0 +1,17 @@
+{
+  "channel": "channel_003_religion_es",
+  "niche": "christian_religion",
+  "language": "es",
+  "thumbnail_style": {
+    "mood": "warm, spiritual, hopeful, divine light",
+    "colors": "gold, warm white, deep blue",
+    "subjects": "Jesus Christ, praying hands, light rays, biblical scenes, candles, cross",
+    "text_style": "bold white text, high contrast, 2-5 words max",
+    "avoid": "dark/horror aesthetics, complex compositions, small text"
+  },
+  "content_style": {
+    "tone": "intimate, God speaking directly to viewer",
+    "hook": "personal revelation, direct address, spiritual urgency",
+    "avoid": "generic phrases, clickbait sensationalism"
+  }
+}

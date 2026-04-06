@@ -1,0 +1,114 @@
+{
+  "collected_at": "2026-04-05",
+  "channel": "channel_003_religion_es",
+  "niche": "christian_religion_es",
+  "note": "English-language competitors analyzed for title/hook patterns. Our channel is Spanish.",
+
+  "channels": [
+    {
+      "handle": "@godtellsyoutolove",
+      "subscribers": "~unknown",
+      "total_videos": 60,
+      "performance": "BEST — top competitor, 2000–6800 views/video",
+      "title_formula": "✝️God Says: [Full sentence conveying mystery/urgency/personal revelation] | God's Message Today",
+      "title_structure": {
+        "prefix": "✝️God Says:",
+        "body": "Full natural-language sentence (not caps-lock), often 6–10 words",
+        "suffix": "| God's Message Today",
+        "tone": "personal, intimate, 'meant for you', mystery + emotional payoff"
+      },
+      "top_videos": [
+        {"title": "You Were Meant to Hear This Today", "views": 6800},
+        {"title": "The Decision You Make After This Video", "views": 4400},
+        {"title": "I Am Not Done With You Yet", "views": 3900},
+        {"title": "Something Beautiful Is Coming Your Way", "views": 3200},
+        {"title": "Your Breakthrough Is Closer Than You Think", "views": 2800},
+        {"title": "I Have Been Watching Over You", "views": 2600},
+        {"title": "Do Not Give Up — I Have a Plan", "views": 2400}
+      ],
+      "winning_hooks": [
+        "destiny/fate language ('meant to hear', 'waiting for you')",
+        "divine persistence ('not done with you yet', 'watching over you')",
+        "imminent breakthrough ('closer than you think', 'coming your way')",
+        "decision/consequence framing ('after this video')"
+      ]
+    },
+    {
+      "handle": "@CallofGodOfficial",
+      "subscribers": "~12000",
+      "total_videos": 88,
+      "performance": "MEDIUM — 1000–3600 views/video",
+      "title_formula": "God Says: \"[CAPS ACTION/REVELATION]\" | God | Gods Message Now Today | God's Message Now For You",
+      "title_structure": {
+        "prefix": "God Says:",
+        "body": "SHORT CAPS phrase in quotes — 2–5 words, imperative or revelation",
+        "suffix": "| God | Gods Message Now Today | God's Message Now For You",
+        "tone": "urgent, commanding, direct imperative"
+      },
+      "top_videos": [
+        {"title": "I NEED YOU TO SEE THIS", "views": 3600},
+        {"title": "OPEN IT NOW", "views": 1900},
+        {"title": "I CHOSE YOU BEFORE YOU WERE BORN", "views": 1800},
+        {"title": "STOP RUNNING FROM ME", "views": 1700},
+        {"title": "I AM ABOUT TO CHANGE YOUR LIFE", "views": 1500},
+        {"title": "YOUR SEASON IS SHIFTING", "views": 1400}
+      ],
+      "winning_hooks": [
+        "caps urgency ('I NEED YOU TO SEE THIS', 'OPEN IT NOW')",
+        "divine election ('I CHOSE YOU BEFORE YOU WERE BORN')",
+        "imminent transformation ('I AM ABOUT TO CHANGE YOUR LIFE')",
+        "season shift language ('YOUR SEASON IS SHIFTING')"
+      ]
+    },
+    {
+      "handle": "@GodSaysNow.777",
+      "subscribers": "~unknown",
+      "total_videos": 52,
+      "performance": "LOW — 100–550 views/video (not a successful model)",
+      "title_formula": "GOD SAYS- \"[CAPS]\" or GOD SAY: [sentence]",
+      "note": "Grammatical errors (GOD SAY instead of GOD SAYS), less polished — avoid this style"
+    }
+  ],
+
+  "key_insights": {
+    "best_performing_formula": "God Says: [Personal revelation sentence] — intimate, destiny-focused, 6-10 words",
+    "avoid": "ALL-CAPS shouting without warmth, grammatical errors, generic phrases like 'God bless you'",
+    "spanish_adaptation": {
+      "prefix_options": [
+        "Dios Dice:",
+        "✝️ Dios Dice:",
+        "Dios Te Dice:",
+        "DIOS DICE:"
+      ],
+      "suffix_options": [
+        "| Mensaje de Dios Hoy",
+        "| Dios Habla Contigo Hoy",
+        "| Palabra de Dios Para Ti",
+        "| El Mensaje de Dios Para Ti Hoy"
+      ]
+    },
+    "title_patterns_that_work": [
+      "[Subject pronoun] + [personal verb] + [you/your] — e.g. 'Estoy a punto de cambiar tu vida'",
+      "Destiny/calling — 'Fuiste elegido antes de nacer'",
+      "Divine persistence — 'No he terminado contigo aún'",
+      "Imminent breakthrough — 'Tu milagro está más cerca de lo que crees'",
+      "Urgency to watch — 'Necesitas escuchar esto hoy'"
+    ],
+    "thumbnail_text_patterns": [
+      "YO TE ELEGÍ (I Chose You)",
+      "NO TE RINDAS (Don't Give Up)",
+      "ALGO VIENE (Something's Coming)",
+      "TE ESCUCHO (I Hear You)",
+      "TU MOMENTO (Your Moment)",
+      "ESTÁ LLEGANDO (It's Coming)",
+      "AÚN NO TERMINA (Not Over Yet)"
+    ],
+    "description_best_practices": [
+      "First sentence hooks immediately — no intro fluff",
+      "Use 'tú' (direct address to viewer) throughout",
+      "Reference specific struggle viewer might have",
+      "Include call to action: subscribe, share with someone who needs this",
+      "Add relevant Spanish hashtags at end"
+    ]
+  }
+}

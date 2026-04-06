@@ -32,22 +32,28 @@ from qwen_vl_utils import process_vision_info
 
 # ── Константы ──────────────────────────────────────────────────────────────
 
-FRAME_SIZE   = 336
-MAX_NEW_TOK  = 80    # увеличено для religion (детальные описания Jesus Christ, biblical scenes)
-BATCH_TOK    = 160
-BATCH4_TOK   = 320
+FRAME_SIZE   = 274
+MAX_NEW_TOK  = 50    # 10-12 words per clip ~30 tokens + buffer
+BATCH_TOK    = 110
+BATCH4_TOK   = 210
 BLACK_THRESH = 5.0   # mean порог (космос имеет mean 3-5 но max 255)
 BLACK_MAX    = 30    # если max пикселя > этого — точно не чёрный экран
 FROZEN_DIFF  = 0.5   # нижний порог для тёмного космоса (медленный зум diff ~1.0-1.6)
-_MAX_PIXELS  = FRAME_SIZE * FRAME_SIZE  # ~113k px
+_MAX_PIXELS  = FRAME_SIZE * FRAME_SIZE  # ~75k px
 
 
 PROMPTS = {
     "cosmos": (
-        "Identify the main subject shown. "
-        "Describe in max 50 characters. "
-        "Name exact objects: telescope, "
-        "planet, galaxy, spacecraft."
+        "Space science documentary. For each clip write EXACTLY 10-12 words as a flowing phrase (no commas, no period): color + subject + motion + mood. "
+        "Format: Clip1: <phrase> | Clip2: <phrase> | ... "
+        "MUST include: (1) specific color — cold blue / golden / crimson / pale white / fiery orange / electric violet. "
+        "(2) motion — rotating / drifting / zooming / floating / erupting / panning / launching. "
+        "(3) cinematic mood — vast lonely / explosive dramatic / serene ethereal / tense urgent / awe-inspiring. "
+        "Good: 'vast spiral galaxy cold blue slow rotating golden core infinite' | "
+        "'astronaut floating weightless Earth below black void awe-inspiring' | "
+        "'rocket fiery orange smoke explosive dramatic night launch rising' | "
+        "'scientist pale blue screen glow cold lab focused tense urgent' "
+        "Never repeat descriptions."
     ),
     "religion": (
         "Christian religion footage. "
@@ -65,8 +71,8 @@ _active_niche = "cosmos"  # переопределяется через --niche
 
 def make_batch_prompt(n: int) -> str:
     prompt = PROMPTS.get(_active_niche, PROMPTS["cosmos"])
-    lines  = "\n".join(f"Clip{i}: description" for i in range(1, n + 1))
-    return f"{prompt}\n\nAnswer for each clip:\n{lines}"
+    lines  = "\n".join(f"Clip{i}:" for i in range(1, n + 1))
+    return f"{prompt}\n\n{lines}"
 
 # ── Глобальные переменные (заполняются при старте) ─────────────────────────
 
@@ -213,13 +219,23 @@ def analyze_batch_2(frames1: list[Image.Image], frames2: list[Image.Image]) -> t
 
 
 def analyze_batch_4(frames_list: list[list[Image.Image]]) -> list[str]:
-    """N клипов за 1 inference (до 8 кадров)."""
+    """N клипов за 1 inference (до 8 кадров).
+    Структура: инструкция → картинки с метками → шаблон ответа.
+    """
     n = len(frames_list)
+    prompt = PROMPTS.get(_active_niche, PROMPTS["cosmos"])
+
     content = []
+    # 1. Инструкция идёт ПЕРВОЙ
+    content.append({"type": "text", "text": prompt})
+    # 2. Картинки с метками
     for i, frames in enumerate(frames_list, 1):
-        content.append({"type": "text", "text": f"Clip {i}:"})
+        content.append({"type": "text", "text": f"\nClip {i}:"})
         content.extend(_frames_to_content(frames))
-    content.append({"type": "text", "text": make_batch_prompt(n)})
+    # 3. Шаблон ответа — явно указываем что хотим
+    answer_lines = "\n".join(f"Clip{i}:" for i in range(1, n + 1))
+    content.append({"type": "text", "text": f"\nNow write a detailed 8-12 word description for each clip:\n{answer_lines}"})
+
     messages = [{"role": "user", "content": content}]
     tok = MAX_NEW_TOK * n + 10
     result = _infer(messages, tok)
@@ -453,6 +469,75 @@ def create_app(port: int) -> FastAPI:
             for i in range(len(paths))
         }
 
+    class ThumbnailRequest(BaseModel):
+        image_b64: str   # base64-encoded PNG/JPEG/WebP
+
+    THUMBNAIL_PROMPT = """This is a YouTube thumbnail image. I need to place large bold text on it without covering the person's face.
+
+Look at the image and answer: on which side of the image should I place the text to avoid covering the person?
+
+Options:
+- RIGHT  — person is on the LEFT side, right side has space
+- LEFT   — person is on the RIGHT side, left side has space
+- BOTTOM — person is large/centered, only bottom area has space
+
+Reply with ONE word only: RIGHT, LEFT, or BOTTOM"""
+
+    def _parse_thumbnail_response(raw: str) -> dict:
+        """Parse one-word response → layout + text_zone."""
+        answer = raw.strip().upper().split()[0] if raw.strip() else "BOTTOM"
+        # Clean up any punctuation
+        answer = "".join(c for c in answer if c.isalpha())
+
+        if answer == "RIGHT":
+            layout    = "right_col"
+            text_zone = {"x": 0.54, "y": 0.06, "w": 0.42, "h": 0.88}
+            subj_side = "left"
+        elif answer == "LEFT":
+            layout    = "left_col"
+            text_zone = {"x": 0.04, "y": 0.06, "w": 0.42, "h": 0.88}
+            subj_side = "right"
+        else:
+            layout    = "standard"
+            text_zone = {"x": 0.08, "y": 0.60, "w": 0.84, "h": 0.36}
+            subj_side = "center"
+
+        return {
+            "layout":      layout,
+            "subject_side": subj_side,
+            "text_zone":   text_zone,
+            "answer":      answer,
+        }
+
+    @app.post("/analyze_thumbnail")
+    async def analyze_thumbnail(req: ThumbnailRequest):
+        import base64, io
+        try:
+            img_bytes = base64.b64decode(req.image_b64)
+            img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+            img.thumbnail((672, 672), Image.LANCZOS)
+        except Exception as e:
+            raise HTTPException(400, f"Bad image: {e}")
+
+        t = time.time()
+        messages = [{"role": "user", "content": [
+            {"type": "image", "image": img},
+            {"type": "text",  "text": THUMBNAIL_PROMPT},
+        ]}]
+        raw = _infer(messages, max_new_tokens=50)
+        elapsed = time.time() - t
+
+        placement = _parse_thumbnail_response(raw)
+        result = {
+            "layout":       placement["layout"],
+            "subject_side": placement["subject_side"],
+            "text_zone":    placement["text_zone"],
+            "bg_clean":     placement["layout"] != "standard",
+            "elapsed_s":    round(elapsed, 2),
+            "raw":          raw,
+        }
+        return result
+
     @app.get("/health")
     async def health():
         avg = _stats["total_time"] / _stats["clips"] if _stats["clips"] else 0
@@ -461,7 +546,7 @@ def create_app(port: int) -> FastAPI:
             "model":          "Qwen2.5-VL-7B-Instruct",
             "model_loaded":   _model is not None,
             "batch_size":     4,
-            "frame_size":     "336px",
+            "frame_size":     f"{FRAME_SIZE}px",
             "max_new_tokens": MAX_NEW_TOK,
             "port":           port,
             "clips_done":     _stats["clips"],

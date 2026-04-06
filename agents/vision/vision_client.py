@@ -6,9 +6,12 @@ Vision Client — round-robin по 2 серверам Qwen2.5-VL-7B (порты 
   py -X utf8 agents/vision/vision_server.py --port 8766
 """
 
+import base64
+import io
 import itertools
 import threading
 import requests
+from PIL import Image
 
 VISION_SERVERS = [
     "http://localhost:8765",
@@ -94,4 +97,48 @@ def analyze_batch(
         return r.json()
     except Exception as e:
         print(f"  ❌ Batch ошибка: {e}", flush=True)
+        return None
+
+
+def analyze_thumbnail_placement(img: "Image.Image", server_url: str | None = None) -> dict | None:
+    """
+    Анализировать изображение и получить рекомендацию по размещению текста.
+
+    Возвращает dict вида:
+      {
+        "layout":       "right_col" | "left_col" | "split" | "standard",
+        "subject_side": "left" | "right" | "center",
+        "text_zone":    {"x": 0.55, "y": 0.08, "w": 0.40, "h": 0.84},
+        "bg_clean":     True,
+        "elapsed_s":    1.2,
+      }
+    или None при ошибке (caller должен использовать fallback).
+    """
+    if server_url is None:
+        server_url = get_next_server()
+
+    # Encode image to base64
+    buf = io.BytesIO()
+    img.convert("RGB").save(buf, format="JPEG", quality=90)
+    b64 = base64.b64encode(buf.getvalue()).decode()
+
+    try:
+        r = requests.post(
+            f"{server_url}/analyze_thumbnail",
+            json={"image_b64": b64},
+            timeout=30,
+        )
+        r.raise_for_status()
+        result = r.json()
+        # Validate required fields
+        if "layout" not in result or "text_zone" not in result:
+            print(f"  [THUMB] Qwen response missing fields: {result}", flush=True)
+            return None
+        tz = result["text_zone"]
+        if not all(k in tz for k in ("x", "y", "w", "h")):
+            print(f"  [THUMB] Bad text_zone: {tz}", flush=True)
+            return None
+        return result
+    except Exception as e:
+        print(f"  [THUMB] analyze_thumbnail_placement error: {e}", flush=True)
         return None

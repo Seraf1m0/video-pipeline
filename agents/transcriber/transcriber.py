@@ -889,6 +889,8 @@ def run():
                         help="Override output session name; skips file move (file stays in place)")
     parser.add_argument("--channel", default=None, metavar="CHANNEL_ID",
                         help="ID канала (channel_001_cosmos_de / channel_002_cosmos_fr)")
+    parser.add_argument("--no-meta", action="store_true",
+                        help="Не запускать meta_generator после транскрипции")
     args = parser.parse_args()
 
     # ── Определяем корень канала ─────────────────────────────────────────
@@ -977,6 +979,8 @@ def run():
         print(f"   {srt_path.name}")
         print(f"   {vtt_path.name}")
         print(f"   {json_path.name}")
+        if not getattr(args, "no_meta", False):
+            _spawn_meta_generator(channel_id, session)
         return
 
     # ── Определяем устройство ────────────────────────────────────────────
@@ -1008,6 +1012,31 @@ def run():
     print(f"   {srt_path.name}")
     print(f"   {vtt_path.name}")
     print(f"   {json_path.name}")
+    if not getattr(args, "no_meta", False):
+        _spawn_meta_generator(channel_id, session)
+
+
+def _spawn_meta_generator(channel_id: str, session: str) -> None:
+    """Запустить meta_generator.py в фоне после транскрипции (только для ES канала пока)."""
+    if not channel_id:
+        return
+    # Пока только для religion_es; расширим позже
+    supported = {"channel_003_religion_es"}
+    if channel_id not in supported:
+        return
+    import subprocess as _sp
+    _meta_script = Path(__file__).parent.parent / "meta_agent" / "meta_generator.py"
+    if not _meta_script.exists():
+        return
+    try:
+        _sp.Popen(
+            [sys.executable, str(_meta_script), "--channel", channel_id, "--session", session],
+            stdout=_sp.DEVNULL, stderr=_sp.DEVNULL,
+            creationflags=_sp.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+        )
+        print(f"[Meta] Запущен meta_generator в фоне → {session}")
+    except Exception as e:
+        print(f"[Meta] Не удалось запустить meta_generator: {e}")
 
 
 if __name__ == "__main__":
