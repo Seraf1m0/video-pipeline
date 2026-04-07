@@ -32,9 +32,9 @@ from paths import (
 )
 
 _EMBED_SERVER    = "http://127.0.0.1:8765"
-VISUAL_WEIGHT    = 0.25   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score (75/25)
-# ViT-L-14 (768-dim) значительно лучше B/32 (512-dim): rocket→0.69, scientist→0.67.
-# Повышено с 0.10 → 0.25 после апгрейда модели.
+VISUAL_WEIGHT    = 0.15   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score (85/15)
+# ViT-L-14 хорошо работает для nebula/galaxy (0.29 vs 0.26), слабо для rocket.
+# 0.15 — компромисс: CLIP улучшает nebula-категории, но не перебивает E5 сигнал.
 
 # ─── Embedding — сервер или локальная модель ──────────────────────────
 
