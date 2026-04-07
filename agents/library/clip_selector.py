@@ -32,9 +32,9 @@ from paths import (
 )
 
 _EMBED_SERVER    = "http://127.0.0.1:8765"
-VISUAL_WEIGHT    = 0.10   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score (90/10)
-# CLIP добавляет шум для cosmos-клипов (все тёмные, похожие визуально).
-# Снижено с 0.40 → 0.10: E5 текст теперь 90% сигнала, CLIP только tie-breaker.
+VISUAL_WEIGHT    = 0.25   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score (75/25)
+# ViT-L-14 (768-dim) значительно лучше B/32 (512-dim): rocket→0.69, scientist→0.67.
+# Повышено с 0.10 → 0.25 после апгрейда модели.
 
 # ─── Embedding — сервер или локальная модель ──────────────────────────
 

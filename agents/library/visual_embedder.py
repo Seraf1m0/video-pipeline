@@ -31,10 +31,10 @@ if str(_utils_dir) not in sys.path:
     sys.path.insert(0, str(_utils_dir))
 from paths import get_library_json, get_clips_dir, get_library_dir
 
-CLIP_MODEL       = "clip-ViT-B-32"   # 512-dim, CLIP image encoder (совместим с multilingual-v1 для текста)
+CLIP_MODEL       = "clip-ViT-L-14"   # 768-dim, значительно лучше B/32 для text-image matching
 N_FRAMES         = 2       # кадров с клипа: 10% и 90% длительности
 BATCH_SIZE       = 64      # клипов за чекпоинт
-ENCODE_BATCH     = 64      # изображений за один CLIP encode вызов
+ENCODE_BATCH     = 32      # изображений за один CLIP encode вызов (L/14 тяжелее B/32)
 FFMPEG_WORKERS   = 8       # параллельных ffmpeg процессов
 VIS_EMB_FILENAME = "visual_embeddings.npz"
 
