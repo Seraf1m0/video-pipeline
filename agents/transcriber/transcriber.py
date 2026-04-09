@@ -23,6 +23,7 @@ from datetime import datetime
 from pathlib import Path
 
 from faster_whisper import WhisperModel
+from agents.utils.progress import ProgressBar
 
 # ── Channel manager (язык из активного канала) ────────────────────────────────
 try:
@@ -991,18 +992,28 @@ def run():
     else:
         print(f"[Whisper] CPU (CUDA недоступна)")
         compute = "int8"
-    print(f"[Whisper] Загружаю модель '{model_size}' ({compute}) на {device.upper()}...")
-
+    
+    start_model = ProgressBar.task(f"Загрузка модели '{model_size}' ({compute}) на {device.upper()}")
     model = WhisperModel(model_size, device=device, compute_type=compute)
-    print(f"[Whisper] Модель загружена.")
+    model_time = ProgressBar.done(start_model, "Модель загружена")
 
+    start_whisper = ProgressBar.task("Транскрипция аудио через Whisper")
     whisper_segs, duration, all_words = transcribe(model, audio_path, use_gpu=(device == "cuda"), channel_id=channel_id)
+    whisper_time = ProgressBar.done(start_whisper, f"Транскрипция завершена: {len(whisper_segs)} сегментов, {len(all_words)} слов")
+    
+    start_build = ProgressBar.task("Нарезка на блоки")
     segments = build_segments(whisper_segs, mode, channel_id=channel_id)
+    build_time = ProgressBar.done(start_build, f"Готово: {len(segments)} блоков")
+    
+    start_verify = ProgressBar.task("FFmpeg верификация")
     segments, ffmpeg_meta = verify_with_ffmpeg(audio_path, segments)
+    verify_time = ProgressBar.done(start_verify, f"Проверено: {ffmpeg_meta.get('coverage', 0):.1f}s покрыто")
 
+    start_save = ProgressBar.task("Сохранение результатов")
     json_path = save(session, segments, ffmpeg_meta, words=all_words, channel_id=channel_id)
     srt_path  = save_srt(session, segments, channel_id=channel_id)
     vtt_path  = save_vtt(session, segments, channel_id=channel_id)
+    save_time = ProgressBar.done(start_save, "Результаты сохранены")
 
     # Сохраняем в кеш для следующего раза
     _save_cache(audio_path, mode, {**ffmpeg_meta, "segments": segments, "words": all_words})
