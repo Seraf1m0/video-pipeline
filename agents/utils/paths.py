@@ -33,6 +33,7 @@ NICHE_MAP = {
     "channel_001_cosmos_de":   "cosmos",
     "channel_002_cosmos_fr":   "cosmos",
     "channel_003_religion_es": "religion",
+    "channel_004_cosmos_fr":   "cosmos",
 }
 
 # ── Привязка каналов к языкам ─────────────────────────────────────────────────
@@ -41,6 +42,7 @@ LANG_MAP = {
     "channel_001_cosmos_de":   "de",
     "channel_002_cosmos_fr":   "fr",
     "channel_003_religion_es": "es",
+    "channel_004_cosmos_fr":   "fr2",
 }
 
 
@@ -143,6 +145,7 @@ def get_last_session(channel_id: str) -> "str | None":
     sessions = sorted(
         [d for d in channel_dir.iterdir()
          if d.is_dir() and d.name.startswith("Video_")],
+        key=lambda d: d.stat().st_mtime,
         reverse=True,
     )
     return sessions[0].name if sessions else None

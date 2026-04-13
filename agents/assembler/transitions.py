@@ -42,22 +42,10 @@ if hasattr(sys.stdout, "reconfigure"):
 
 # ── Утилиты ──────────────────────────────────────────────────────────────────
 
-_DUR_CACHE: dict[str, float] = {}
-
-def get_audio_duration(path) -> float:
-    key = str(path)
-    if key in _DUR_CACHE:
-        return _DUR_CACHE[key]
-    r = subprocess.run(
-        ["ffprobe", "-v", "quiet", "-print_format", "json",
-         "-show_format", key],
-        capture_output=True, text=True)
-    try:
-        val = float(json.loads(r.stdout)["format"]["duration"])
-    except Exception:
-        val = 0.0
-    _DUR_CACHE[key] = val
-    return val
+try:
+    from agents.utils.duration_cache import get_duration as get_audio_duration
+except ImportError:
+    from duration_cache import get_duration as get_audio_duration
 
 
 def get_video_duration(path) -> float:

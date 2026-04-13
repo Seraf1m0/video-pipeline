@@ -658,7 +658,7 @@ def prerender_cta(cta_path: Path, fps: float) -> dict | None:
     if not frames:
         return None
     return {
-        "frames_np": np.stack(frames, axis=0),  # [N, H_cta, W_cta, 4]
+        "frames_np": frames,  # list of [H_cta, W_cta, 4] uint8 (не стекаем — экономим память)
         "n": len(frames),
         "dur": len(frames) / cta_fps,
         "fps": cta_fps,
@@ -1253,7 +1253,7 @@ def run(
     reader_thread.start()
 
     # ── Writer thread: пишет в encoder независимо от GPU ──────────────────────
-    WRITE_Q_SIZE = 6
+    WRITE_Q_SIZE = 12  # увеличен: GPU не ждёт пока encoder запишет кадры
     write_q: queue.Queue = queue.Queue(maxsize=WRITE_Q_SIZE)
 
     def _writer():
@@ -1281,7 +1281,7 @@ def run(
 
         # Постоянный prefetch-поток: читает из read_q в prefetch_q.
         # Заменяет создание нового Thread на каждый кадр (~23k Thread объектов).
-        PREFETCH_Q_SIZE = 2
+        PREFETCH_Q_SIZE = 4  # увеличен: меньше простоев GPU между кадрами
         prefetch_q: queue.Queue = queue.Queue(maxsize=PREFETCH_Q_SIZE)
 
         def _prefetcher():

@@ -57,11 +57,11 @@ from paths import get_library_dir, get_clips_dir, get_library_json, get_niche  #
 
 # ── Константы ──────────────────────────────────────────────────────────────────
 
-FRAME_SIZE      = 274        # px для Qwen (CLIP сам ресайзит)
-FRAME_POSITIONS = [0.5, 4.5] # 2 кадра на клип: начало + конец
+FRAME_SIZE      = 336        # px для Qwen (CLIP сам ресайзит)
+FRAME_POSITIONS = [0.5, 2.5, 4.5] # 3 кадра: начало, середина, конец
 PHASH_SIZE      = 32         # размер для DCT pHash
 CLIP_MODEL_NAME = "clip-ViT-B-32"
-BATCH_SIZE      = 4          # клипов за 1 Qwen inference
+BATCH_SIZE      = 1          # 1 клип за inference — точность важнее скорости
 FFMPEG_WORKERS  = 8          # параллельных ffmpeg для scan-фазы
 SAVE_EVERY      = 100        # чекпоинт каждые N клипов
 BLACK_THRESH    = 5.0        # mean-порог (ниже = чёрный экран)

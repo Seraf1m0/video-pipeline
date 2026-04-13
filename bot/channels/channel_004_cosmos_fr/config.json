@@ -1,0 +1,29 @@
+{
+  "id": "channel_004_cosmos_fr",
+  "name": "Cosmos FR (no intro)",
+  "data_subdir": "channels/fr2",
+  "emoji": "\ud83c\uddeb\ud83c\uddf7",
+  "language": "fr",
+  "niche": "cosmos",
+  "tg_channel": "",
+  "transcriber": {
+    "language": "fr",
+    "task": "transcribe"
+  },
+  "prompt_generator": {
+    "language": "en",
+    "source_language": "fr",
+    "system_context": "Scientific space documentary in French",
+    "photo_master": "photo_master_prompt_fr.txt",
+    "video_master": "master_video_grok_fr.txt"
+  },
+  "assembler": {
+    "subtitle_language": "fr",
+    "music_dir": "",
+    "intro_enabled": false
+  },
+  "validator": {
+    "niche": "cosmos",
+    "stock_query_language": "en"
+  }
+}

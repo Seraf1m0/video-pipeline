@@ -17,10 +17,186 @@ import numpy as np
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+# ── BLIP ITM reranker (lazy-loaded, batch, ~10-20x быстрее VQA) ──────────────
+_blip_processor = None
+_blip_model     = None
+BLIP_MODEL_ID   = "Salesforce/blip-itm-base-coco"   # ITM = одиночный forward pass, батчевый
+BLIP_RERANK_S   = 300.0   # применять BLIP только для первых N секунд видео
+BLIP_TOP_N      = 20      # сколько кандидатов подавать на BLIP
+BLIP_BATCH_SIZE = 8       # изображений за один GPU forward pass
+BLIP_CLIP_W     = 0.6     # вес CLIP-score в финальном скоре
+BLIP_ITM_W      = 0.4     # вес BLIP-ITM score в финальном скоре
+
+# ── BLIP ITM score cache (персистентный на диске) ────────────────────────────
+# Ключ: (clip_id, query_text[:77]) → ITM score [0..1]
+# Файл: {library_dir}/_blip_itm_cache.json
+_blip_cache: dict[str, float] = {}
+_blip_cache_path: Path | None = None
+_blip_cache_dirty = False
+
+
+def _blip_cache_key(clip_id: str, query: str) -> str:
+    return f"{clip_id}|{query.strip()[:77]}"
+
+
+def _load_blip_cache(library_dir: Path) -> None:
+    global _blip_cache, _blip_cache_path, _blip_cache_dirty
+    _blip_cache_path = library_dir / "_blip_itm_cache.json"
+    if _blip_cache_path.exists():
+        try:
+            _blip_cache = json.loads(_blip_cache_path.read_text(encoding="utf-8"))
+            print(f"📦 BLIP cache загружен: {len(_blip_cache)} записей", flush=True)
+        except Exception:
+            _blip_cache = {}
+    _blip_cache_dirty = False
+
+
+def _save_blip_cache() -> None:
+    global _blip_cache_dirty
+    if _blip_cache_path and _blip_cache_dirty:
+        try:
+            _blip_cache_path.write_text(
+                json.dumps(_blip_cache), encoding="utf-8"
+            )
+        except Exception:
+            pass
+        _blip_cache_dirty = False
+
+
+def _get_blip():
+    global _blip_processor, _blip_model
+    if _blip_model is None:
+        from transformers import BlipProcessor, BlipForImageTextRetrieval
+        import torch
+        _blip_processor = BlipProcessor.from_pretrained(BLIP_MODEL_ID)
+        _blip_model     = BlipForImageTextRetrieval.from_pretrained(BLIP_MODEL_ID)
+        _blip_model.eval()
+        if torch.cuda.is_available():
+            _blip_model = _blip_model.cuda()
+        print(f"✅ BLIP ITM загружен: {BLIP_MODEL_ID}", flush=True)
+    return _blip_processor, _blip_model
+
+
+def _blip_rerank(candidates: list, visual_query: str,
+                 seg_start: float, thumb_dir: "Path") -> list:
+    """
+    BLIP ITM reranking для первых BLIP_RERANK_S секунд видео.
+
+    candidates   — список clip_id, отсортированный по CLIP-score (топ BLIP_TOP_N)
+    visual_query — текст запроса (из visual_query_generator)
+    seg_start    — время начала сегмента в секундах
+    thumb_dir    — путь к папке thumbnails/{clip_id}.jpg
+
+    Использует BlipForImageTextRetrieval (ITM-head):
+      - Батчевый forward pass (BLIP_BATCH_SIZE изображений за раз)
+      - Возвращает ITM-score [0..1] для каждого клипа
+      - Финальный score = BLIP_CLIP_W * clip_score + BLIP_ITM_W * itm_score
+      - Возвращает кандидатов пересортированных по финальному score
+    """
+    if seg_start >= BLIP_RERANK_S:
+        return candidates
+    if not thumb_dir.exists():
+        return candidates
+
+    try:
+        from PIL import Image
+        import torch
+        processor, model = _get_blip()
+        device = next(model.parameters()).device
+
+        # Загружаем thumbnails (пропускаем отсутствующие)
+        query_text = visual_query.strip()[:77]   # BLIP text limit
+        images, valid_ids, missing_ids = [], [], []
+        cached_scores: dict[str, float] = {}
+
+        for clip_id in candidates:
+            # Проверяем кэш
+            ckey = _blip_cache_key(clip_id, query_text)
+            if ckey in _blip_cache:
+                cached_scores[clip_id] = _blip_cache[ckey]
+                valid_ids.append(clip_id)
+                continue
+            jpg = thumb_dir / f"{clip_id}.jpg"
+            if jpg.exists():
+                try:
+                    images.append(Image.open(jpg).convert("RGB"))
+                    valid_ids.append(clip_id)
+                except Exception:
+                    missing_ids.append(clip_id)
+            else:
+                missing_ids.append(clip_id)
+
+        if not valid_ids:
+            return candidates
+
+        # Батчевый ITM forward pass (только для не-кэшированных)
+        itm_scores_map: dict[str, float] = dict(cached_scores)
+        uncached_ids = [vid for vid in valid_ids if vid not in cached_scores]
+
+        if images and uncached_ids:
+            itm_scores_raw: list[float] = []
+            for i in range(0, len(images), BLIP_BATCH_SIZE):
+                batch_imgs = images[i : i + BLIP_BATCH_SIZE]
+                inputs = processor(
+                    images=batch_imgs,
+                    text=[query_text] * len(batch_imgs),
+                    return_tensors="pt",
+                    padding=True,
+                    truncation=True,
+                ).to(device)
+                with torch.no_grad():
+                    out = model(**inputs, use_itm_head=True)
+                probs = out.itm_score.softmax(dim=-1)[:, 1].cpu().tolist()
+                itm_scores_raw.extend(probs)
+
+            # Сохраняем в кэш
+            global _blip_cache_dirty
+            for uid, score in zip(uncached_ids, itm_scores_raw):
+                itm_scores_map[uid] = score
+                _blip_cache[_blip_cache_key(uid, query_text)] = score
+                _blip_cache_dirty = True
+
+        cache_hits = len(cached_scores)
+        if cache_hits:
+            print(f"  📦 BLIP cache: {cache_hits}/{len(valid_ids)} hits", flush=True)
+
+        # CLIP-scores нормализуем в [0,1] относительно батча
+        # (позиция в топ-N как прокси: топ-1=1.0, топ-N=0.0)
+        n = len(valid_ids)
+        clip_rank_scores = {vid: (n - i) / n for i, vid in enumerate(valid_ids)}
+
+        # Финальный score = взвешенная сумма
+        combined = [
+            (vid, BLIP_CLIP_W * clip_rank_scores.get(vid, 0) + BLIP_ITM_W * itm_scores_map.get(vid, 0))
+            for vid in valid_ids
+        ]
+        combined.sort(key=lambda x: x[1], reverse=True)
+        reranked = [c for c, _ in combined]
+
+        # Клипы без thumbnail идут в конец
+        reranked += missing_ids
+
+        _all_itm = list(itm_scores_map.values())
+        avg_itm = sum(_all_itm) / len(_all_itm) if _all_itm else 0
+        changed = reranked[0] != candidates[0] if reranked else False
+        print(
+            f"  🔍 BLIP ITM: avg={avg_itm:.2f} top={'★' if changed else '='} "
+            f"'{query_text[:45]}'",
+            flush=True,
+        )
+        return reranked
+
+    except Exception as e:
+        print(f"  ⚠ BLIP rerank error: {e}", flush=True)
+        return candidates
+
 # ── Пути через paths.py (поддержка нескольких библиотек по нишам) ─────────────
-_utils_dir = Path(__file__).resolve().parent.parent / "utils"
+_utils_dir  = Path(__file__).resolve().parent.parent / "utils"
+_tools_dir  = Path(__file__).resolve().parent.parent.parent / "tools"
 if str(_utils_dir) not in sys.path:
     sys.path.insert(0, str(_utils_dir))
+if str(_tools_dir) not in sys.path:
+    sys.path.insert(0, str(_tools_dir))
 from paths import (
     get_library_dir,
     get_library_json,
@@ -32,9 +208,37 @@ from paths import (
 )
 
 _EMBED_SERVER    = "http://127.0.0.1:8765"
-VISUAL_WEIGHT    = 0.15   # доля visual CLIP score; 1-VISUAL_WEIGHT — text e5 score (85/15)
-# ViT-L-14 хорошо работает для nebula/galaxy (0.29 vs 0.26), слабо для rocket.
-# 0.15 — компромисс: CLIP улучшает nebula-категории, но не перебивает E5 сигнал.
+VISUAL_WEIGHT      = 0.35  # дефолт для абстрактного контента (dark matter, cosmic web...)
+VISUAL_WEIGHT_HIGH = 0.55  # для именованных объектов (JWST, ISS, Mars...) — CLIP доминирует
+VISUAL_WEIGHT_MED  = 0.50  # для общих физических объектов (telescope, rocket, astronaut...)
+# ViT-L-14 хорошо распознаёт конкретные объекты по внешнему виду.
+# Динамический вес: если Haiku написал конкретный объект → CLIP сигнал важнее.
+
+# Объекты с высоким CLIP весом (именованные — CLIP знает как они выглядят)
+_VW_HIGH = {
+    "james webb", "jwst", "euclid", "hubble", "chandra", "spitzer",
+    "artemis", "orion capsule", "sls rocket", "spacex", "falcon 9",
+    "iss", "international space station", "voyager", "cassini",
+    "perseverance", "curiosity", "apollo", "aurora",
+}
+# Объекты со средним CLIP весом (категория понятна, но не именованный объект)
+_VW_MED = {
+    "telescope", "rocket launch", "rocket", "capsule", "astronaut",
+    "spacewalk", "satellite", "probe", "lander", "rover", "observatory",
+    "radio dish", "mars surface", "saturn rings", "lunar surface",
+}
+
+
+def _dynamic_visual_weight(visual_query: str) -> float:
+    """Вычислить CLIP weight на основе конкретности visual_query от Haiku."""
+    q = visual_query.lower()
+    for kw in _VW_HIGH:
+        if kw in q:
+            return VISUAL_WEIGHT_HIGH
+    for kw in _VW_MED:
+        if kw in q:
+            return VISUAL_WEIGHT_MED
+    return VISUAL_WEIGHT
 
 # ─── Embedding — сервер или локальная модель ──────────────────────────
 
@@ -228,7 +432,7 @@ def get_prev_video_clips(channel_id, history, n_prev=1):
 # Для каждого клипа хранится индекс видео в котором он был последний раз использован.
 # Пока прошло < COOLDOWN_VIDEOS видео → клип заблокирован (999).
 # После COOLDOWN_VIDEOS → клип снова ПРИОРИТЕТНЫЙ (penalty = 0, как будто никогда не использовался).
-COOLDOWN_VIDEOS: int = 3   # дефолт; в select_clips_for_video пересчитывается динамически
+COOLDOWN_VIDEOS: int = 2   # дефолт; в select_clips_for_video пересчитывается динамически
 
 # ── Повтор внутри одного видео ────────────────
 # 1-й раз можно всегда. 2-й раз — только через 5–7 минут после первого.
@@ -302,13 +506,15 @@ def calculate_penalty(
     if prev_overlap >= max_from_prev and clip_id in prev_video_clips and used_count == 0:
         return 999
 
-    # ── 4. Плавный recency штраф (без хард-блока) ─────────────────────────────
-    # 1 видео назад → 0.60 (проиграет почти любому свежему клипу)
-    # 2 видео назад → 0.30 (может выиграть если нет хороших альтернатив)
-    # 3 видео назад → 0.20 | 4 → 0.15 | 5+ → затухает к нулю
+    # ── 4. Хард-блок на COOLDOWN_VIDEOS видео, затем плавное восстановление ──
+    # Сразу после кулдауна — минимальный приоритет (штраф 0.5).
+    # С каждым следующим видео штраф убывает на 0.1, через 5 видео = 0 (полный приоритет).
     if clip_last_used_idx is not None and clip_id in clip_last_used_idx:
         videos_since = max(1, current_video_idx - clip_last_used_idx[clip_id])
-        return 0.6 / videos_since
+        if videos_since <= COOLDOWN_VIDEOS:
+            return 999  # хард-блок: последние 1-2 видео
+        videos_after_cooldown = videos_since - COOLDOWN_VIDEOS
+        return max(0.0, 0.5 - videos_after_cooldown * 0.1)  # 0.4 → 0.3 → 0.2 → 0.1 → 0.0
 
     return 0.0
 
@@ -387,6 +593,7 @@ def match_segment_to_clip(
         window_text: str = "",                      # [2] текст окна prev+next
         global_usage: dict | None = None,
         visual_query: str = "",                     # [4] Haiku-сгенерированный визуальный запрос
+        visual_query_alts: list | None = None,     # [4b] альтернативные варианты запроса (multi-query expansion)
         clip_last_used_idx: dict | None = None,
         current_video_idx:  int         = 0,
         segment_start:      float       = 0.0,
@@ -394,6 +601,8 @@ def match_segment_to_clip(
         visual_embeddings: np.ndarray | None = None,   # (M, 512) CLIP visual
         visual_ids_list: list[str] | None = None,      # [clip_id, ...] для visual
         prev_video_centroid: np.ndarray | None = None, # центроид e5 предыдущего видео
+        clip_tags: dict[str, set[str]] | None = None,  # {clip_id: {tags}} из library
+        query_tags: list[str] | None = None,           # теги из visual_query (Haiku)
 ):
     """
     Найти top_n лучших клипов по гибридному скору:
@@ -431,18 +640,44 @@ def match_segment_to_clip(
         try:
             from visual_embedder import encode_text as _clip_encode_text
             _clip_text = visual_query if visual_query.strip() else segment_text
-            vis_query_vec = _clip_encode_text(_clip_text)        # (512,)
-            raw_vis   = visual_embeddings @ vis_query_vec         # (M,)
+
+            # Multi-query expansion: основной запрос + альтернативы
+            _all_queries = [_clip_text]
+            if visual_query_alts:
+                _all_queries += [q for q in visual_query_alts if q and q.strip()]
+
+            # Кодируем все варианты и берём MAX score по каждому клипу
+            _all_vecs = [_clip_encode_text(q) for q in _all_queries]  # list of (768,)
+
+            if visual_embeddings.ndim == 3:
+                # [M, 5, 768]: MAX по кадрам И по query-вариантам
+                raw_vis_all = np.stack(
+                    [(visual_embeddings @ vec).max(axis=1) for vec in _all_vecs],
+                    axis=0,
+                )  # [n_queries, M]
+                raw_vis   = raw_vis_all.max(axis=0)   # [M] — MAX по кадрам и запросам
+                _vis_mode = f"MAX×{len(_all_queries)}"
+            else:
+                # [M, 768]: MAX по query-вариантам
+                raw_vis_all = np.stack(
+                    [visual_embeddings @ vec for vec in _all_vecs],
+                    axis=0,
+                )  # [n_queries, M]
+                raw_vis   = raw_vis_all.max(axis=0)
+                _vis_mode = f"avg×{len(_all_queries)}"
+
             for cid, sc in zip(visual_ids_list, raw_vis.tolist()):
                 vis_scores[cid] = float(sc)
         except Exception as _ve:
             pass  # visual недоступно — работаем только на text
 
+    _vw = _dynamic_visual_weight(visual_query)
+
     def _hybrid_score(clip_id: str, t_score: float) -> float:
         if not vis_scores:
             return t_score
         v_score = vis_scores.get(clip_id, 0.0)
-        return (1.0 - VISUAL_WEIGHT) * t_score + VISUAL_WEIGHT * v_score
+        return (1.0 - _vw) * t_score + _vw * v_score
 
     cosine_scores = text_scores  # backward compat alias used below
 
@@ -479,13 +714,30 @@ def match_segment_to_clip(
                 sim = float(clip_embeddings[idx] @ prev_video_centroid)
                 cross_penalty = max(0.0, (sim - 0.75) * 1.0)
 
+            # Tag boost: если теги из visual_query совпадают с тегами клипа
+            tag_boost = 0.0
+            if query_tags and clip_tags:
+                ctags = clip_tags.get(clip_id, set())
+                matched = set(query_tags) & ctags
+                if matched:
+                    tag_boost = 0.08 * min(len(matched), 2)  # max +0.16 за 2+ совпадений
+
             # Jitter: разбиваем ties внутри embedding-кластера
             jitter = _random.uniform(-SCORE_JITTER, SCORE_JITTER)
-            out.append((clip_id, score - penalty - cross_penalty + jitter,
+            out.append((clip_id, score - penalty - cross_penalty + tag_boost + jitter,
                         score, penalty, keywords, clip_duration))
         return out
 
     candidates = _build_candidates()
+
+    # Print tag boost stats if tags were used
+    if query_tags and clip_tags:
+        boosted_count = sum(
+            1 for clip_id, _, _, _, _, _ in candidates
+            if set(query_tags) & clip_tags.get(clip_id, set())
+        )
+        if boosted_count > 0:
+            print(f"  🏷 Tags from query: {query_tags} → {boosted_count} clips boosted", flush=True)
 
     # Fallback: нет кандидатов → _fallback_match (без ограничения длины)
     if not candidates:
@@ -504,7 +756,12 @@ def match_segment_to_clip(
     candidates.sort(key=lambda x: x[1], reverse=True)
 
     best = candidates[0]
-    vis_info = f" vis={vis_scores.get(best[0], 0.0):.2f}" if vis_scores else ""
+    vis_info = f" vis={vis_scores.get(best[0], 0.0):.2f}(w={_vw:.2f})" if vis_scores else ""
+    if query_tags and clip_tags:
+        ctags = clip_tags.get(best[0], set())
+        matched_tags = set(query_tags) & ctags
+        if matched_tags:
+            vis_info += f" tags={matched_tags}"
     print(
         f"  🎯 {best[0]} "
         f"score={best[2]:.2f}{vis_info} "
@@ -576,7 +833,8 @@ def select_clips_for_video(
         segments,
         max_repeats_in_video=10,
         max_from_prev=60,
-        intro_duration=90):
+        intro_duration=90,
+        text_only=False):
     """
     Выбрать клипы для всего видео, разделив на intro и main.
       session:        ID сессии (Video_20260318_...)
@@ -609,13 +867,20 @@ def select_clips_for_video(
     # Загрузить visual embeddings (CLIP ViT-B/32, 512-dim) если доступны
     visual_ids_list: list[str] | None  = None
     visual_embeddings: np.ndarray | None = None
-    try:
-        from visual_embedder import load_visual_embeddings as _load_vis
-        _vis = _load_vis(channel_id)
-        if _vis is not None:
-            visual_ids_list, visual_embeddings = _vis
-    except ImportError:
-        pass
+    if text_only:
+        print("ℹ️  text_only=True — visual embeddings и pHash отключены", flush=True)
+    else:
+        try:
+            from visual_embedder import load_visual_embeddings as _load_vis
+            _vis = _load_vis(channel_id)
+            if _vis is not None:
+                visual_ids_list, visual_embeddings = _vis
+        except ImportError:
+            pass
+
+    # BLIP ITM reranker отключён
+    _blip_available = False
+    print(f"⚠ BLIP отключён — E5 text + CLIP visual matching", flush=True)
 
     # Клипы из последних 5 видео канала (для блокировки недавно использованных)
     prev_clips          = get_prev_video_clips(channel_id, history, n_prev=5)
@@ -624,7 +889,7 @@ def select_clips_for_video(
     current_video_idx   = len(history.get("videos", {}))   # номер этого видео
 
     # pHash: {clip_id: int} для визуального anti-repetition
-    phash_map: dict[str, int] = {
+    phash_map: dict[str, int] = {} if text_only else {
         cid: entry["phash"]
         for cid, entry in library["clips"].items()
         if isinstance(entry.get("phash"), int)
@@ -633,6 +898,8 @@ def select_clips_for_video(
         print(f"🖼 pHash загружен: {len(phash_map)} клипов", flush=True)
 
     # Валидные клипы с EN+DE+FR keywords и длительностью
+    # Исключаем garbage (квота) и human (нерелевантные)
+    _EXCLUDED_CATEGORIES = {"garbage", "human"}
     available_clips = [
         (
             clip_id,
@@ -643,9 +910,19 @@ def select_clips_for_video(
         if entry.get("indexed", False)
         and not entry.get("rejected", False)
         and entry.get("keywords", "")
+        and entry.get("category", "other") not in _EXCLUDED_CATEGORIES
     ]
+    # Индекс тегов: {clip_id: set(tags + [category])} для быстрого lookup
+    _clip_tags: dict[str, set[str]] = {
+        clip_id: set(entry.get("tags", []) + [entry.get("category", "other")])
+        for clip_id, entry in library["clips"].items()
+        if entry.get("indexed", False) and not entry.get("rejected", False)
+    }
+    garbage_count = sum(1 for e in library["clips"].values()
+                        if e.get("category") in _EXCLUDED_CATEGORIES)
     long_clips = sum(1 for _, _, d in available_clips if d >= 10)
-    print(f"📚 Доступно клипов: {len(available_clips)} (>= 10s: {long_clips})", flush=True)
+    print(f"📚 Доступно клипов: {len(available_clips)} (>= 10s: {long_clips}) "
+          f"[исключено garbage/human: {garbage_count}]", flush=True)
 
     # Статистика по recency (штраф вместо хард-блока)
     _recently_used = sum(1 for cid in clip_last_used_idx
@@ -732,6 +1009,18 @@ def select_clips_for_video(
         section = "INTRO" if is_intro else "MAIN"
         print(f"\n[{seg_id}][{section}] {seg_duration:.1f}s '{seg_text[:60]}'", flush=True)
 
+        # Извлечь теги из visual_query для tag-boost
+        _vq      = seg.get("visual_query", "")
+        _vq_alts = seg.get("visual_query_alts", [])
+        try:
+            _tools_dir = str(Path(__file__).resolve().parent.parent.parent / "tools")
+            if _tools_dir not in sys.path:
+                sys.path.insert(0, _tools_dir)
+            from tag_library import extract_tags_from_query as _etq
+            _qtags = _etq(_vq) if _vq.strip() else []
+        except ImportError:
+            _qtags = []
+
         top_candidates = match_segment_to_clip(
             segment_text=seg_text,
             keywords_list=available_clips,
@@ -742,7 +1031,7 @@ def select_clips_for_video(
             max_repeats_in_video=max_repeats_in_video,
             max_from_prev=max_from_prev,
             segment_duration=seg_duration,
-            top_n=8,
+            top_n=BLIP_TOP_N if _blip_available else 8,
             context_vec=video_context_vec,
             chapter_vec=chapter_vec,
             window_text=window_text,
@@ -753,9 +1042,18 @@ def select_clips_for_video(
             video_used_at=video_used_at,
             visual_embeddings=visual_embeddings,
             visual_ids_list=visual_ids_list,
-            visual_query=seg.get("visual_query", ""),
+            visual_query=_vq,
+            visual_query_alts=_vq_alts if _vq_alts else None,
             prev_video_centroid=prev_video_centroid,
+            clip_tags=_clip_tags,
+            query_tags=_qtags if _qtags else None,
         )
+
+        # [4b] BLIP VQA reranker: фильтр первых 5 минут по визуальному соответствию
+        if _blip_available and _vq and top_candidates:
+            top_candidates = _blip_rerank(
+                top_candidates, _vq, seg_start, _thumb_dir
+            )
 
         # [5a] E5 text diversity window (2 мин): cosine > 0.92 → берём следующего кандидата
         while prev_clip_embeddings and (seg_start - prev_clip_embeddings[0][0]) > EMB_DIVERSITY_WINDOW_S:
@@ -777,7 +1075,10 @@ def select_clips_for_video(
             vis_idx = vis_emb_index.get(clip_id)
             if vis_idx is not None:
                 for _ts, prev_vis_vec in prev_visual_embeddings:
-                    if float(visual_embeddings[vis_idx] @ prev_vis_vec) > VIS_DIVERSITY_THRESHOLD:
+                    # Для diversity используем AVG кадров (не MAX — нам нужно общее сходство клипов)
+                    _cur_v  = visual_embeddings[vis_idx].mean(axis=0) if visual_embeddings[vis_idx].ndim == 2 else visual_embeddings[vis_idx]
+                    _prv_v  = prev_vis_vec.mean(axis=0) if prev_vis_vec.ndim == 2 else prev_vis_vec
+                    if float(np.dot(_cur_v, _prv_v)) > VIS_DIVERSITY_THRESHOLD:
                         alts = [c for c in top_candidates if c != clip_id]
                         if alts:
                             clip_id = alts[0]
@@ -838,6 +1139,9 @@ def select_clips_for_video(
   Из предыдущего:      {prev_overlap}/{max_from_prev}
 {'='*50}
 """, flush=True)
+
+    # Сохраняем BLIP ITM кэш на диск
+    _save_blip_cache()
 
     clips_used = [c for _, c, _ in all_selected if c]
 

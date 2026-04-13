@@ -11,6 +11,7 @@ Grok Agent — Image-to-Video generation (multi-tab parallel)
 
 import base64
 import json
+import random
 import socket
 import subprocess
 import sys
@@ -887,6 +888,7 @@ def _worker_thread(
             except Exception:
                 pass
 
+            consecutive_fails = 0
             for idx in indices:
                 out_path = out_dir / f"video_{idx:03d}.mp4"
 
@@ -907,7 +909,10 @@ def _worker_thread(
                 success = False
                 for attempt in range(1, GROK_MAX_RETRIES + 1):
                     if attempt > 1:
-                        print(f"  {tag} Попытка {attempt}/{GROK_MAX_RETRIES}...", flush=True)
+                        # Exponential backoff: 5s, 10s, 20s... + jitter
+                        delay = min(5 * (2 ** (attempt - 2)), 60) + random.uniform(0, 3)
+                        print(f"  {tag} Попытка {attempt}/{GROK_MAX_RETRIES} (ждём {delay:.0f}s)...", flush=True)
+                        time.sleep(delay)
                         try:
                             page.goto(_IMAGINE_URL, wait_until="domcontentloaded", timeout=30_000)
                             page.wait_for_timeout(3000)
@@ -925,7 +930,15 @@ def _worker_thread(
                         completed_set.add(idx)
                         saved_counter[0] += 1
                         tabs_status[worker_id]["done"] += 1
+                        consecutive_fails = 0
+                    else:
+                        consecutive_fails += 1
                     grok_save_progress(session, completed_set, total, tabs_status)
+
+                # Circuit breaker: 3 подряд ошибки → пропуск вкладки
+                if consecutive_fails >= 3:
+                    print(f"  {tag} ⚡ Circuit breaker: {consecutive_fails} ошибок подряд — пропускаю вкладку")
+                    break
 
                 if success and saved_counter[0] % 10 == 0:
                     send_tg_notification(

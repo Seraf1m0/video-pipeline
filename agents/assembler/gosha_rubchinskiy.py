@@ -106,9 +106,10 @@ SUBTITLE_FONT_SIZE   = 28
 
 # Канальные алиасы
 _CH_ALIAS = {
-    "de": "channel_001_cosmos_de",
-    "fr": "channel_002_cosmos_fr",
-    "es": "channel_003_religion_es",
+    "de":  "channel_001_cosmos_de",
+    "fr":  "channel_002_cosmos_fr",
+    "es":  "channel_003_religion_es",
+    "fr2": "channel_004_cosmos_fr",
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -319,6 +320,7 @@ def select_and_link_clips(
     temp_dir:       Path,
     intro_duration: float,
     skip_intro_clips: bool,
+    text_only:      bool = False,
 ) -> tuple[Path, dict | None]:
     """
     Подобрать клипы через clip_selector, симлинковать main-клипы в temp/lib_clips/.
@@ -350,9 +352,10 @@ def select_and_link_clips(
             session=session,
             channel_id=channel_id,
             segments=segments,
-            max_repeats_in_video=10,
+            max_repeats_in_video=3,
             max_from_prev=20,
             intro_duration=intro_duration,
+            text_only=text_only,
         )
 
     main_clips   = result.get("main_clips",   [])
@@ -1060,6 +1063,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Assembler v2 — чистый монтаж видео")
     parser.add_argument("--channel",  help="Канал: de | fr | es | channel_001_cosmos_de | ...")
     parser.add_argument("--session",  help="Имя сессии (по умолчанию: последняя)")
+    parser.add_argument("--text-only", action="store_true", help="Только E5 text matching — без visual embeddings и pHash")
     parser.add_argument("--no-subs",  action="store_true", help="Без субтитров")
     parser.add_argument("--no-music", action="store_true", help="Без фоновой музыки")
     parser.add_argument("--skip-intro-clips", action="store_true",
@@ -1182,6 +1186,7 @@ def main() -> None:
         temp_dir       = temp_dir,
         intro_duration = args.intro_duration if intro_enabled else 0.0,
         skip_intro_clips = args.skip_intro_clips,
+        text_only = args.text_only,
     )
     log(f"[⏱] Clips: {time.time()-t_clips:.1f}s")
 

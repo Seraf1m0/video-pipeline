@@ -109,7 +109,10 @@ def _pick_best(pools: list[list]) -> Path | None:
 # 20*log10(0.35) ≈ -9.1 dB относительно голоса → -17.9 + (-9.1) = -27 dB
 _SFX_TARGET_DB = -27.0
 
-_dur_cache:   dict[str, float] = {}
+try:
+    from agents.utils.duration_cache import get_duration as _shared_get_dur
+except ImportError:
+    from duration_cache import get_duration as _shared_get_dur
 _level_cache: dict[str, float] = {}
 
 # Персистентный кэш peaks на диске — volumedetect не запускается повторно
@@ -138,19 +141,9 @@ _load_peaks_cache()
 
 
 def _sfx_dur(path: Path) -> float:
-    """Длительность SFX файла (кэшируется)."""
-    key = str(path)
-    if key not in _dur_cache:
-        try:
-            r = subprocess.run(
-                ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
-                 "-of", "csv=p=0", str(path)],
-                capture_output=True, text=True,
-            )
-            _dur_cache[key] = float(r.stdout.strip())
-        except Exception:
-            _dur_cache[key] = 1.0
-    return _dur_cache[key]
+    """Длительность SFX файла (общий кэш)."""
+    dur = _shared_get_dur(path)
+    return dur if dur > 0 else 1.0
 
 
 def _sfx_mean_db(path: Path) -> float:

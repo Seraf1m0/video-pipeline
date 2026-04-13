@@ -67,46 +67,55 @@ SFX_RULES_RELIGION = (
 NICHE_PROMPTS = {
     "cosmos": (
         "You are a visual director and sound designer for a space documentary YouTube channel.\n\n"
-        "For each segment return TWO things:\n"
-        "  vq  — English visual description (10-14 words) of what footage should play\n"
-        "  sfx — sound effect cue (or null)\n\n"
-        "LIBRARY CONTENT — these are the ONLY clip categories available:\n"
+        "For each segment return THREE things:\n"
+        "  vq      — English visual description (10-14 words) of what footage should play\n"
+        "  vq_alts — list of exactly 2 alternative phrasings of the same visual idea (different wording, same scene)\n"
+        "  sfx     — sound effect cue (or null)\n\n"
+        "LIBRARY CONTENT — clip categories available:\n"
         "  1. NEBULAS/GALAXIES: colorful gas clouds, spiral/elliptical galaxies, star clusters, deep space\n"
         "  2. SPACE PHENOMENA: black holes, supernovas, solar flares, cosmic plasma, energy fields, radiation\n"
-        "  3. SOLAR SYSTEM: Sun surface, planets (Mars/Saturn/Jupiter), moons, asteroids, comets, orbits\n"
-        "  4. SPACECRAFT: rockets launching, satellites orbiting, probes drifting (Voyager/New Horizons style)\n"
+        "  3. SOLAR SYSTEM: Sun surface, Mars, Saturn, Jupiter, Moon, asteroids, comets, orbits\n"
+        "  4. SPACECRAFT: rockets launching, satellites orbiting, probes drifting\n"
         "  5. ASTRONAUTS: floating in ISS, spacewalk, working at consoles, suits in space\n"
-        "  6. SCIENTISTS/ENGINEERS: at computer screens, analyzing data, in labs/clean rooms, discussing\n"
+        "  6. SCIENTISTS/ENGINEERS: at computer screens, analyzing data, in labs/clean rooms\n"
         "  7. EARTH FROM SPACE: blue marble, clouds, continents, aurora, atmosphere edge\n"
-        "  8. TELESCOPES/INSTRUMENTS: observatory domes, radio dishes, satellite dishes, space telescopes\n\n"
+        "  8. TELESCOPES/INSTRUMENTS: observatory domes, radio dishes, space telescopes\n\n"
+        "NAMED OBJECTS IN LIBRARY — use EXACT terms below when script mentions them:\n"
+        "  • James Webb Space Telescope → \"James Webb Space Telescope hexagonal golden mirror deep space\"\n"
+        "  • Euclid ESA telescope → \"Euclid ESA space telescope white cylindrical satellite solar panels orbit\"\n"
+        "  • Hubble → \"Hubble Space Telescope cylindrical body blue solar panels Earth orbit\"\n"
+        "  • ISS / astronauts → \"ISS International Space Station astronauts floating modules Earth orbit\"\n"
+        "  • Artemis / SLS → \"Artemis SLS rocket launch pad ignition flame night sky\"\n"
+        "  • Orion capsule → \"Orion capsule spacecraft crew module lunar orbit deep space\"\n"
+        "  • Voyager → \"Voyager spacecraft golden record drifting deep void distant sun\"\n"
+        "  • Cassini → \"Cassini spacecraft Saturn rings orbit golden hexagonal antenna\"\n"
+        "  • Mars → \"Mars red surface craters dust storm orbital view\"\n"
+        "  • Moon → \"lunar surface craters grey regolith Earth rising horizon\"\n"
+        "  • Saturn → \"Saturn planet rings gas giant Cassini view\"\n"
+        "  • Jupiter → \"Jupiter gas giant bands Great Red Spot orbital view\"\n"
+        "  • Aurora → \"aurora borealis green curtains Earth atmosphere night glow\"\n\n"
         "Visual rules:\n"
-        "- ALWAYS map to one of the 8 categories above — choose the nearest visual category\n"
-        "- If segment describes abstract physics (dark energy, heliosphere boundary, quantum effects) → use visual analogy from category 2 (plasma/energy fields) or category 1 (deep space)\n"
-        "- If segment mentions specific mission/probe → use category 4; if mentions scientists → use category 6\n"
-        "- Match the SCALE: cosmic/galactic vs planetary vs human-scale scenes\n"
+        "- When script mentions a NAMED OBJECT from the list above → use the exact terminology\n"
+        "- ALWAYS map to one of the 8 categories — choose the nearest visual category\n"
+        "- Abstract physics (dark energy, quantum, heliosphere) → category 2 or 1\n"
+        "- Match the SCALE: cosmic/galactic vs planetary vs human-scale\n"
         "- Include visual atmosphere: colors, lighting, motion (spinning, drifting, exploding)\n"
-        "- Always positive visual descriptions, never use \"not\", \"unlike\", \"without\"\n"
+        "- Always positive descriptions, never use \"not\", \"unlike\", \"without\"\n"
         "- Segments may be in any language — always respond in English\n"
-        "- If segment text is unclear/corrupted → fallback: \"deep space starfield galaxy nebula glowing purple blue\"\n\n"
+        "- Unclear/corrupted text → fallback: \"deep space starfield galaxy nebula glowing purple blue\"\n\n"
         + SFX_RULES_COSMOS +
         "\nExamples:\n"
-        '"En 1977 nous avons reçu un signal" → vq: "radio telescope dish rotating night sky stars signal beam", sfx: null\n'
-        '"Voyager traverse les confins du système solaire" → vq: "Voyager spacecraft drifting endless dark void distant sun tiny", sfx: "riser"\n'
-        '"une explosion cent fois plus grande que le Soleil" → vq: "massive supernova explosion shockwave expanding orange red plasma", sfx: "riser+boom"\n'
-        '"des milliards d\'années de silence cosmique" → vq: "empty dark universe slow drift ancient starfield cold void", sfx: "downlifter"\n'
-        '"la matière noire invisible" → vq: "deep space dark nebula mysterious gravitational lensing blue glow", sfx: null\n'
-        '"la vie est peut-être là-bas" → vq: "exoplanet blue green atmosphere ocean swirling clouds orbit", sfx: "boom"\n'
-        '"la Terre vue depuis la Lune" → vq: "Earth rising over lunar horizon blue marble fragile beautiful", sfx: null\n'
-        '"тёмная энергия ускоряет расширение вселенной" → vq: "universe expanding galaxy clusters accelerating infinite dark energy glow", sfx: null\n'
-        '"heliosphere boundary ultraviolet wall" → vq: "glowing plasma energy field cosmic boundary shimmering blue void", sfx: null\n'
-        '"scientists analyzing probe data" → vq: "scientists focused computer screens data analysis blue ambient light", sfx: null\n'
-        '"solar wind charged particles streaming" → vq: "sun corona plasma flare streaming outward glowing golden dynamic", sfx: null\n'
+        '"Artemis II a décollé" → vq: "Artemis SLS rocket launch pad ignition massive flame night sky", vq_alts: ["SLS heavy rocket blasting off launchpad fire exhaust smoke", "NASA Artemis mission rocket liftoff blazing engines night launch"], sfx: "boom"\n'
+        '"le télescope James Webb" → vq: "James Webb Space Telescope hexagonal golden mirror solar panels deep space", vq_alts: ["JWST gold hexagonal mirror segments unfolding infrared observatory", "James Webb observatory golden beryllium mirrors deployed deep field"], sfx: null\n'
+        '"la matière noire invisible" → vq: "deep space dark nebula mysterious gravitational lensing blue glow", vq_alts: ["cosmic web dark matter invisible mass gravitational filaments", "invisible dark matter bending light galaxy cluster deep void"], sfx: null\n'
+        '"solar wind charged particles" → vq: "sun corona plasma flare streaming outward glowing golden dynamic", vq_alts: ["solar wind charged particles streaming space magnetic field lines", "coronal mass ejection plasma burst sun surface golden glow"], sfx: null\n'
     ),
     "religion": (
         "You are a visual director for a CHRISTIAN documentary YouTube channel about Jesus Christ and the Gospel.\n\n"
-        "For each segment return TWO things:\n"
-        "  vq  — English visual description (10-14 words) of what footage should play\n"
-        "  sfx — soft sound effect cue (or null)\n\n"
+        "For each segment return THREE things:\n"
+        "  vq      — English visual description (10-14 words) of what footage should play\n"
+        "  vq_alts — list of exactly 2 alternative phrasings of the same visual idea (different style/wording, same scene)\n"
+        "  sfx     — soft sound effect cue (or null)\n\n"
         "LIBRARY CONTENT: footage is a MIX of two visual styles:\n"
         "  A) Renaissance/Baroque OIL PAINTINGS of biblical scenes (Rembrandt, Caravaggio style)\n"
         "  B) Cinematic MODERN footage: nature (sunsets, rivers, forests), cathedrals, candles, people praying\n\n"
@@ -120,18 +129,14 @@ NICHE_PROMPTS = {
         "- If segment text is unclear/corrupted → fallback: \"golden sunlight rays cathedral interior warm peaceful\"\n\n"
         + SFX_RULES_RELIGION +
         "\nExamples (biblical → style A):\n"
-        '"Jesús murió en la cruz" → vq: "Jesus crucifixion cross Golgotha crowd weeping Renaissance oil painting", sfx: "downlifter"\n'
-        '"resucitó al tercer día" → vq: "risen Christ empty tomb radiant white light angels Renaissance painting", sfx: "riser"\n'
-        '"la Última Cena con sus discípulos" → vq: "Last Supper Jesus twelve apostles candlelit table bread wine painting", sfx: null\n'
-        '"fue bautizado por Juan" → vq: "Baptism of Jesus Jordan river John dove Holy Spirit painting", sfx: null\n'
-        '"el Sermón de la Montaña" → vq: "Jesus teaching crowds hillside Sermon Mount disciples listening painting", sfx: null\n'
-        '"oró en el huerto de Getsemaní" → vq: "Jesus praying Gethsemane garden night anguish disciples sleeping painting", sfx: null\n'
+        '"Jesús murió en la cruz" → vq: "Jesus crucifixion cross Golgotha crowd weeping Renaissance oil painting", vq_alts: ["Christ dying on cross Calvary soldiers mourning Baroque chiaroscuro", "Crucifixion scene three crosses dark sky people lamenting Caravaggio style"], sfx: "downlifter"\n'
+        '"resucitó al tercer día" → vq: "risen Christ empty tomb radiant white light angels Renaissance painting", vq_alts: ["Resurrection Jesus emerging tomb glowing divine light apostles astonished", "Christ risen glory angels empty sepulchre dawn light Baroque painting"], sfx: "riser"\n'
+        '"la Última Cena con sus discípulos" → vq: "Last Supper Jesus twelve apostles candlelit table bread wine painting", vq_alts: ["Jesus breaking bread disciples gathered evening meal da Vinci style", "final meal Christ followers table candlelight Renaissance biblical scene"], sfx: null\n'
+        '"oró en el huerto de Getsemaní" → vq: "Jesus praying Gethsemane garden night anguish disciples sleeping painting", vq_alts: ["Christ kneeling prayer olive garden moonlight sorrow Baroque painting", "Gethsemane Jesus agony praying night disciples resting dark garden"], sfx: null\n'
         "\nExamples (general → style B):\n"
-        '"la fe mueve montañas" → vq: "person kneeling prayer hands folded warm candlelight church golden", sfx: null\n'
-        '"Dios creó el cielo y la tierra" → vq: "breathtaking sunrise mountain valley golden rays mist cinematic", sfx: null\n'
-        '"el amor de Dios es eterno" → vq: "peaceful river forest golden light flowing serene cinematic", sfx: "riser"\n'
-        '"catedral de Notre Dame" → vq: "Notre Dame cathedral gothic stone architecture Paris exterior sunlight", sfx: null\n'
-        '"[unclear/corrupted text]" → vq: "golden sunlight rays cathedral interior warm peaceful cinematic", sfx: null\n'
+        '"la fe mueve montañas" → vq: "person kneeling prayer hands folded warm candlelight church golden", vq_alts: ["believer praying hands clasped soft warm church interior light", "faithful soul bowed head prayer candle glow sacred peaceful"], sfx: null\n'
+        '"Dios creó el cielo y la tierra" → vq: "breathtaking sunrise mountain valley golden rays mist cinematic", vq_alts: ["majestic landscape dawn golden light creation beauty cinematic wide", "stunning valley sunrise fog rolling hills divine light morning glow"], sfx: null\n'
+        '"[unclear/corrupted text]" → vq: "golden sunlight rays cathedral interior warm peaceful cinematic", vq_alts: ["soft rays of light cathedral stained glass warm glow", "church interior golden ambient light peaceful sacred quiet"], sfx: null\n'
     ),
 }
 
@@ -209,8 +214,8 @@ def _generate_batch(batch: list[tuple[int, str]], niche: str, global_context: st
         f"{context_block}"
         f"Segments:\n{lines}\n\n"
         f"Respond ONLY with valid JSON, no markdown:\n"
-        f'{{"1": {{"vq": "visual description", "sfx": null}}, '
-        f'"2": {{"vq": "visual description", "sfx": "riser"}}, ...}}'
+        f'{{"1": {{"vq": "visual description", "vq_alts": ["alt1", "alt2"], "sfx": null}}, '
+        f'"2": {{"vq": "visual description", "vq_alts": ["alt1", "alt2"], "sfx": "riser"}}, ...}}'
     )
 
     for attempt in range(RETRY_LIMIT + 1):
@@ -227,13 +232,19 @@ def _generate_batch(batch: list[tuple[int, str]], niche: str, global_context: st
                 key = str(i + 1)
                 entry = data.get(key, {})
                 if isinstance(entry, str):
-                    result[seg_id] = {"vq": entry.strip(), "sfx": None}
+                    result[seg_id] = {"vq": entry.strip(), "vq_alts": [], "sfx": None}
                 elif isinstance(entry, dict):
-                    vq  = str(entry.get("vq", "")).strip()
-                    sfx = entry.get("sfx")
+                    vq      = str(entry.get("vq", "")).strip()
+                    sfx     = entry.get("sfx")
+                    vq_alts = entry.get("vq_alts", [])
                     if sfx not in _VALID_SFX:
                         sfx = None
-                    result[seg_id] = {"vq": vq, "sfx": sfx}
+                    # Валидируем vq_alts: список строк, max 2
+                    if isinstance(vq_alts, list):
+                        vq_alts = [str(a).strip() for a in vq_alts if isinstance(a, str) and a.strip()][:2]
+                    else:
+                        vq_alts = []
+                    result[seg_id] = {"vq": vq, "vq_alts": vq_alts, "sfx": sfx}
             return result
         except Exception as e:
             wait = 5 * (attempt + 1)
@@ -337,8 +348,9 @@ def generate_visual_queries(
     for seg in segments:
         seg_id = seg.get("id")
         entry  = result_map.get(seg_id, {})
-        seg["visual_query"] = entry.get("vq") or seg.get("text", "")
-        seg["sfx_cue"]      = entry.get("sfx")  # None или "riser"/"boom"/etc
+        seg["visual_query"]      = entry.get("vq") or seg.get("text", "")
+        seg["visual_query_alts"] = entry.get("vq_alts", [])   # 2 альтернативных варианта
+        seg["sfx_cue"]           = entry.get("sfx")  # None или "riser"/"boom"/etc
 
     # ── Post-processing: ограничить плотность SFX ──────────────────────────────
     # Zone A (первые 5 мин): 2 SFX/мин, gap 30s  — удержание зрителя

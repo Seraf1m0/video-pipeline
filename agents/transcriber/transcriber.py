@@ -34,10 +34,11 @@ try:
 
     def get_transcribe_language(channel_id: str = "") -> str:
         _LANG_MAP = {
-            "de": "de", "fr": "fr", "es": "es",
+            "de": "de", "fr": "fr", "es": "es", "fr2": "fr",
             "channel_001_cosmos_de": "de",
             "channel_002_cosmos_fr": "fr",
             "channel_003_religion_es": "es",
+            "channel_004_cosmos_fr": "fr",
         }
         if channel_id and channel_id in _LANG_MAP:
             lang = _LANG_MAP[channel_id]
@@ -51,10 +52,11 @@ try:
         return "de"
 except Exception:
     def get_transcribe_language(channel_id: str = "") -> str:
-        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es",
+        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es", "fr2": "fr",
                      "channel_001_cosmos_de": "de",
                      "channel_002_cosmos_fr": "fr",
-                     "channel_003_religion_es": "es"}
+                     "channel_003_religion_es": "es",
+                     "channel_004_cosmos_fr": "fr"}
         return _LANG_MAP.get(channel_id, "de")
 
 # Windows cp1251 консоль не поддерживает эмодзи — переключаем на UTF-8
@@ -107,6 +109,27 @@ try:
 except ImportError:
     _PATHS_OK = False
     def _get_transcripts_dir(ch, sess): return TRANSCRIPTS_DIR / sess
+
+
+# ── Whisper model singleton ───────────────────────────────────────────────────
+# Модель загружается один раз и переиспользуется между вызовами в рамках процесса.
+_whisper_model: "WhisperModel | None" = None
+_whisper_model_key: str = ""            # "model_size:device:compute"
+
+
+def get_whisper_model() -> "WhisperModel":
+    """Вернуть кэшированную Whisper-модель (singleton)."""
+    global _whisper_model, _whisper_model_key
+    device, gpu_name, model_size = detect_device()
+    compute = "float16" if device == "cuda" else "int8"
+    key = f"{model_size}:{device}:{compute}"
+    if _whisper_model is not None and _whisper_model_key == key:
+        print(f"[Whisper] Модель '{model_size}' уже загружена — повторная загрузка не нужна")
+        return _whisper_model
+    print(f"[Whisper] Загрузка модели '{model_size}' ({compute}) на {device.upper()}...")
+    _whisper_model = WhisperModel(model_size, device=device, compute_type=compute)
+    _whisper_model_key = key
+    return _whisper_model
 
 
 # ── Whisper кеш ───────────────────────────────────────────────────────────────
@@ -901,10 +924,11 @@ def run():
         if _utils not in _sys.path:
             _sys.path.insert(0, _utils)
         from paths import CHANNELS_DIR as _CHANNELS_DIR
-        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es",
+        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es", "fr2": "fr",
                      "channel_001_cosmos_de": "de",
                      "channel_002_cosmos_fr": "fr",
-                     "channel_003_religion_es": "es"}
+                     "channel_003_religion_es": "es",
+                     "channel_004_cosmos_fr": "fr"}
         _ch_lang = _LANG_MAP.get(args.channel or "", "") if args.channel else ""
         channel_root = (_CHANNELS_DIR / _ch_lang) if _ch_lang else _CH_DATA_DIR
     except Exception:
@@ -988,13 +1012,11 @@ def run():
     device, gpu_name, model_size = detect_device()
     if device == "cuda":
         print(f"[Whisper] GPU: {gpu_name}")
-        compute = "float16"
     else:
         print(f"[Whisper] CPU (CUDA недоступна)")
-        compute = "int8"
-    
-    start_model = ProgressBar.task(f"Загрузка модели '{model_size}' ({compute}) на {device.upper()}")
-    model = WhisperModel(model_size, device=device, compute_type=compute)
+
+    start_model = ProgressBar.task(f"Загрузка модели '{model_size}' на {device.upper()}")
+    model = get_whisper_model()
     model_time = ProgressBar.done(start_model, "Модель загружена")
 
     start_whisper = ProgressBar.task("Транскрипция аудио через Whisper")

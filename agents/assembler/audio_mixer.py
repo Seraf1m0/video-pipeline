@@ -16,49 +16,16 @@ import math
 import os
 import json
 import subprocess
-import threading
 import concurrent.futures
 from pathlib import Path
 
 
-# ── Утилиты ──────────────────────────────────────────────────────────────────
+# ── Утилиты (общий кэш длительностей) ────────────────────────────────────────
+try:
+    from agents.utils.duration_cache import get_duration as get_audio_duration, probe_durations_parallel
+except ImportError:
+    from duration_cache import get_duration as get_audio_duration, probe_durations_parallel
 
-_dur_cache: dict[str, float] = {}
-_dur_lock  = threading.Lock()
-
-
-def get_audio_duration(path) -> float:
-    """Получить длительность аудио/видео через ffprobe (с кэшем)."""
-    key = str(path)
-    with _dur_lock:
-        if key in _dur_cache:
-            return _dur_cache[key]
-    cmd = [
-        "ffprobe", "-v", "quiet",
-        "-print_format", "json",
-        "-show_format",
-        key,
-    ]
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    try:
-        dur = float(json.loads(r.stdout)["format"]["duration"])
-    except Exception:
-        dur = 0.0
-    with _dur_lock:
-        _dur_cache[key] = dur
-    return dur
-
-
-def probe_durations_parallel(paths, max_workers: int = 8) -> None:
-    """Прогреть кэш для списка файлов параллельно (fire-and-forget)."""
-    uncached = [p for p in paths if str(p) not in _dur_cache]
-    if not uncached:
-        return
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
-        list(ex.map(get_audio_duration, uncached))
-
-
-# Алиас для совместимости
 get_duration = get_audio_duration
 
 
