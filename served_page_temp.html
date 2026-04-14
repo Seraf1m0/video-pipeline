@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thumbnail Editor — 1920×1080</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1a1a1a; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  #sidebar { width: 300px; min-width: 300px; background: #242424; display: flex; flex-direction: column; border-right: 1px solid #333; overflow-y: auto; }
+  .panel { border-bottom: 1px solid #333; padding: 12px; }
+  .panel-title { font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 10px; }
+
+  label { font-size: 12px; color: #aaa; display: block; margin-bottom: 3px; margin-top: 8px; }
+  input[type=range] { width: 100%; accent-color: #4a9eff; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; background: #1a1a1a; border: 1px solid #444; color: #e0e0e0;
+    padding: 5px 8px; border-radius: 4px; font-size: 12px;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  input[type=color] { width: 36px; height: 28px; border: 1px solid #444; border-radius: 4px; cursor: pointer; background: none; padding: 1px; }
+
+  .row { display: flex; gap: 6px; align-items: center; }
+  .row label { margin: 0; white-space: nowrap; }
+
+  .btn { background: #333; border: 1px solid #555; color: #ddd; padding: 7px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; width: 100%; margin-top: 6px; }
+  .btn:hover { background: #444; }
+  .btn-blue { background: #1a5fa8; border-color: #2272c3; color: #fff; }
+  .btn-blue:hover { background: #2272c3; }
+  .btn-green { background: #1a6e3c; border-color: #27a85c; color: #fff; }
+  .btn-green:hover { background: #27a85c; }
+  .btn-red { background: #6e1a1a; border-color: #a82727; color: #fff; }
+  .btn-red:hover { background: #a82727; }
+
+  /* Element list */
+  #elem-list { list-style: none; }
+  #elem-list li {
+    padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid transparent; margin-bottom: 3px;
+  }
+  #elem-list li:hover { background: #333; }
+  #elem-list li.active { background: #2a3f5f; border-color: #4a9eff; }
+  #elem-list li .del-btn { color: #666; cursor: pointer; padding: 0 4px; }
+  #elem-list li .del-btn:hover { color: #f55; }
+
+  /* ── Canvas area ── */
+  #canvas-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #toolbar { background: #2a2a2a; padding: 8px 12px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #333; flex-wrap: wrap; }
+  #toolbar .tb-btn { background: #333; border: 1px solid #555; color: #ddd; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  #toolbar .tb-btn:hover { background: #444; }
+  #canvas-wrap { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; background: #111; padding: 20px; }
+  #canvas-container { position: relative; }
+  canvas { display: block; cursor: crosshair; box-shadow: 0 0 40px rgba(0,0,0,0.8); }
+  #drag-overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+  #inline-editor {
+    position: absolute;
+    display: none;
+    background: rgba(0,0,0,0.6);
+    border: 2px solid #4a9eff;
+    border-radius: 3px;
+    color: #fff;
+    padding: 2px 6px;
+    resize: none;
+    outline: none;
+    z-index: 100;
+    line-height: 1.2;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(74,158,255,0.3);
+  }
+
+  /* Text drag handles */
+  .text-handle {
+    position: absolute;
+    border: 2px dashed rgba(74,158,255,0.8);
+    cursor: move;
+    user-select: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .text-handle.active { border-color: #4a9eff; border-style: solid; }
+
+  #status { font-size: 11px; color: #666; padding: 0 12px; }
+
+  input[type=range]::-webkit-slider-thumb { cursor: pointer; }
+  .range-row { display: flex; align-items: center; gap: 6px; }
+  .range-row input[type=range] { flex: 1; }
+  .range-val { font-size: 11px; color: #888; min-width: 30px; text-align: right; }
+
+  #no-elem { color: #555; font-size: 12px; text-align: center; padding: 20px 0; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<div id="sidebar">
+
+  <!-- Background -->
+  <div class="panel">
+    <div class="panel-title">Background</div>
+    <button class="btn" onclick="document.getElementById('file-input').click()">📂 Load Image</button>
+    <input type="file" id="file-input" accept="image/*" style="display:none" onchange="loadLocalImage(event)">
+    <button class="btn" onclick="showSessions()">📁 From Pipeline Session</button>
+    <label>BG Color (no image)</label>
+    <input type="color" id="bg-color" value="#1a1a1a" onchange="redraw()">
+  </div>
+
+  <!-- Effects -->
+  <div class="panel">
+    <div class="panel-title">Effects</div>
+
+    <div class="range-row">
+      <label style="min-width:80px">Brightness</label>
+      <input type="range" id="fx-brightness" min="10" max="200" value="100" oninput="updateFxLabel(this,'lbl-brightness');redraw()">
+      <span class="range-val" id="lbl-brightness">100%</span>
+    </div>
+    <div class="range-row">
+      <label style="min-width:80px">Contrast</label>
+      <input type="range" id="fx-contrast" min="10" max="200" value="100" oninput="updateFxLabel(this,'lbl-contrast');redraw()">
+      <span class="range-val" id="lbl-contrast">100%</span>
+    </div>
+    <div class="range-row">
+      <label style="min-width:80px">Saturation</label>
+      <input type="range" id="fx-saturation" min="0" max="300" value="100" oninput="updateFxLabel(this,'lbl-saturation');redraw()">
+      <span class="range-val" id="lbl-saturation">100%</span>
+    </div>
+    <div class="range-row">
+      <label style="min-width:80px">Blur</label>
+      <input type="range" id="fx-blur" min="0" max="30" value="0" oninput="updateFxLabel(this,'lbl-blur');redraw()">
+      <span class="range-val" id="lbl-blur">0</span>
+    </div>
+    <div class="range-row">
+      <label style="min-width:80px">Vignette</label>
+      <input type="range" id="fx-vignette" min="0" max="100" value="0" oninput="updateFxLabel(this,'lbl-vignette');redraw()">
+      <span class="range-val" id="lbl-vignette">0%</span>
+    </div>
+  </div>
+
+  <!-- Overlays -->
+  <div class="panel">
+    <div class="panel-title">Overlays (PNG)</div>
+    <button class="btn" onclick="document.getElementById('overlay-file-input').click()">📂 Load Custom PNG</button>
+    <input type="file" id="overlay-file-input" accept="image/png,image/webp,image/jpeg" style="display:none" onchange="loadCustomOverlay(event)">
+    <div id="overlay-grid" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+      <span style="font-size:11px;color:#555">Loading...</span>
+    </div>
+  </div>
+
+  <!-- Selected Image Properties -->
+  <div class="panel" id="img-props" style="display:none">
+    <div class="panel-title">Image Properties</div>
+    <label>Scale %</label>
+    <div class="range-row">
+      <input type="range" id="ip-scale" min="5" max="500" value="100" oninput="scaleImgElem(this.value)">
+      <span class="range-val" id="lbl-ip-scale">100%</span>
+    </div>
+    <label>Width (px at 1920×1080)</label>
+    <input type="number" id="ip-width" value="300" min="10" max="1920" oninput="updateImgElem()">
+    <label>Height (px at 1920×1080)</label>
+    <input type="number" id="ip-height" value="300" min="10" max="1080" oninput="updateImgElem()">
+    <label>Opacity %</label>
+    <div class="range-row">
+      <input type="range" id="ip-opacity" min="10" max="100" value="100" oninput="updateImgElem()">
+      <span class="range-val" id="lbl-ip-opacity">100%</span>
+    </div>
+    <label>Position X (0–1920)</label>
+    <input type="number" id="ip-x" value="0" oninput="updateImgElem()">
+    <label>Position Y (0–1080)</label>
+    <input type="number" id="ip-y" value="0" oninput="updateImgElem()">
+    <button class="btn btn-red" onclick="deleteSelected()" style="margin-top:10px">🗑 Delete</button>
+  </div>
+
+  <!-- Text Elements -->
+  <div class="panel">
+    <div class="panel-title">Text Elements</div>
+    <button class="btn btn-blue" onclick="addElement()">+ Add Text</button>
+    <ul id="elem-list" style="margin-top:8px">
+      <li id="no-elem">No elements yet</li>
+    </ul>
+  </div>
+
+  <!-- Selected Element Properties -->
+  <div class="panel" id="elem-props" style="display:none">
+    <div class="panel-title">Text Properties</div>
+
+    <label>Text</label>
+    <textarea id="ep-text" rows="3" oninput="updateElem()"></textarea>
+
+    <label>Font</label>
+    <select id="ep-font" onchange="updateElem()">
+      
+      <option value="aa_bebasneue">aa_bebasneue</option>
+      
+      <option value="Aarcover">Aarcover</option>
+      
+      <option value="Anime Ace v3">Anime Ace v3</option>
+      
+      <option value="Anime Ace">Anime Ace</option>
+      
+      <option value="AstroSpace">AstroSpace</option>
+      
+      <option value="bebasneuebold">bebasneuebold</option>
+      
+      <option value="bebasneuebook">bebasneuebook</option>
+      
+      <option value="bebasneuelight">bebasneuelight</option>
+      
+      <option value="BebasNeuePro-Bold">BebasNeuePro-Bold</option>
+      
+      <option value="bebasneueregular">bebasneueregular</option>
+      
+      <option value="bebasneuethin">bebasneuethin</option>
+      
+      <option value="BENZIN-BOLD">BENZIN-BOLD</option>
+      
+      <option value="Benzin-ExtraBold">Benzin-ExtraBold</option>
+      
+      <option value="BENZIN-MEDIUM">BENZIN-MEDIUM</option>
+      
+      <option value="BENZIN-REGULAR">BENZIN-REGULAR</option>
+      
+      <option value="BENZIN-SEMIBOLD">BENZIN-SEMIBOLD</option>
+      
+      <option value="Black Dogma__DEMO__VERSION">Black Dogma__DEMO__VERSION</option>
+      
+      <option value="BuyanBold">BuyanBold</option>
+      
+      <option value="BuyanRegular">BuyanRegular</option>
+      
+      <option value="BuyanThin">BuyanThin</option>
+      
+      <option value="CIRCE-BOLD">CIRCE-BOLD</option>
+      
+      <option value="CIRCE-EXTRABOLD">CIRCE-EXTRABOLD</option>
+      
+      <option value="CIRCE-LIGHT">CIRCE-LIGHT</option>
+      
+      <option value="CIRCE-REGULAR">CIRCE-REGULAR</option>
+      
+      <option value="CIRCE-THIN">CIRCE-THIN</option>
+      
+      <option value="Comic Sans MS">Comic Sans MS</option>
+      
+      <option value="DharmaGothicC-Bold">DharmaGothicC-Bold</option>
+      
+      <option value="DharmaGothicC-BoldItalic">DharmaGothicC-BoldItalic</option>
+      
+      <option value="DharmaGothicC-ExBold">DharmaGothicC-ExBold</option>
+      
+      <option value="DharmaGothicC-ExBoldItalic">DharmaGothicC-ExBoldItalic</option>
+      
+      <option value="DharmaGothicC-ExLight">DharmaGothicC-ExLight</option>
+      
+      <option value="DharmaGothicC-ExLightItalic">DharmaGothicC-ExLightItalic</option>
+      
+      <option value="DharmaGothicC-Heavy">DharmaGothicC-Heavy</option>
+      
+      <option value="DharmaGothicC-HeavyItalic">DharmaGothicC-HeavyItalic</option>
+      
+      <option value="DharmaGothicC-Light">DharmaGothicC-Light</option>
+      
+      <option value="DharmaGothicC-LightItalic">DharmaGothicC-LightItalic</option>
+      
+      <option value="DharmaGothicC-Regular">DharmaGothicC-Regular</option>
+      
+      <option value="DharmaGothicC-RegularItalic">DharmaGothicC-RegularItalic</option>
+      
+      <option value="DharmaGothicC-Thin">DharmaGothicC-Thin</option>
+      
+      <option value="DharmaGothicC-ThinItalic">DharmaGothicC-ThinItalic</option>
+      
+      <option value="DharmaGothicE-Bold">DharmaGothicE-Bold</option>
+      
+      <option value="DharmaGothicE-BoldItalic">DharmaGothicE-BoldItalic</option>
+      
+      <option value="DharmaGothicE-ExBold">DharmaGothicE-ExBold</option>
+      
+      <option value="DharmaGothicE-ExBoldItalic">DharmaGothicE-ExBoldItalic</option>
+      
+      <option value="DharmaGothicE-ExLight">DharmaGothicE-ExLight</option>
+      
+      <option value="DharmaGothicE-ExLightItalic">DharmaGothicE-ExLightItalic</option>
+      
+      <option value="DharmaGothicE-Heavy">DharmaGothicE-Heavy</option>
+      
+      <option value="DharmaGothicE-HeavyItalic">DharmaGothicE-HeavyItalic</option>
+      
+      <option value="DharmaGothicE-Light">DharmaGothicE-Light</option>
+      
+      <option value="DharmaGothicE-LightItalic">DharmaGothicE-LightItalic</option>
+      
+      <option value="DharmaGothicE-Regular">DharmaGothicE-Regular</option>
+      
+      <option value="DharmaGothicE-RegularItalic">DharmaGothicE-RegularItalic</option>
+      
+      <option value="DharmaGothicE-Thin">DharmaGothicE-Thin</option>
+      
+      <option value="DharmaGothicE-ThinItalic">DharmaGothicE-ThinItalic</option>
+      
+      <option value="DharmaGothicM-Bold">DharmaGothicM-Bold</option>
+      
+      <option value="DharmaGothicM-BoldItalic">DharmaGothicM-BoldItalic</option>
+      
+      <option value="DharmaGothicM-ExBold">DharmaGothicM-ExBold</option>
+      
+      <option value="DharmaGothicM-ExBoldItalic">DharmaGothicM-ExBoldItalic</option>
+      
+      <option value="DharmaGothicM-ExLight">DharmaGothicM-ExLight</option>
+      
+      <option value="DharmaGothicM-ExLightItalic">DharmaGothicM-ExLightItalic</option>
+      
+      <option value="DharmaGothicM-Heavy">DharmaGothicM-Heavy</option>
+      
+      <option value="DharmaGothicM-HeavyItalic">DharmaGothicM-HeavyItalic</option>
+      
+      <option value="DharmaGothicM-Light">DharmaGothicM-Light</option>
+      
+      <option value="DharmaGothicM-LightItalic">DharmaGothicM-LightItalic</option>
+      
+      <option value="DharmaGothicM-Regular">DharmaGothicM-Regular</option>
+      
+      <option value="DharmaGothicM-RegularItalic">DharmaGothicM-RegularItalic</option>
+      
+      <option value="DharmaGothicM-Thin">DharmaGothicM-Thin</option>
+      
+      <option value="DharmaGothicM-ThinItalic">DharmaGothicM-ThinItalic</option>
+      
+      <option value="DrukCyr-Bold">DrukCyr-Bold</option>
+      
+      <option value="DrukCyr-BoldItalic">DrukCyr-BoldItalic</option>
+      
+      <option value="DrukCyr-Heavy">DrukCyr-Heavy</option>
+      
+      <option value="DrukCyr-HeavyItalic">DrukCyr-HeavyItalic</option>
+      
+      <option value="DrukCyr-Medium">DrukCyr-Medium</option>
+      
+      <option value="DrukCyr-MediumItalic">DrukCyr-MediumItalic</option>
+      
+      <option value="DrukCyr-Super">DrukCyr-Super</option>
+      
+      <option value="DrukCyr-SuperItalic">DrukCyr-SuperItalic</option>
+      
+      <option value="F77 Minecraft">F77 Minecraft</option>
+      
+      <option value="futurabookc-italic">futurabookc-italic</option>
+      
+      <option value="futurabookc">futurabookc</option>
+      
+      <option value="futurademic-italic">futurademic-italic</option>
+      
+      <option value="futurademic">futurademic</option>
+      
+      <option value="futuralightc-italic">futuralightc-italic</option>
+      
+      <option value="futuralightc">futuralightc</option>
+      
+      <option value="futuramediumc-italic">futuramediumc-italic</option>
+      
+      <option value="futuramediumc">futuramediumc</option>
+      
+      <option value="Gabarito-VariableFont_wght">Gabarito-VariableFont_wght</option>
+      
+      <option value="GILROY-BLACK">GILROY-BLACK</option>
+      
+      <option value="GILROY-BLACKITALIC">GILROY-BLACKITALIC</option>
+      
+      <option value="GILROY-BOLD">GILROY-BOLD</option>
+      
+      <option value="GILROY-BOLDITALIC">GILROY-BOLDITALIC</option>
+      
+      <option value="GILROY-EXTRABOLD">GILROY-EXTRABOLD</option>
+      
+      <option value="GILROY-EXTRABOLDITALIC">GILROY-EXTRABOLDITALIC</option>
+      
+      <option value="GILROY-HEAVY">GILROY-HEAVY</option>
+      
+      <option value="GILROY-HEAVYITALIC">GILROY-HEAVYITALIC</option>
+      
+      <option value="GILROY-LIGHT">GILROY-LIGHT</option>
+      
+      <option value="GILROY-LIGHTITALIC">GILROY-LIGHTITALIC</option>
+      
+      <option value="GILROY-MEDIUM">GILROY-MEDIUM</option>
+      
+      <option value="GILROY-MEDIUMITALIC">GILROY-MEDIUMITALIC</option>
+      
+      <option value="GILROY-REGULAR">GILROY-REGULAR</option>
+      
+      <option value="GILROY-REGULARITALIC">GILROY-REGULARITALIC</option>
+      
+      <option value="GILROY-SEMIBOLD">GILROY-SEMIBOLD</option>
+      
+      <option value="GILROY-SEMIBOLDITALIC">GILROY-SEMIBOLDITALIC</option>
+      
+      <option value="GILROY-THIN">GILROY-THIN</option>
+      
+      <option value="GILROY-THINITALIC">GILROY-THINITALIC</option>
+      
+      <option value="GILROY-ULTRALIGHTITALIC">GILROY-ULTRALIGHTITALIC</option>
+      
+      <option value="LeagueSpartan-VariableFont_wght">LeagueSpartan-VariableFont_wght</option>
+      
+      <option value="LuckiestGuy-Regular">LuckiestGuy-Regular</option>
+      
+      <option value="minecraft-ten-font-cyrillic">minecraft-ten-font-cyrillic</option>
+      
+      <option value="Montserrat-Black">Montserrat-Black</option>
+      
+      <option value="Montserrat-BlackItalic">Montserrat-BlackItalic</option>
+      
+      <option value="Montserrat-Bold">Montserrat-Bold</option>
+      
+      <option value="Montserrat-BoldItalic">Montserrat-BoldItalic</option>
+      
+      <option value="MONTSERRAT-EXTRABOLD">MONTSERRAT-EXTRABOLD</option>
+      
+      <option value="Montserrat-ExtraBoldItalic">Montserrat-ExtraBoldItalic</option>
+      
+      <option value="MONTSERRAT-EXTRALIGHT">MONTSERRAT-EXTRALIGHT</option>
+      
+      <option value="MONTSERRAT-EXTRALIGHTITALIC">MONTSERRAT-EXTRALIGHTITALIC</option>
+      
+      <option value="MONTSERRAT-ITALIC">MONTSERRAT-ITALIC</option>
+      
+      <option value="MONTSERRAT-LIGHT">MONTSERRAT-LIGHT</option>
+      
+      <option value="MONTSERRAT-LIGHTITALIC">MONTSERRAT-LIGHTITALIC</option>
+      
+      <option value="Montserrat-Medium">Montserrat-Medium</option>
+      
+      <option value="MONTSERRAT-MEDIUMITALIC">MONTSERRAT-MEDIUMITALIC</option>
+      
+      <option value="Montserrat-Regular">Montserrat-Regular</option>
+      
+      <option value="Montserrat-SemiBold">Montserrat-SemiBold</option>
+      
+      <option value="Montserrat-SemiBoldItalic">Montserrat-SemiBoldItalic</option>
+      
+      <option value="Montserrat-Thin">Montserrat-Thin</option>
+      
+      <option value="MONTSERRAT-THINITALIC">MONTSERRAT-THINITALIC</option>
+      
+      <option value="Obelix Pro">Obelix Pro</option>
+      
+      <option value="ofont.ru_Forum">ofont.ru_Forum</option>
+      
+      <option value="ofont.ru_LeoHand">ofont.ru_LeoHand</option>
+      
+      <option value="ofont.ru_Miama Nueva">ofont.ru_Miama Nueva</option>
+      
+      <option value="ofont.ru_Panton">ofont.ru_Panton</option>
+      
+      <option value="Organetto">Organetto</option>
+      
+      <option value="Oswald-VariableFont_wght">Oswald-VariableFont_wght</option>
+      
+      <option value="PixelifySans-VariableFont_wght">PixelifySans-VariableFont_wght</option>
+      
+      <option value="PlayfairDisplay-Italic-VariableFont_wght">PlayfairDisplay-Italic-VariableFont_wght</option>
+      
+      <option value="PlayfairDisplay-VariableFont_wght">PlayfairDisplay-VariableFont_wght</option>
+      
+      <option value="Raleway-Italic-VariableFont_wght">Raleway-Italic-VariableFont_wght</option>
+      
+      <option value="Raleway-VariableFont_wght">Raleway-VariableFont_wght</option>
+      
+      <option value="Raleway">Raleway</option>
+      
+      <option value="Righteous-Regular">Righteous-Regular</option>
+      
+      <option value="Rostov">Rostov</option>
+      
+      <option value="Segoe UI Bold Italic">Segoe UI Bold Italic</option>
+      
+      <option value="Segoe UI Bold">Segoe UI Bold</option>
+      
+      <option value="Segoe UI Italic">Segoe UI Italic</option>
+      
+      <option value="Segoe UI">Segoe UI</option>
+      
+      <option value="SFPROTEXT-BOLD">SFPROTEXT-BOLD</option>
+      
+      <option value="SFPROTEXT-HEAVY">SFPROTEXT-HEAVY</option>
+      
+      <option value="SFPROTEXT-LIGHT">SFPROTEXT-LIGHT</option>
+      
+      <option value="SFPROTEXT-MEDIUM">SFPROTEXT-MEDIUM</option>
+      
+      <option value="SFPROTEXT-REGULAR">SFPROTEXT-REGULAR</option>
+      
+      <option value="SFPROTEXT-SEMIBOLD">SFPROTEXT-SEMIBOLD</option>
+      
+      <option value="the-bold-font">the-bold-font</option>
+      
+      <option value="TTNormsPro-Black">TTNormsPro-Black</option>
+      
+      <option value="TTNormsPro-BlackItalic">TTNormsPro-BlackItalic</option>
+      
+      <option value="TTNormsPro-Bold">TTNormsPro-Bold</option>
+      
+      <option value="TTNormsPro-BoldItalic">TTNormsPro-BoldItalic</option>
+      
+      <option value="TTNormsPro-ExtraBlack">TTNormsPro-ExtraBlack</option>
+      
+      <option value="TTNormsPro-ExtraBlackItalic">TTNormsPro-ExtraBlackItalic</option>
+      
+      <option value="TTNormsPro-ExtraBold">TTNormsPro-ExtraBold</option>
+      
+      <option value="TTNormsPro-ExtraBoldItalic">TTNormsPro-ExtraBoldItalic</option>
+      
+      <option value="TTNormsPro-ExtraLight">TTNormsPro-ExtraLight</option>
+      
+      <option value="TTNormsPro-ExtraLightItalic">TTNormsPro-ExtraLightItalic</option>
+      
+      <option value="TTNormsPro-Italic">TTNormsPro-Italic</option>
+      
+      <option value="TTNormsPro-Light">TTNormsPro-Light</option>
+      
+      <option value="TTNormsPro-LightItalic">TTNormsPro-LightItalic</option>
+      
+      <option value="TTNormsPro-Medium">TTNormsPro-Medium</option>
+      
+      <option value="TTNormsPro-MediumItalic">TTNormsPro-MediumItalic</option>
+      
+      <option value="TTNormsPro-Regular">TTNormsPro-Regular</option>
+      
+      <option value="TTNormsPro-Thin">TTNormsPro-Thin</option>
+      
+      <option value="TTNormsPro-ThinItalic">TTNormsPro-ThinItalic</option>
+      
+      <option value="Unbounded-Black">Unbounded-Black</option>
+      
+      <option value="Unbounded-Blond">Unbounded-Blond</option>
+      
+      <option value="Unbounded-Bold">Unbounded-Bold</option>
+      
+      <option value="Unbounded-Light">Unbounded-Light</option>
+      
+      <option value="Unbounded-Medium">Unbounded-Medium</option>
+      
+      <option value="Unbounded-Regular">Unbounded-Regular</option>
+      
+      <option value="VISUELTPRO-BLACK">VISUELTPRO-BLACK</option>
+      
+      <option value="VISUELTPRO-BLACKITALIC">VISUELTPRO-BLACKITALIC</option>
+      
+      <option value="VISUELTPRO-BOLD">VISUELTPRO-BOLD</option>
+      
+      <option value="VISUELTPRO-BOLDITALIC">VISUELTPRO-BOLDITALIC</option>
+      
+      <option value="VISUELTPRO-EXTRALIGHT">VISUELTPRO-EXTRALIGHT</option>
+      
+      <option value="VISUELTPRO-EXTRALIGHTITALIC">VISUELTPRO-EXTRALIGHTITALIC</option>
+      
+      <option value="VISUELTPRO-ITALIC">VISUELTPRO-ITALIC</option>
+      
+      <option value="VISUELTPRO-LIGHT">VISUELTPRO-LIGHT</option>
+      
+      <option value="VISUELTPRO-LIGHTITALIC">VISUELTPRO-LIGHTITALIC</option>
+      
+      <option value="VISUELTPRO-MEDIUM">VISUELTPRO-MEDIUM</option>
+      
+      <option value="VISUELTPRO-MEDIUMITALIC">VISUELTPRO-MEDIUMITALIC</option>
+      
+      <option value="VISUELTPRO-REGULAR">VISUELTPRO-REGULAR</option>
+      
+      <option value="VISUELTPRO-THIN">VISUELTPRO-THIN</option>
+      
+      <option value="VISUELTPRO-THINITALIC">VISUELTPRO-THINITALIC</option>
+      
+      <option value="Бонус 1">Бонус 1</option>
+      
+      <option value="Бонус 2">Бонус 2</option>
+      
+      <option value="8-BitDisintrest-Regular">8-BitDisintrest-Regular</option>
+      
+      <option value="Akira Expanded Demo">Akira Expanded Demo</option>
+      
+      <option value="animeace2_bld">animeace2_bld</option>
+      
+      <option value="animeace2_ital">animeace2_ital</option>
+      
+      <option value="animeace2_reg">animeace2_reg</option>
+      
+      <option value="DigitalPixel-Regular">DigitalPixel-Regular</option>
+      
+      <option value="Font Awesome 5 Brands-Regular-400">Font Awesome 5 Brands-Regular-400</option>
+      
+      <option value="Font Awesome 5 Free-Regular-400">Font Awesome 5 Free-Regular-400</option>
+      
+      <option value="Font Awesome 5 Free-Solid-900">Font Awesome 5 Free-Solid-900</option>
+      
+      <option value="GhastlyPanicCyr">GhastlyPanicCyr</option>
+      
+      <option value="Komika Title">Komika Title</option>
+      
+      <option value="TS Block Bold">TS Block Bold</option>
+      
+      <option value="TT Berlinerins Trial Grotesk">TT Berlinerins Trial Grotesk</option>
+      
+      <option value="TT Lovelies Script">TT Lovelies Script</option>
+      
+      <option value="tt-alientz-grotesque">tt-alientz-grotesque</option>
+      
+      <option value="Uni Sans Heavy Italic">Uni Sans Heavy Italic</option>
+      
+      <option value="Uni Sans Thin Italic">Uni Sans Thin Italic</option>
+      
+      <option value="Uni Sans Thin">Uni Sans Thin</option>
+      
+      <option value="Бонус 3">Бонус 3</option>
+      
+      <option value="Aldrich-Regular">Aldrich-Regular</option>
+      
+      <option value="ALGER">ALGER</option>
+      
+      <option value="Almendra-Bold">Almendra-Bold</option>
+      
+      <option value="Almendra-BoldItalic">Almendra-BoldItalic</option>
+      
+      <option value="Almendra-Italic">Almendra-Italic</option>
+      
+      <option value="Almendra-Regular">Almendra-Regular</option>
+      
+      <option value="AmaticSC-Bold">AmaticSC-Bold</option>
+      
+      <option value="AmaticSC-Regular">AmaticSC-Regular</option>
+      
+      <option value="Anton-Regular">Anton-Regular</option>
+      
+      <option value="AntonSC-Regular">AntonSC-Regular</option>
+      
+      <option value="ANTQUAB">ANTQUAB</option>
+      
+      <option value="ANTQUABI">ANTQUABI</option>
+      
+      <option value="ANTQUAI">ANTQUAI</option>
+      
+      <option value="arial">arial</option>
+      
+      <option value="arialbd">arialbd</option>
+      
+      <option value="arialbi">arialbi</option>
+      
+      <option value="ariali">ariali</option>
+      
+      <option value="ARIALN">ARIALN</option>
+      
+      <option value="ARIALNB">ARIALNB</option>
+      
+      <option value="ARIALNBI">ARIALNBI</option>
+      
+      <option value="ARIALNI">ARIALNI</option>
+      
+      <option value="ariblk">ariblk</option>
+      
+      <option value="bahnschrift">bahnschrift</option>
+      
+      <option value="Baloo-Regular">Baloo-Regular</option>
+      
+      <option value="BarlowCondensed-Black">BarlowCondensed-Black</option>
+      
+      <option value="BarlowCondensed-BlackItalic">BarlowCondensed-BlackItalic</option>
+      
+      <option value="BarlowCondensed-Bold">BarlowCondensed-Bold</option>
+      
+      <option value="BarlowCondensed-BoldItalic">BarlowCondensed-BoldItalic</option>
+      
+      <option value="BarlowCondensed-ExtraBold">BarlowCondensed-ExtraBold</option>
+      
+      <option value="BarlowCondensed-ExtraBoldItalic">BarlowCondensed-ExtraBoldItalic</option>
+      
+      <option value="BarlowCondensed-ExtraLight">BarlowCondensed-ExtraLight</option>
+      
+      <option value="BarlowCondensed-ExtraLightItalic">BarlowCondensed-ExtraLightItalic</option>
+      
+      <option value="BarlowCondensed-Italic">BarlowCondensed-Italic</option>
+      
+      <option value="BarlowCondensed-Light">BarlowCondensed-Light</option>
+      
+      <option value="BarlowCondensed-LightItalic">BarlowCondensed-LightItalic</option>
+      
+      <option value="BarlowCondensed-Medium">BarlowCondensed-Medium</option>
+      
+      <option value="BarlowCondensed-MediumItalic">BarlowCondensed-MediumItalic</option>
+      
+      <option value="BarlowCondensed-Regular">BarlowCondensed-Regular</option>
+      
+      <option value="BarlowCondensed-SemiBold">BarlowCondensed-SemiBold</option>
+      
+      <option value="BarlowCondensed-SemiBoldItalic">BarlowCondensed-SemiBoldItalic</option>
+      
+      <option value="BarlowCondensed-Thin">BarlowCondensed-Thin</option>
+      
+      <option value="BarlowCondensed-ThinItalic">BarlowCondensed-ThinItalic</option>
+      
+      <option value="BASKVILL">BASKVILL</option>
+      
+      <option value="BAUHS93">BAUHS93</option>
+      
+      <option value="BebasNeue-Regular">BebasNeue-Regular</option>
+      
+      <option value="BELL">BELL</option>
+      
+      <option value="BELLB">BELLB</option>
+      
+      <option value="BELLI">BELLI</option>
+      
+      <option value="Bentham-Regular">Bentham-Regular</option>
+      
+      <option value="BERNHC">BERNHC</option>
+      
+      <option value="BKANT">BKANT</option>
+      
+      <option value="BlackHanSans-Regular">BlackHanSans-Regular</option>
+      
+      <option value="BlackOpsOne-Regular">BlackOpsOne-Regular</option>
+      
+      <option value="BOD_PSTC">BOD_PSTC</option>
+      
+      <option value="BodoniModa-Italic-VariableFont_opsz,wght">BodoniModa-Italic-VariableFont_opsz,wght</option>
+      
+      <option value="BodoniModa-VariableFont_opsz,wght">BodoniModa-VariableFont_opsz,wght</option>
+      
+      <option value="BOOKOS">BOOKOS</option>
+      
+      <option value="BOOKOSB">BOOKOSB</option>
+      
+      <option value="BOOKOSBI">BOOKOSBI</option>
+      
+      <option value="BOOKOSI">BOOKOSI</option>
+      
+      <option value="BowlbyOneSC-Regular">BowlbyOneSC-Regular</option>
+      
+      <option value="BRITANIC">BRITANIC</option>
+      
+      <option value="BRLNSB">BRLNSB</option>
+      
+      <option value="BRLNSDB">BRLNSDB</option>
+      
+      <option value="BRLNSR">BRLNSR</option>
+      
+      <option value="BROADW">BROADW</option>
+      
+      <option value="BRUSHSCI">BRUSHSCI</option>
+      
+      <option value="BSSYM7">BSSYM7</option>
+      
+      <option value="Bungee-Regular">Bungee-Regular</option>
+      
+      <option value="BungeeInline-Regular">BungeeInline-Regular</option>
+      
+      <option value="BungeeShade-Regular">BungeeShade-Regular</option>
+      
+      <option value="CabinSketch-Bold">CabinSketch-Bold</option>
+      
+      <option value="CabinSketch-Regular">CabinSketch-Regular</option>
+      
+      <option value="calibri">calibri</option>
+      
+      <option value="calibrib">calibrib</option>
+      
+      <option value="calibrii">calibrii</option>
+      
+      <option value="calibril">calibril</option>
+      
+      <option value="calibrili">calibrili</option>
+      
+      <option value="calibriz">calibriz</option>
+      
+      <option value="CALIFB">CALIFB</option>
+      
+      <option value="CALIFI">CALIFI</option>
+      
+      <option value="CALIFR">CALIFR</option>
+      
+      <option value="cambriab">cambriab</option>
+      
+      <option value="cambriai">cambriai</option>
+      
+      <option value="cambriaz">cambriaz</option>
+      
+      <option value="Candara">Candara</option>
+      
+      <option value="Candarab">Candarab</option>
+      
+      <option value="Candarai">Candarai</option>
+      
+      <option value="Candaral">Candaral</option>
+      
+      <option value="Candarali">Candarali</option>
+      
+      <option value="Candaraz">Candaraz</option>
+      
+      <option value="Caprasimo-Regular">Caprasimo-Regular</option>
+      
+      <option value="CarterOne-Regular">CarterOne-Regular</option>
+      
+      <option value="CENTAUR">CENTAUR</option>
+      
+      <option value="CENTURY">CENTURY</option>
+      
+      <option value="CHILLER">CHILLER</option>
+      
+      <option value="Cinzel-Black">Cinzel-Black</option>
+      
+      <option value="Coiny-Regular">Coiny-Regular</option>
+      
+      <option value="COLONNA">COLONNA</option>
+      
+      <option value="comic">comic</option>
+      
+      <option value="comicbd">comicbd</option>
+      
+      <option value="comici">comici</option>
+      
+      <option value="comicz">comicz</option>
+      
+      <option value="consola">consola</option>
+      
+      <option value="consolab">consolab</option>
+      
+      <option value="consolai">consolai</option>
+      
+      <option value="consolaz">consolaz</option>
+      
+      <option value="constan">constan</option>
+      
+      <option value="constanb">constanb</option>
+      
+      <option value="constani">constani</option>
+      
+      <option value="constanz">constanz</option>
+      
+      <option value="Cookie-Regular">Cookie-Regular</option>
+      
+      <option value="COOPBL">COOPBL</option>
+      
+      <option value="corbel">corbel</option>
+      
+      <option value="corbelb">corbelb</option>
+      
+      <option value="corbeli">corbeli</option>
+      
+      <option value="corbell">corbell</option>
+      
+      <option value="corbelli">corbelli</option>
+      
+      <option value="corbelz">corbelz</option>
+      
+      <option value="Cormorant-Italic-VariableFont_wght">Cormorant-Italic-VariableFont_wght</option>
+      
+      <option value="Cormorant-VariableFont_wght">Cormorant-VariableFont_wght</option>
+      
+      <option value="cour">cour</option>
+      
+      <option value="courbd">courbd</option>
+      
+      <option value="courbi">courbi</option>
+      
+      <option value="Courgette-Regular">Courgette-Regular</option>
+      
+      <option value="couri">couri</option>
+      
+      <option value="Creepster-Regular">Creepster-Regular</option>
+      
+      <option value="CrimsonText-Bold">CrimsonText-Bold</option>
+      
+      <option value="CrimsonText-BoldItalic">CrimsonText-BoldItalic</option>
+      
+      <option value="CrimsonText-Italic">CrimsonText-Italic</option>
+      
+      <option value="CrimsonText-Regular">CrimsonText-Regular</option>
+      
+      <option value="CrimsonText-SemiBold">CrimsonText-SemiBold</option>
+      
+      <option value="CrimsonText-SemiBoldItalic">CrimsonText-SemiBoldItalic</option>
+      
+      <option value="DaiBannaSIL-Bold">DaiBannaSIL-Bold</option>
+      
+      <option value="DaiBannaSIL-BoldItalic">DaiBannaSIL-BoldItalic</option>
+      
+      <option value="DaiBannaSIL-Italic">DaiBannaSIL-Italic</option>
+      
+      <option value="DaiBannaSIL-Regular">DaiBannaSIL-Regular</option>
+      
+      <option value="DaysOne-Regular">DaysOne-Regular</option>
+      
+      <option value="DoppioOne-Regular">DoppioOne-Regular</option>
+      
+      <option value="ebrima">ebrima</option>
+      
+      <option value="ebrimabd">ebrimabd</option>
+      
+      <option value="Eczar-VariableFont_wght">Eczar-VariableFont_wght</option>
+      
+      <option value="EduVICWANTBeginner-VariableFont_wght">EduVICWANTBeginner-VariableFont_wght</option>
+      
+      <option value="euphorig">euphorig</option>
+      
+      <option value="framd">framd</option>
+      
+      <option value="framdit">framdit</option>
+      
+      <option value="FREESCPT">FREESCPT</option>
+      
+      <option value="FTLTLT">FTLTLT</option>
+      
+      <option value="FugazOne-Regular">FugazOne-Regular</option>
+      
+      <option value="Gabriola">Gabriola</option>
+      
+      <option value="gadugi">gadugi</option>
+      
+      <option value="gadugib">gadugib</option>
+      
+      <option value="GARA">GARA</option>
+      
+      <option value="GARABD">GARABD</option>
+      
+      <option value="GARAIT">GARAIT</option>
+      
+      <option value="georgia">georgia</option>
+      
+      <option value="georgiab">georgiab</option>
+      
+      <option value="georgiai">georgiai</option>
+      
+      <option value="georgiaz">georgiaz</option>
+      
+      <option value="GoblinOne-Regular">GoblinOne-Regular</option>
+      
+      <option value="GOTHIC">GOTHIC</option>
+      
+      <option value="GOTHICB">GOTHICB</option>
+      
+      <option value="GOTHICBI">GOTHICBI</option>
+      
+      <option value="GOTHICI">GOTHICI</option>
+      
+      <option value="GreatVibes-Regular">GreatVibes-Regular</option>
+      
+      <option value="HARLOWSI">HARLOWSI</option>
+      
+      <option value="HARNGTON">HARNGTON</option>
+      
+      <option value="himalaya">himalaya</option>
+      
+      <option value="holomdl2">holomdl2</option>
+      
+      <option value="HTOWERT">HTOWERT</option>
+      
+      <option value="HTOWERTI">HTOWERTI</option>
+      
+      <option value="impact">impact</option>
+      
+      <option value="INFROMAN">INFROMAN</option>
+      
+      <option value="Inkfree">Inkfree</option>
+      
+      <option value="Inter-Bold-slnt=0">Inter-Bold-slnt=0</option>
+      
+      <option value="Inter-Regular-slnt=0">Inter-Regular-slnt=0</option>
+      
+      <option value="ITCKRIST">ITCKRIST</option>
+      
+      <option value="javatext">javatext</option>
+      
+      <option value="JOKERMAN">JOKERMAN</option>
+      
+      <option value="JosefinSans-Bold">JosefinSans-Bold</option>
+      
+      <option value="JosefinSans-BoldItalic">JosefinSans-BoldItalic</option>
+      
+      <option value="JosefinSans-Italic-VariableFont_wght">JosefinSans-Italic-VariableFont_wght</option>
+      
+      <option value="JosefinSans-Italic">JosefinSans-Italic</option>
+      
+      <option value="JosefinSans-Regular">JosefinSans-Regular</option>
+      
+      <option value="JosefinSans-VariableFont_wght">JosefinSans-VariableFont_wght</option>
+      
+      <option value="JUICE___">JUICE___</option>
+      
+      <option value="Jura-VariableFont_wght">Jura-VariableFont_wght</option>
+      
+      <option value="Kalam-Bold">Kalam-Bold</option>
+      
+      <option value="Kalam-Light">Kalam-Light</option>
+      
+      <option value="Kalam-Regular">Kalam-Regular</option>
+      
+      <option value="Kanit-Light">Kanit-Light</option>
+      
+      <option value="KUNSTLER">KUNSTLER</option>
+      
+      <option value="l_10646">l_10646</option>
+      
+      <option value="Lalezar-Regular">Lalezar-Regular</option>
+      
+      <option value="LATINWD">LATINWD</option>
+      
+      <option value="LBRITE">LBRITE</option>
+      
+      <option value="LBRITED">LBRITED</option>
+      
+      <option value="LBRITEDI">LBRITEDI</option>
+      
+      <option value="LBRITEI">LBRITEI</option>
+      
+      <option value="LCALLIG">LCALLIG</option>
+      
+      <option value="LeckerliOne-Regular">LeckerliOne-Regular</option>
+      
+      <option value="LeelaUIb">LeelaUIb</option>
+      
+      <option value="LEELAWAD">LEELAWAD</option>
+      
+      <option value="LEELAWDB">LEELAWDB</option>
+      
+      <option value="LeelawUI">LeelawUI</option>
+      
+      <option value="LeelUIsl">LeelUIsl</option>
+      
+      <option value="Lemon-Regular">Lemon-Regular</option>
+      
+      <option value="LFAX">LFAX</option>
+      
+      <option value="LFAXD">LFAXD</option>
+      
+      <option value="LFAXDI">LFAXDI</option>
+      
+      <option value="LFAXI">LFAXI</option>
+      
+      <option value="LHANDW">LHANDW</option>
+      
+      <option value="LibreCaslonText-Bold">LibreCaslonText-Bold</option>
+      
+      <option value="LibreCaslonText-Italic">LibreCaslonText-Italic</option>
+      
+      <option value="LibreCaslonText-Regular">LibreCaslonText-Regular</option>
+      
+      <option value="Limelight-Regular">Limelight-Regular</option>
+      
+      <option value="lucon">lucon</option>
+      
+      <option value="MAGNETOB">MAGNETOB</option>
+      
+      <option value="malgun">malgun</option>
+      
+      <option value="malgunbd">malgunbd</option>
+      
+      <option value="malgunsl">malgunsl</option>
+      
+      <option value="MarcellusSC-Regular">MarcellusSC-Regular</option>
+      
+      <option value="marlett">marlett</option>
+      
+      <option value="MATURASC">MATURASC</option>
+      
+      <option value="MeaCulpa-Regular">MeaCulpa-Regular</option>
+      
+      <option value="Megrim">Megrim</option>
+      
+      <option value="MeieScript-Regular">MeieScript-Regular</option>
+      
+      <option value="micross">micross</option>
+      
+      <option value="MISTRAL">MISTRAL</option>
+      
+      <option value="mmrtext">mmrtext</option>
+      
+      <option value="mmrtextb">mmrtextb</option>
+      
+      <option value="MOD20">MOD20</option>
+      
+      <option value="Modak-Regular">Modak-Regular</option>
+      
+      <option value="monbaiti">monbaiti</option>
+      
+      <option value="Montserrat-Italic-VariableFont_wght">Montserrat-Italic-VariableFont_wght</option>
+      
+      <option value="Montserrat-VariableFont_wght">Montserrat-VariableFont_wght</option>
+      
+      <option value="MontserratSubrayada-Bold">MontserratSubrayada-Bold</option>
+      
+      <option value="MSUIGHUB">MSUIGHUB</option>
+      
+      <option value="MSUIGHUR">MSUIGHUR</option>
+      
+      <option value="msyi">msyi</option>
+      
+      <option value="MTCORSVA">MTCORSVA</option>
+      
+      <option value="mvboli">mvboli</option>
+      
+      <option value="Neonderthaw-Regular">Neonderthaw-Regular</option>
+      
+      <option value="NIAGENG">NIAGENG</option>
+      
+      <option value="NIAGSOL">NIAGSOL</option>
+      
+      <option value="Nirmala">Nirmala</option>
+      
+      <option value="NirmalaB">NirmalaB</option>
+      
+      <option value="NirmalaS">NirmalaS</option>
+      
+      <option value="Norican-Regular">Norican-Regular</option>
+      
+      <option value="NotoSans-Bold">NotoSans-Bold</option>
+      
+      <option value="NotoSans-BoldItalic">NotoSans-BoldItalic</option>
+      
+      <option value="NotoSans-Italic">NotoSans-Italic</option>
+      
+      <option value="NotoSans-Regular">NotoSans-Regular</option>
+      
+      <option value="NotoSansJP-Bold">NotoSansJP-Bold</option>
+      
+      <option value="ntailu">ntailu</option>
+      
+      <option value="ntailub">ntailub</option>
+      
+      <option value="Nunito-Italic-VariableFont_wght">Nunito-Italic-VariableFont_wght</option>
+      
+      <option value="Nunito-VariableFont_wght">Nunito-VariableFont_wght</option>
+      
+      <option value="OLDENGL">OLDENGL</option>
+      
+      <option value="ONYX">ONYX</option>
+      
+      <option value="Oranienbaum-Regular">Oranienbaum-Regular</option>
+      
+      <option value="Orbitron-Bold">Orbitron-Bold</option>
+      
+      <option value="pala">pala</option>
+      
+      <option value="palab">palab</option>
+      
+      <option value="palabi">palabi</option>
+      
+      <option value="palai">palai</option>
+      
+      <option value="PARCHM">PARCHM</option>
+      
+      <option value="PathwayGothicOne-Regular">PathwayGothicOne-Regular</option>
+      
+      <option value="PermanentMarker">PermanentMarker</option>
+      
+      <option value="phagspa">phagspa</option>
+      
+      <option value="phagspab">phagspab</option>
+      
+      <option value="PirataOne-Regular">PirataOne-Regular</option>
+      
+      <option value="Playball-Regular">Playball-Regular</option>
+      
+      <option value="PLAYBILL">PLAYBILL</option>
+      
+      <option value="PoetsenOne-Regular">PoetsenOne-Regular</option>
+      
+      <option value="POORICH">POORICH</option>
+      
+      <option value="Poppins-Black">Poppins-Black</option>
+      
+      <option value="Poppins-BlackItalic">Poppins-BlackItalic</option>
+      
+      <option value="Poppins-Bold">Poppins-Bold</option>
+      
+      <option value="Poppins-BoldItalic">Poppins-BoldItalic</option>
+      
+      <option value="Poppins-ExtraBold">Poppins-ExtraBold</option>
+      
+      <option value="Poppins-ExtraBoldItalic">Poppins-ExtraBoldItalic</option>
+      
+      <option value="Poppins-ExtraLight">Poppins-ExtraLight</option>
+      
+      <option value="Poppins-ExtraLightItalic">Poppins-ExtraLightItalic</option>
+      
+      <option value="Poppins-Italic">Poppins-Italic</option>
+      
+      <option value="Poppins-Light">Poppins-Light</option>
+      
+      <option value="Poppins-LightItalic">Poppins-LightItalic</option>
+      
+      <option value="Poppins-Medium">Poppins-Medium</option>
+      
+      <option value="Poppins-MediumItalic">Poppins-MediumItalic</option>
+      
+      <option value="Poppins-Regular">Poppins-Regular</option>
+      
+      <option value="Poppins-SemiBold">Poppins-SemiBold</option>
+      
+      <option value="Poppins-SemiBoldItalic">Poppins-SemiBoldItalic</option>
+      
+      <option value="Poppins-Thin">Poppins-Thin</option>
+      
+      <option value="Poppins-ThinItalic">Poppins-ThinItalic</option>
+      
+      <option value="ProtestStrike-Regular">ProtestStrike-Regular</option>
+      
+      <option value="Quicksand-Bold">Quicksand-Bold</option>
+      
+      <option value="Quicksand-Light">Quicksand-Light</option>
+      
+      <option value="Quicksand-Medium">Quicksand-Medium</option>
+      
+      <option value="Quicksand-Regular">Quicksand-Regular</option>
+      
+      <option value="RammettoOne-Regular">RammettoOne-Regular</option>
+      
+      <option value="RAVIE">RAVIE</option>
+      
+      <option value="REFSAN">REFSAN</option>
+      
+      <option value="REFSPCL">REFSPCL</option>
+      
+      <option value="Roboto-Bold_2">Roboto-Bold_2</option>
+      
+      <option value="Roboto-Light">Roboto-Light</option>
+      
+      <option value="Roboto-Medium">Roboto-Medium</option>
+      
+      <option value="Roboto-Regular">Roboto-Regular</option>
+      
+      <option value="Rokkitt-Italic-VariableFont_wght">Rokkitt-Italic-VariableFont_wght</option>
+      
+      <option value="Rokkitt-VariableFont_wght">Rokkitt-VariableFont_wght</option>
+      
+      <option value="Rubik-Bold">Rubik-Bold</option>
+      
+      <option value="Rubik-BoldItalic">Rubik-BoldItalic</option>
+      
+      <option value="Rubik-Italic">Rubik-Italic</option>
+      
+      <option value="Rubik-Regular">Rubik-Regular</option>
+      
+      <option value="RussoOne-Regular">RussoOne-Regular</option>
+      
+      <option value="Sansita-Regular">Sansita-Regular</option>
+      
+      <option value="SansitaOne">SansitaOne</option>
+      
+      <option value="segmdl2">segmdl2</option>
+      
+      <option value="segoepr">segoepr</option>
+      
+      <option value="segoeprb">segoeprb</option>
+      
+      <option value="segoesc">segoesc</option>
+      
+      <option value="segoescb">segoescb</option>
+      
+      <option value="segoeui">segoeui</option>
+      
+      <option value="segoeuib">segoeuib</option>
+      
+      <option value="segoeuii">segoeuii</option>
+      
+      <option value="segoeuil">segoeuil</option>
+      
+      <option value="segoeuisl">segoeuisl</option>
+      
+      <option value="segoeuiz">segoeuiz</option>
+      
+      <option value="seguibl">seguibl</option>
+      
+      <option value="seguibli">seguibli</option>
+      
+      <option value="seguiemj">seguiemj</option>
+      
+      <option value="seguihis">seguihis</option>
+      
+      <option value="seguili">seguili</option>
+      
+      <option value="seguisb">seguisb</option>
+      
+      <option value="seguisbi">seguisbi</option>
+      
+      <option value="seguisli">seguisli</option>
+      
+      <option value="seguisym">seguisym</option>
+      
+      <option value="SHOWG">SHOWG</option>
+      
+      <option value="Shrikhand-Regular">Shrikhand-Regular</option>
+      
+      <option value="SigmarOne-Regular">SigmarOne-Regular</option>
+      
+      <option value="simsunb">simsunb</option>
+      
+      <option value="SimsunExtG">SimsunExtG</option>
+      
+      <option value="SixCaps-Regular">SixCaps-Regular</option>
+      
+      <option value="Skranji-Bold">Skranji-Bold</option>
+      
+      <option value="SNAP____">SNAP____</option>
+      
+      <option value="SortsMillGoudy-Regular">SortsMillGoudy-Regular</option>
+      
+      <option value="SourceCodePro-Italic-VariableFont_wght">SourceCodePro-Italic-VariableFont_wght</option>
+      
+      <option value="SourceCodePro-VariableFont_wght">SourceCodePro-VariableFont_wght</option>
+      
+      <option value="SpicyRice-Regular">SpicyRice-Regular</option>
+      
+      <option value="Staatliches-Regular">Staatliches-Regular</option>
+      
+      <option value="STENCIL">STENCIL</option>
+      
+      <option value="sylfaen">sylfaen</option>
+      
+      <option value="symbol">symbol</option>
+      
+      <option value="Syne-VariableFont_wght">Syne-VariableFont_wght</option>
+      
+      <option value="tahoma">tahoma</option>
+      
+      <option value="tahomabd">tahomabd</option>
+      
+      <option value="taile">taile</option>
+      
+      <option value="taileb">taileb</option>
+      
+      <option value="Teko-SemiBold">Teko-SemiBold</option>
+      
+      <option value="Teko-VariableFont_wght">Teko-VariableFont_wght</option>
+      
+      <option value="TEMPSITC">TEMPSITC</option>
+      
+      <option value="times">times</option>
+      
+      <option value="timesbd">timesbd</option>
+      
+      <option value="timesbi">timesbi</option>
+      
+      <option value="timesi">timesi</option>
+      
+      <option value="TitanOne-Regular">TitanOne-Regular</option>
+      
+      <option value="trebuc">trebuc</option>
+      
+      <option value="trebucbd">trebucbd</option>
+      
+      <option value="trebucbi">trebucbi</option>
+      
+      <option value="trebucit">trebucit</option>
+      
+      <option value="UbuntuMono-Bold">UbuntuMono-Bold</option>
+      
+      <option value="UbuntuMono-Regular">UbuntuMono-Regular</option>
+      
+      <option value="Unbounded-VariableFont_wght">Unbounded-VariableFont_wght</option>
+      
+      <option value="VastShadow-Regular">VastShadow-Regular</option>
+      
+      <option value="verdana">verdana</option>
+      
+      <option value="verdanab">verdanab</option>
+      
+      <option value="verdanai">verdanai</option>
+      
+      <option value="verdanaz">verdanaz</option>
+      
+      <option value="VINERITC">VINERITC</option>
+      
+      <option value="VIVALDII">VIVALDII</option>
+      
+      <option value="VLADIMIR">VLADIMIR</option>
+      
+      <option value="webdings">webdings</option>
+      
+      <option value="WendyOne-Regular">WendyOne-Regular</option>
+      
+      <option value="wingding">wingding</option>
+      
+      <option value="WINGDNG2">WINGDNG2</option>
+      
+      <option value="WINGDNG3">WINGDNG3</option>
+      
+      <option value="YatraOne-Regular">YatraOne-Regular</option>
+      
+      <option value="Yellowtail-Regular">Yellowtail-Regular</option>
+      
+      <option value="Yesteryear-Regular">Yesteryear-Regular</option>
+      
+    </select>
+
+    <label>Size (px at 1920×1080)</label>
+    <input type="number" id="ep-size" value="80" min="10" max="800" oninput="updateElem()">
+    <label>Scale %</label>
+    <div class="range-row">
+      <input type="range" id="ep-scale" min="5" max="500" value="100" oninput="scaleTextElem(this.value)">
+      <span class="range-val" id="lbl-ep-scale">100%</span>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <label>Color</label>
+      <input type="color" id="ep-color" value="#ffffff" oninput="updateElem()">
+      <label style="margin-left:10px">Stroke color</label>
+      <input type="color" id="ep-stroke-color" value="#000000" oninput="updateElem()">
+    </div>
+
+    <label>Stroke width (0 = none)</label>
+    <input type="number" id="ep-stroke-width" value="0" min="0" max="20" oninput="updateElem()">
+
+    <div class="row" style="margin-top:8px; gap:16px">
+      <label><input type="checkbox" id="ep-bold" onchange="updateElem()"> Bold</label>
+      <label><input type="checkbox" id="ep-shadow" checked onchange="updateElem()"> Shadow</label>
+    </div>
+
+    <label>Opacity %</label>
+    <div class="range-row">
+      <input type="range" id="ep-opacity" min="10" max="100" value="100" oninput="updateElem()">
+      <span class="range-val" id="lbl-opacity">100%</span>
+    </div>
+
+    <label>Position X (0–1920)</label>
+    <input type="number" id="ep-x" value="60" oninput="updateElem()">
+    <label>Position Y (0–1080)</label>
+    <input type="number" id="ep-y" value="60" oninput="updateElem()">
+
+    <button class="btn btn-red" onclick="deleteSelected()" style="margin-top:10px">🗑 Delete Element</button>
+  </div>
+
+  <!-- Project -->
+  <div class="panel">
+    <div class="panel-title">Project</div>
+    <button class="btn" onclick="saveProject()">💾 Save Project (.json)</button>
+    <button class="btn" onclick="document.getElementById('project-input').click()">📂 Load Project</button>
+    <input type="file" id="project-input" accept=".json" style="display:none" onchange="loadProject(event)">
+  </div>
+
+  <!-- Export -->
+  <div class="panel">
+    <div class="panel-title">Export</div>
+    <label>Save path (optional)</label>
+    <input type="text" id="export-path" placeholder="D:/output/thumbnail.png">
+    <button class="btn btn-green" onclick="exportPNG()" style="margin-top:8px">⬇ Export PNG 1920×1080</button>
+  </div>
+
+</div>
+
+<!-- ══════════════ CANVAS AREA ══════════════ -->
+<div id="canvas-area">
+  <div id="toolbar">
+    <span style="font-size:12px;color:#888">Canvas: 1920×1080 — displayed at</span>
+    <select id="zoom-select" onchange="setZoom(this.value)" style="background:#333;border:1px solid #555;color:#ddd;padding:3px 6px;border-radius:4px;font-size:12px">
+      <option value="0.4">40%</option>
+      <option value="0.5" selected>50%</option>
+      <option value="0.6">60%</option>
+      <option value="0.75">75%</option>
+      <option value="1.0">100%</option>
+    </select>
+    <span id="status" style="margin-left:8px"></span>
+  </div>
+  <div id="canvas-wrap">
+    <div id="canvas-container">
+      <canvas id="main-canvas" width="960" height="540"></canvas>
+      <div id="drag-overlay"></div>
+      <textarea id="inline-editor" rows="1" spellcheck="false"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- Session picker modal -->
+<div id="session-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#2a2a2a;border:1px solid #444;border-radius:8px;padding:20px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+      <b>Select Image from Pipeline</b>
+      <span style="cursor:pointer;color:#888" onclick="closeModal()">✕</span>
+    </div>
+    <div id="session-list"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════════
+const CANVAS_W = 1920, CANVAS_H = 1080;
+let zoom = 0.5;
+let bgImage = null;      // HTMLImageElement
+let bgData  = null;      // base64 data URL
+let elements = [];       // [{id, text, font, size, color, x, y, bold, shadow, stroke_width, stroke_color, opacity}]
+let selectedId = null;
+let nextId = 1;
+
+const canvas  = document.getElementById('main-canvas');
+const ctx     = canvas.getContext('2d');
+const overlay = document.getElementById('drag-overlay');
+
+// ════════════════════════════════════════════════════════
+// Zoom
+// ════════════════════════════════════════════════════════
+function setZoom(z) {
+  zoom = parseFloat(z);
+  canvas.width  = Math.round(CANVAS_W * zoom);
+  canvas.height = Math.round(CANVAS_H * zoom);
+  overlay.style.width  = canvas.width  + 'px';
+  overlay.style.height = canvas.height + 'px';
+  redraw();
+  rebuildHandles();
+}
+
+// ════════════════════════════════════════════════════════
+// Overlays
+// ════════════════════════════════════════════════════════
+async function loadOverlayGrid() {
+  const r = await fetch('/api/overlays');
+  const list = await r.json();
+  const grid = document.getElementById('overlay-grid');
+  if (!list.length) { grid.innerHTML = '<span style="font-size:11px;color:#555">Drop PNGs into config/thumbnail_overlays/</span>'; return; }
+  grid.innerHTML = '';
+  for (const ov of list) {
+    const btn = document.createElement('div');
+    const displayLabel = ov.label || ov.name;
+    btn.title = displayLabel + (ov.tags?.length ? '\n🏷 ' + ov.tags.slice(0,5).join(', ') : '');
+    btn.style.cssText = 'cursor:pointer;background:#333;border:1px solid #555;border-radius:4px;padding:4px;text-align:center;width:72px;flex-shrink:0';
+    btn.innerHTML = `<div style="font-size:9px;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${displayLabel}">${displayLabel}</div>`;
+    // Lazy-load thumbnail
+    const thumb = document.createElement('img');
+    thumb.style.cssText = 'width:60px;height:60px;object-fit:contain;display:block;margin:0 auto 2px';
+    thumb.src = '/api/overlay-img/' + encodeURIComponent(ov.file);
+    btn.prepend(thumb);
+    btn.onclick = () => addOverlayFromUrl('/api/overlay/' + encodeURIComponent(ov.file), displayLabel);
+    btn.onmouseenter = () => btn.style.background = '#444';
+    btn.onmouseleave = () => btn.style.background = '#333';
+    grid.appendChild(btn);
+  }
+}
+
+async function addOverlayFromUrl(apiUrl, name) {
+  setStatus('Loading overlay...');
+  const r = await fetch(apiUrl);
+  const d = await r.json();
+  if (d.error) { setStatus('Error: ' + d.error); return; }
+  const img = new Image();
+  img.onload = () => {
+    // Scale to fit nicely: max 400px wide at 1920
+    const scale = Math.min(400 / img.naturalWidth, 400 / img.naturalHeight, 1);
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+    const el = { id: nextId++, type: 'image', name, src: d.data,
+      x: Math.round((CANVAS_W - w) / 2), y: Math.round((CANVAS_H - h) / 2),
+      width: w, height: h, opacity: 100, scale: 100, _img: img };
+    elements.push(el);
+    selectImgElem(el.id);
+    renderElemList();
+    redraw();
+    setStatus('Overlay added: ' + name);
+  };
+  img.src = d.data;
+}
+
+function loadCustomOverlay(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const src = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(400 / img.naturalWidth, 400 / img.naturalHeight, 1);
+      const w = Math.round(img.naturalWidth * scale);
+      const h = Math.round(img.naturalHeight * scale);
+      const el = { id: nextId++, type: 'image', name: file.name.replace(/\.[^.]+$/, ''),
+        src, x: Math.round((CANVAS_W - w) / 2), y: Math.round((CANVAS_H - h) / 2),
+        width: w, height: h, opacity: 100, scale: 100, _img: img };
+      elements.push(el);
+      selectImgElem(el.id);
+      renderElemList();
+      redraw();
+    };
+    img.src = src;
+  };
+  reader.readAsDataURL(file);
+  evt.target.value = '';
+}
+
+function selectImgElem(id) {
+  selectedId = id;
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  document.getElementById('elem-props').style.display = 'none';
+  const p = document.getElementById('img-props');
+  p.style.display = 'block';
+  document.getElementById('ip-scale').value  = el.scale || 100;
+  document.getElementById('lbl-ip-scale').textContent = (el.scale || 100) + '%';
+  document.getElementById('ip-width').value  = el.width;
+  document.getElementById('ip-height').value = el.height;
+  document.getElementById('ip-opacity').value = el.opacity || 100;
+  document.getElementById('lbl-ip-opacity').textContent = (el.opacity || 100) + '%';
+  document.getElementById('ip-x').value = el.x;
+  document.getElementById('ip-y').value = el.y;
+  p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  renderElemList();
+  redraw();
+}
+
+function updateImgElem() {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el || el.type !== 'image') return;
+  el.width   = parseInt(document.getElementById('ip-width').value)   || 300;
+  el.height  = parseInt(document.getElementById('ip-height').value)  || 300;
+  el.opacity = parseInt(document.getElementById('ip-opacity').value) || 100;
+  el.x       = parseInt(document.getElementById('ip-x').value) || 0;
+  el.y       = parseInt(document.getElementById('ip-y').value) || 0;
+  document.getElementById('lbl-ip-opacity').textContent = el.opacity + '%';
+  redraw();
+}
+
+function scaleImgElem(val) {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el || el.type !== 'image') return;
+  const s = parseInt(val) || 100;
+  el.scale = s;
+  document.getElementById('lbl-ip-scale').textContent = s + '%';
+  // Proportionally update width/height from natural image dimensions
+  if (el._img) {
+    const base = el._scaleBase || { w: el._img.naturalWidth, h: el._img.naturalHeight };
+    el._scaleBase = base;
+    el.width  = Math.max(10, Math.round(base.w * s / 100));
+    el.height = Math.max(10, Math.round(base.h * s / 100));
+    document.getElementById('ip-width').value  = el.width;
+    document.getElementById('ip-height').value = el.height;
+  }
+  redraw();
+  rebuildHandles();
+}
+
+// ════════════════════════════════════════════════════════
+// Image loading
+// ════════════════════════════════════════════════════════
+function loadLocalImage(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    bgData = e.target.result;
+    const img = new Image();
+    img.onload = () => { bgImage = img; redraw(); };
+    img.src = bgData;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function loadFromPath(path) {
+  closeModal();
+  setStatus('Loading...');
+  const r = await fetch('/api/load_image', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path})});
+  const d = await r.json();
+  if (d.error) { setStatus('Error: ' + d.error); return; }
+  bgData = d.data;
+  const img = new Image();
+  img.onload = () => { bgImage = img; redraw(); setStatus('Image loaded'); };
+  img.src = bgData;
+}
+
+// ════════════════════════════════════════════════════════
+// Sessions modal
+// ════════════════════════════════════════════════════════
+async function showSessions() {
+  document.getElementById('session-modal').style.display = 'flex';
+  document.getElementById('session-list').innerHTML = 'Loading...';
+  const r = await fetch('/api/sessions');
+  const sessions = await r.json();
+  if (!sessions.length) {
+    document.getElementById('session-list').innerHTML = '<p style="color:#888">No sessions found.</p>';
+    return;
+  }
+  let html = '';
+  sessions.forEach(sess => {
+    html += `<div style="margin-bottom:12px"><b style="color:#aaa">${sess.channel} / ${sess.session}</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">`;
+    sess.photos.forEach(p => {
+      const name = p.split('/').pop().split('\\').pop();
+      html += `<div style="cursor:pointer;background:#333;padding:4px 8px;border-radius:4px;font-size:12px;border:1px solid #555" onclick="loadFromPath('${p.replace(/\\/g,'/')}')">${name}</div>`;
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('session-list').innerHTML = html;
+}
+
+function closeModal() {
+  document.getElementById('session-modal').style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════
+// Drawing
+// ════════════════════════════════════════════════════════
+function getEffects() {
+  return {
+    brightness: parseInt(document.getElementById('fx-brightness').value),
+    contrast:   parseInt(document.getElementById('fx-contrast').value),
+    saturation: parseInt(document.getElementById('fx-saturation').value),
+    blur:       parseInt(document.getElementById('fx-blur').value),
+    vignette:   parseInt(document.getElementById('fx-vignette').value),
+  };
+}
+
+function redraw() {
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Background
+  if (bgImage) {
+    // Apply CSS filters for live preview
+    const fx = getEffects();
+    ctx.filter = `brightness(${fx.brightness}%) contrast(${fx.contrast}%) saturate(${fx.saturation}%) blur(${fx.blur * zoom}px)`;
+    ctx.drawImage(bgImage, 0, 0, w, h);
+    ctx.filter = 'none';
+
+    // Vignette
+    if (fx.vignette > 0) {
+      const grad = ctx.createRadialGradient(w/2, h/2, h*0.2, w/2, h/2, h*0.8);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, `rgba(0,0,0,${fx.vignette/100})`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    }
+  } else {
+    ctx.fillStyle = document.getElementById('bg-color').value;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Draw all elements
+  elements.forEach(el => {
+    if (el.type === 'image') {
+      if (!el._img) return;
+      const sc = (el.scale || 100) / 100;
+      ctx.save();
+      ctx.globalAlpha = (el.opacity || 100) / 100;
+      ctx.drawImage(el._img, el.x * zoom, el.y * zoom, el.width * zoom * sc, el.height * zoom * sc);
+      ctx.restore();
+    } else {
+      if (_inlineEl && el.id === _inlineEl.id) return;
+      drawTextElement(ctx, el, zoom);
+    }
+  });
+
+  // Selection highlight
+  if (selectedId !== null) {
+    const el = elements.find(e => e.id === selectedId);
+    if (el) {
+      ctx.strokeStyle = 'rgba(74,158,255,0.8)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 3]);
+      const b = getElementBBox(el);
+      ctx.strokeRect(b.x - 3, b.y - 3, b.w + 6, b.h + 6);
+      ctx.setLineDash([]);
+    }
+  }
+}
+
+function drawTextElement(ctx, el, scale) {
+  const x     = el.x * scale;
+  const y     = el.y * scale;
+  const size  = (el.size || 80) * scale * ((el.scale || 100) / 100);
+  const text  = el.text || '';
+  const color = el.color || '#ffffff';
+  const opacity = (el.opacity || 100) / 100;
+  const strokeW = (el.stroke_width || 0) * scale;
+  const shadow  = el.shadow !== false;
+  const font    = `${el.bold ? 'bold ' : ''}${size}px "${el.font || 'Arial'}", Arial, sans-serif`;
+
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.font = font;
+  ctx.textBaseline = 'top';
+
+  const lines = text.split('\n');
+  const lineH = size * 1.2;
+
+  lines.forEach((line, i) => {
+    const ly = y + i * lineH;
+
+    if (shadow) {
+      ctx.shadowColor = 'rgba(0,0,0,0.85)';
+      ctx.shadowBlur  = 8 * scale;
+      ctx.shadowOffsetX = 3 * scale;
+      ctx.shadowOffsetY = 3 * scale;
+    }
+
+    if (strokeW > 0) {
+      ctx.strokeStyle = el.stroke_color || '#000000';
+      ctx.lineWidth   = strokeW * 2;
+      ctx.lineJoin    = 'round';
+      ctx.shadowColor = 'transparent';
+      ctx.strokeText(line, x, ly);
+    }
+
+    ctx.shadowColor   = shadow ? 'rgba(0,0,0,0.85)' : 'transparent';
+    ctx.shadowBlur    = shadow ? 8 * scale : 0;
+    ctx.shadowOffsetX = shadow ? 3 * scale : 0;
+    ctx.shadowOffsetY = shadow ? 3 * scale : 0;
+    ctx.fillStyle = color;
+    ctx.fillText(line, x, ly);
+  });
+
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════
+// Elements management
+// ════════════════════════════════════════════════════════
+function addElement() {
+  const el = {
+    id: nextId++, text: 'Your Title Here',
+    font: document.getElementById('ep-font') ? document.getElementById('ep-font').options[0]?.value || 'Arial' : 'Arial',
+    size: 80, color: '#ffffff',
+    x: 60, y: 60,
+    bold: false, shadow: true,
+    stroke_width: 0, stroke_color: '#000000',
+    opacity: 100, scale: 100,
+  };
+  elements.push(el);
+  selectElement(el.id);
+  renderElemList();
+  redraw();
+  rebuildHandles();
+}
+
+function deleteSelected() {
+  if (selectedId === null) return;
+  elements = elements.filter(e => e.id !== selectedId);
+  selectedId = null;
+  document.getElementById('elem-props').style.display = 'none';
+  renderElemList();
+  redraw();
+  rebuildHandles();
+}
+
+function selectElement(id, focusText = false) {
+  selectedId = id;
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+
+  const panel = document.getElementById('elem-props');
+  panel.style.display = 'block';
+  const _noElem = document.getElementById('no-elem');
+  if (_noElem) _noElem.style.display = 'none';
+
+  const ta = document.getElementById('ep-text');
+  ta.value = el.text;
+  document.getElementById('ep-font').value         = el.font;
+  document.getElementById('ep-size').value         = el.size;
+  document.getElementById('ep-color').value        = el.color;
+  document.getElementById('ep-stroke-color').value = el.stroke_color || '#000000';
+  document.getElementById('ep-stroke-width').value = el.stroke_width || 0;
+  document.getElementById('ep-bold').checked       = el.bold;
+  document.getElementById('ep-shadow').checked     = el.shadow !== false;
+  document.getElementById('ep-opacity').value      = el.opacity || 100;
+  document.getElementById('lbl-opacity').textContent = (el.opacity || 100) + '%';
+  document.getElementById('ep-scale').value        = el.scale || 100;
+  document.getElementById('lbl-ep-scale').textContent = (el.scale || 100) + '%';
+  document.getElementById('ep-x').value            = el.x;
+  document.getElementById('ep-y').value            = el.y;
+
+  document.getElementById('img-props').style.display = 'none';
+  // Scroll sidebar so Text Properties panel is visible
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Focus textarea if requested (double-click)
+  if (focusText) {
+    setTimeout(() => { ta.focus(); ta.select(); }, 100);
+  }
+
+  renderElemList();
+  redraw();
+}
+
+function updateElem() {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el) return;
+  el.text         = document.getElementById('ep-text').value;
+  el.font         = document.getElementById('ep-font').value;
+  el.size         = parseInt(document.getElementById('ep-size').value) || 80;
+  el.color        = document.getElementById('ep-color').value;
+  el.stroke_color = document.getElementById('ep-stroke-color').value;
+  el.stroke_width = parseInt(document.getElementById('ep-stroke-width').value) || 0;
+  el.bold         = document.getElementById('ep-bold').checked;
+  el.shadow       = document.getElementById('ep-shadow').checked;
+  el.opacity      = parseInt(document.getElementById('ep-opacity').value);
+  el.x            = parseInt(document.getElementById('ep-x').value) || 0;
+  el.y            = parseInt(document.getElementById('ep-y').value) || 0;
+  document.getElementById('lbl-opacity').textContent = el.opacity + '%';
+  renderElemList();
+  redraw();
+  rebuildHandles();
+}
+
+function scaleTextElem(val) {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el) return;
+  el.scale = parseInt(val) || 100;
+  document.getElementById('lbl-ep-scale').textContent = el.scale + '%';
+  redraw();
+  rebuildHandles();
+}
+
+function renderElemList() {
+  const list = document.getElementById('elem-list');
+  const noEl = document.getElementById('no-elem');
+  // Remove only dynamically-added items so #no-elem stays in DOM
+  Array.from(list.querySelectorAll('li:not(#no-elem)')).forEach(li => li.remove());
+  if (elements.length === 0) {
+    if (noEl) noEl.style.display = 'block';
+    return;
+  }
+  if (noEl) noEl.style.display = 'none';
+  elements.forEach(el => {
+    const li = document.createElement('li');
+    li.className = el.id === selectedId ? 'active' : '';
+    const label = el.type === 'image'
+      ? `🖼 ${el.name || 'image'}`
+      : ((el.text || '').split('\n')[0].slice(0, 22) || '(empty)');
+    li.innerHTML = `<span>${label}</span><span class="del-btn" onclick="event.stopPropagation();deleteElem(${el.id})">✕</span>`;
+    li.onclick = () => el.type === 'image' ? selectImgElem(el.id) : selectElement(el.id);
+    list.appendChild(li);
+  });
+}
+
+function deleteElem(id) {
+  elements = elements.filter(e => e.id !== id);
+  if (selectedId === id) {
+    selectedId = null;
+    document.getElementById('elem-props').style.display = 'none';
+    document.getElementById('img-props').style.display = 'none';
+  }
+  renderElemList();
+  redraw();
+  rebuildHandles();
+}
+
+// ════════════════════════════════════════════════════════
+// Canvas mouse interaction — click to select, drag to move
+// ════════════════════════════════════════════════════════
+function rebuildHandles() {} // no-op, handled via canvas directly
+
+function getElementBBox(el) {
+  if (el.type === 'image') {
+    const sc = (el.scale || 100) / 100;
+    return { x: el.x * zoom, y: el.y * zoom, w: el.width * zoom * sc, h: el.height * zoom * sc };
+  }
+  const size  = (el.size || 80) * zoom * ((el.scale || 100) / 100);
+  const lines = (el.text || '').split('\n');
+  const lineH = size * 1.2;
+  ctx.save();
+  ctx.font = `${el.bold ? 'bold ' : ''}${size}px "${el.font||'Arial'}", Arial, sans-serif`;
+  const maxW = Math.max(...lines.map(l => ctx.measureText(l).width));
+  ctx.restore();
+  return { x: el.x * zoom, y: el.y * zoom, w: maxW + 20, h: lineH * lines.length + 10 };
+}
+
+function hitTest(mx, my) {
+  // Test in reverse order (top element first)
+  for (let i = elements.length - 1; i >= 0; i--) {
+    const el = elements[i];
+    const b  = getElementBBox(el);
+    if (mx >= b.x - 10 && mx <= b.x + b.w + 10 &&
+        my >= b.y - 10 && my <= b.y + b.h + 10) {
+      return el;
+    }
+  }
+  return null;
+}
+
+let _dragging = false;
+let _dragEl = null, _offsetX = 0, _offsetY = 0;
+
+canvas.style.cursor = 'default';
+
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const hit = hitTest(mx, my);
+  if (hit) {
+    _dragging = true;
+    _dragEl   = hit;
+    const b  = getElementBBox(hit);
+    _offsetX = mx - b.x;
+    _offsetY = my - b.y;
+    if (hit.type === 'image') selectImgElem(hit.id);
+    else selectElement(hit.id);
+    canvas.style.cursor = 'grabbing';
+    e.preventDefault();
+  } else {
+    selectedId = null;
+    document.getElementById('elem-props').style.display = 'none';
+    document.getElementById('img-props').style.display = 'none';
+    renderElemList();
+    redraw();
+  }
+});
+
+document.addEventListener('mousemove', e => {
+  if (!_dragging || !_dragEl) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  _dragEl.x = Math.round((mx - _offsetX) / zoom);
+  _dragEl.y = Math.round((my - _offsetY) / zoom);
+  // Update whichever position fields are visible
+  if (_dragEl.type === 'image') {
+    document.getElementById('ip-x').value = _dragEl.x;
+    document.getElementById('ip-y').value = _dragEl.y;
+  } else {
+    document.getElementById('ep-x').value = _dragEl.x;
+    document.getElementById('ep-y').value = _dragEl.y;
+  }
+  redraw();
+});
+
+document.addEventListener('mouseup', () => {
+  if (_dragging) { _dragging = false; _dragEl = null; canvas.style.cursor = 'default'; }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (_dragging) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.style.cursor = hitTest(e.clientX - rect.left, e.clientY - rect.top) ? 'grab' : 'default';
+});
+
+// ════════════════════════════════════════════════════════
+// Inline text editor (Photoshop-style, directly on canvas)
+// ════════════════════════════════════════════════════════
+const inlineEditor = document.getElementById('inline-editor');
+let _inlineEl = null;
+
+function _resizeInlineEditor() {
+  inlineEditor.style.height = 'auto';
+  inlineEditor.style.height = inlineEditor.scrollHeight + 'px';
+}
+
+function showInlineEditor(el) {
+  _inlineEl = el;
+  const fontSize = (el.size || 80) * zoom;
+  const canvasW  = canvas.width;
+
+  inlineEditor.style.left       = (el.x * zoom) + 'px';
+  inlineEditor.style.top        = (el.y * zoom) + 'px';
+  inlineEditor.style.fontSize   = fontSize + 'px';
+  inlineEditor.style.lineHeight = '1.2';
+  inlineEditor.style.fontFamily = `"${el.font || 'Arial'}", Arial, sans-serif`;
+  inlineEditor.style.fontWeight = el.bold ? 'bold' : 'normal';
+  inlineEditor.style.color      = el.color || '#ffffff';
+  // Stay within canvas bounds
+  inlineEditor.style.maxWidth   = (canvasW - el.x * zoom - 10) + 'px';
+  inlineEditor.style.minWidth   = Math.min(200, canvasW * 0.4) + 'px';
+  inlineEditor.style.height     = 'auto';
+  inlineEditor.value            = el.text || '';
+  inlineEditor.style.display    = 'block';
+  _resizeInlineEditor();
+  inlineEditor.focus();
+  // Select all on open
+  inlineEditor.setSelectionRange(0, inlineEditor.value.length);
+  redraw(); // redraw so canvas doesn't show ghost text under editor
+}
+
+function hideInlineEditor() {
+  if (!_inlineEl) return;
+  inlineEditor.style.display = 'none';
+  _inlineEl = null;
+  redraw();
+}
+
+inlineEditor.addEventListener('input', () => {
+  if (!_inlineEl) return;
+  _inlineEl.text = inlineEditor.value;
+  document.getElementById('ep-text').value = inlineEditor.value;
+  _resizeInlineEditor();
+  renderElemList();
+  redraw();
+});
+
+inlineEditor.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { hideInlineEditor(); e.preventDefault(); }
+});
+
+// Prevent mousedown inside editor from bubbling to canvas (avoids re-selecting / drag)
+inlineEditor.addEventListener('mousedown', e => e.stopPropagation());
+
+// Hide when clicking outside both the editor and the canvas text
+document.addEventListener('mousedown', e => {
+  if (!_inlineEl) return;
+  if (e.target === inlineEditor) return;
+  // Clicked canvas — check if on the same element
+  if (e.target === canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const hit  = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+    if (hit && hit.id === _inlineEl.id) return; // same element → keep editor open
+  }
+  hideInlineEditor();
+});
+
+// Double-click on canvas → open inline editor (text only)
+canvas.addEventListener('dblclick', e => {
+  const rect = canvas.getBoundingClientRect();
+  const hit  = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+  if (hit && hit.type !== 'image') {
+    selectElement(hit.id);
+    showInlineEditor(hit);
+    e.preventDefault();
+  }
+});
+
+// ════════════════════════════════════════════════════════
+// Export
+// ════════════════════════════════════════════════════════
+function _serializeElements() {
+  // Strip non-serializable _img field from image elements
+  return elements.map(el => {
+    if (el.type === 'image') {
+      const { _img, ...rest } = el;
+      return rest;
+    }
+    return el;
+  });
+}
+
+async function exportPNG() {
+  setStatus('Exporting...');
+  const payload = {
+    bg_data:     bgData || null,
+    effects:     getEffects(),
+    elements:    _serializeElements(),
+    output_path: document.getElementById('export-path').value.trim(),
+  };
+  const r = await fetch('/api/export', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) { setStatus('Export failed'); return; }
+  const blob = await r.blob();
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'thumbnail.png'; a.click();
+  URL.revokeObjectURL(url);
+  setStatus(`Exported (${(blob.size / 1024 / 1024).toFixed(1)} MB)`);
+}
+
+// ════════════════════════════════════════════════════════
+// Utils
+// ════════════════════════════════════════════════════════
+function updateFxLabel(input, lblId) {
+  const unit = input.id === 'fx-blur' ? '' : '%';
+  document.getElementById(lblId).textContent = input.value + unit;
+}
+
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg;
+}
+
+// ════════════════════════════════════════════════════════
+// Project Save / Load
+// ════════════════════════════════════════════════════════
+function saveProject() {
+  const project = {
+    version: 1,
+    bg_data: bgData,
+    effects: getEffects(),
+    elements: _serializeElements(),
+    export_path: document.getElementById('export-path').value,
+  };
+  const blob = new Blob([JSON.stringify(project, null, 2)], {type: 'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'thumbnail_project.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  setStatus('Project saved');
+}
+
+function loadProject(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const project = JSON.parse(e.target.result);
+
+      // Restore background
+      if (project.bg_data) {
+        bgData = project.bg_data;
+        const img = new Image();
+        img.onload = () => {
+          bgImage = img;
+          // Force canvas size before drawing
+          canvas.width  = Math.round(CANVAS_W * zoom);
+          canvas.height = Math.round(CANVAS_H * zoom);
+          overlay.style.width  = canvas.width + 'px';
+          overlay.style.height = canvas.height + 'px';
+          redraw();
+          rebuildHandles();
+          setStatus('Project loaded: ' + file.name);
+        };
+        img.onerror = () => setStatus('ERROR: could not load background image');
+        img.src = bgData;
+      } else {
+        bgImage = null; bgData = null;
+        redraw();
+      }
+
+      // Restore effects
+      const fx = project.effects || {};
+      if (fx.brightness !== undefined) document.getElementById('fx-brightness').value = fx.brightness;
+      if (fx.contrast   !== undefined) document.getElementById('fx-contrast').value   = fx.contrast;
+      if (fx.saturation !== undefined) document.getElementById('fx-saturation').value = fx.saturation;
+      if (fx.blur       !== undefined) document.getElementById('fx-blur').value       = fx.blur;
+      if (fx.vignette   !== undefined) document.getElementById('fx-vignette').value   = fx.vignette;
+      ['brightness','contrast','saturation','blur','vignette'].forEach(k => {
+        const el = document.getElementById('fx-'+k);
+        const lbl = document.getElementById('lbl-'+k);
+        if (el && lbl) lbl.textContent = el.value + (k === 'blur' ? '' : '%');
+      });
+
+      // Restore elements — reload _img for image elements
+      elements = project.elements || [];
+      nextId = elements.length ? Math.max(...elements.map(e => e.id)) + 1 : 1;
+      selectedId = null;
+      document.getElementById('elem-props').style.display = 'none';
+      document.getElementById('img-props').style.display = 'none';
+      let imgPending = elements.filter(e => e.type === 'image' && e.src).length;
+      if (imgPending === 0) { renderElemList(); redraw(); rebuildHandles(); }
+      elements.forEach(el => {
+        if (el.type === 'image' && el.src) {
+          const img = new Image();
+          img.onload = () => {
+            el._img = img;
+            imgPending--;
+            if (imgPending === 0) { renderElemList(); redraw(); rebuildHandles(); }
+          };
+          img.src = el.src;
+        }
+      });
+
+      // Restore export path
+      if (project.export_path) document.getElementById('export-path').value = project.export_path;
+
+      setStatus('Project loaded: ' + file.name);
+    } catch(err) {
+      setStatus('Error loading project: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+// ════════════════════════════════════════════════════════
+// Init
+// ════════════════════════════════════════════════════════
+setZoom(0.5);
+redraw();
+loadOverlayGrid();
+</script>
+</body>
+</html>

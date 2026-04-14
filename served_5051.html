@@ -1,0 +1,3082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thumbnail Editor — 1920×1080</title>
+<style>
+/* ══════════════════════════════════════════════════════════
+   BASE
+══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #111;
+  --panel:    #1a1a1a;
+  --panel2:   #1f1f1f;
+  --hdr:      #222;
+  --border:   #2e2e2e;
+  --input:    #252525;
+  --text:     #ddd;
+  --dim:      #777;
+  --accent:   #4a9eff;
+  --accentH:  #6bb3ff;
+  --green:    #2ea043;
+  --greenH:   #3cb371;
+  --red:      #c0392b;
+  --redH:     #e74c3c;
+  --orange:   #d97706;
+  --radius:   5px;
+  --trans:    0.15s ease;
+}
+
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Inter, system-ui, sans-serif;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* ══════════════════════════════════════════════════════════
+   TOP BAR
+══════════════════════════════════════════════════════════ */
+#topbar {
+  height: 46px;
+  min-height: 46px;
+  background: #161616;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 10px;
+  z-index: 10;
+  user-select: none;
+}
+
+.tb-logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.3px;
+  padding-right: 12px;
+  border-right: 1px solid var(--border);
+  margin-right: 10px;
+  white-space: nowrap;
+}
+
+.tb-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  border-right: 1px solid var(--border);
+}
+.tb-group:last-child { border-right: none; }
+.tb-group-label {
+  font-size: 10px;
+  color: var(--dim);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.tb-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background var(--trans), border-color var(--trans), color var(--trans);
+  white-space: nowrap;
+  line-height: 1;
+  min-width: 28px;
+  text-align: center;
+}
+.tb-btn:hover:not(:disabled) { background: #2a2a2a; border-color: var(--border); }
+.tb-btn:active:not(:disabled) { background: #333; }
+.tb-btn:disabled { opacity: 0.3; cursor: default; }
+.tb-btn.active { background: #1e3a5f; border-color: var(--accent); color: var(--accent); }
+.tb-btn.green  { background: var(--green); border-color: var(--greenH); color: #fff; }
+.tb-btn.green:hover { background: var(--greenH); }
+.tb-btn.red    { background: var(--red); border-color: var(--redH); color: #fff; }
+.tb-btn.red:hover { background: var(--redH); }
+
+.tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+#tb-status {
+  font-size: 11px;
+  color: var(--dim);
+  padding: 0 10px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#zoom-sel {
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 3px 6px;
+  border-radius: var(--radius);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN LAYOUT
+══════════════════════════════════════════════════════════ */
+#main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SIDE PANELS
+══════════════════════════════════════════════════════════ */
+.side-panel {
+  width: 268px;
+  min-width: 268px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#right-panel { border-right: none; border-left: 1px solid var(--border); }
+
+/* ── Collapsible Panel ── */
+.panel { border-bottom: 1px solid var(--border); }
+.panel-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--hdr);
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #aaa;
+  transition: background var(--trans);
+  gap: 6px;
+}
+.panel-hdr:hover { background: #282828; }
+.panel-hdr .chevron {
+  font-size: 9px;
+  transition: transform var(--trans);
+  color: var(--dim);
+  margin-left: auto;
+}
+.panel.collapsed .chevron { transform: rotate(-90deg); }
+.panel.collapsed .panel-body { display: none; }
+.panel-hdr-actions { display: flex; gap: 4px; margin-left: auto; }
+.panel-hdr-btn {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+}
+.panel-hdr-btn:hover { background: var(--accentH); }
+.panel-hdr-btn.dim { background: #333; color: var(--dim); }
+.panel-hdr-btn.dim:hover { background: #444; color: var(--text); }
+
+.panel-body { padding: 10px 12px; }
+
+/* ── Inputs ── */
+label {
+  font-size: 11px;
+  color: var(--dim);
+  display: block;
+  margin-bottom: 3px;
+  margin-top: 8px;
+}
+label:first-child { margin-top: 0; }
+
+input[type=text], input[type=number], select, textarea {
+  width: 100%;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-family: inherit;
+  transition: border-color var(--trans);
+  outline: none;
+}
+input[type=text]:focus, input[type=number]:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+textarea { resize: vertical; min-height: 56px; }
+input[type=color] {
+  width: 32px; height: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  background: none;
+  padding: 1px;
+}
+input[type=range] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.row { display: flex; gap: 6px; align-items: center; }
+.row label { margin: 0; white-space: nowrap; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+.range-row { display: flex; align-items: center; gap: 6px; }
+.range-row input[type=range] { flex: 1; }
+.range-val { font-size: 11px; color: var(--dim); min-width: 34px; text-align: right; }
+
+/* ── Buttons ── */
+.btn {
+  background: #2a2a2a;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  width: 100%;
+  margin-top: 5px;
+  transition: background var(--trans), border-color var(--trans);
+  text-align: center;
+}
+.btn:hover { background: #333; border-color: #444; }
+.btn.blue  { background: #1a4f8c; border-color: var(--accent); color: #fff; }
+.btn.blue:hover { background: #2060a8; }
+.btn.green { background: #1a4f2e; border-color: var(--green); color: #fff; }
+.btn.green:hover { background: var(--green); }
+.btn.red   { background: #4f1a1a; border-color: var(--red); color: #fff; }
+.btn.red:hover { background: var(--red); }
+
+.btn-row { display: flex; gap: 5px; margin-top: 5px; }
+.btn-row .btn { flex: 1; }
+
+/* ══════════════════════════════════════════════════════════
+   LAYER LIST
+══════════════════════════════════════════════════════════ */
+#layer-list {
+  list-style: none;
+  padding: 0;
+}
+#layer-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid transparent;
+  margin-bottom: 2px;
+  transition: background var(--trans);
+}
+#layer-list li:hover { background: #252525; }
+#layer-list li.active { background: #1e3a5f; border-color: #2a6aaa; }
+#layer-list li .layer-icon { font-size: 12px; flex-shrink: 0; }
+#layer-list li .layer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+#layer-list li .layer-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--trans); }
+#layer-list li:hover .layer-actions { opacity: 1; }
+#layer-list li.active .layer-actions { opacity: 1; }
+.layer-btn {
+  background: none;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.layer-btn:hover { background: #3a3a3a; color: var(--text); }
+.layer-btn.del:hover { color: var(--red); }
+#no-layer { color: var(--dim); text-align: center; padding: 20px 0; font-size: 11px; }
+
+/* ══════════════════════════════════════════════════════════
+   OVERLAY GRID
+══════════════════════════════════════════════════════════ */
+#overlay-search {
+  margin-bottom: 8px;
+}
+#overlay-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.ov-btn {
+  width: 68px;
+  cursor: pointer;
+  background: #252525;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  text-align: center;
+  transition: background var(--trans), border-color var(--trans);
+  flex-shrink: 0;
+}
+.ov-btn:hover { background: #2e2e2e; border-color: #4a4a4a; }
+.ov-btn.active { border-color: var(--accent); background: #1e3a5f; }
+.ov-btn img { width: 56px; height: 56px; object-fit: contain; display: block; margin: 0 auto 2px; }
+.ov-label { font-size: 8.5px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
+
+/* ══════════════════════════════════════════════════════════
+   CANVAS AREA
+══════════════════════════════════════════════════════════ */
+#canvas-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c0c0c;
+  overflow: auto;
+  position: relative;
+}
+#canvas-container {
+  position: relative;
+  flex-shrink: 0;
+}
+canvas {
+  display: block;
+  cursor: default;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.05);
+}
+#drag-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+#inline-editor {
+  position: absolute;
+  display: none;
+  background: rgba(0,0,0,0.55);
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  color: #fff;
+  padding: 2px 6px;
+  resize: none;
+  outline: none;
+  z-index: 100;
+  line-height: 1.2;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px rgba(74,158,255,0.15);
+  font-family: inherit;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RIGHT PANEL – PROPERTIES
+══════════════════════════════════════════════════════════ */
+#no-sel-msg {
+  padding: 32px 16px;
+  text-align: center;
+  color: #333;
+}
+#no-sel-msg .ns-icon { font-size: 40px; margin-bottom: 10px; }
+#no-sel-msg .ns-text { font-size: 11px; line-height: 1.5; }
+
+/* ── Shortcut hint bar ── */
+#shortcuts-bar {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: #444;
+  line-height: 1.8;
+}
+.sc-key {
+  display: inline-block;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: monospace;
+  color: var(--dim);
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════════════════════ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: #222;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 620px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+.modal-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+.modal-close {
+  cursor: pointer;
+  color: var(--dim);
+  font-size: 16px;
+  line-height: 1;
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.modal-close:hover { background: #333; color: var(--text); }
+
+/* ── Notification toast ── */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #222;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--text);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  opacity: 0;
+  z-index: 2000;
+  white-space: nowrap;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+#toast.ok  { border-color: var(--green); }
+#toast.err { border-color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     TOP BAR
+══════════════════════════════════════════════════════════ -->
+<div id="topbar">
+  <span class="tb-logo">✦ ThumbEdit</span>
+
+  <!-- History -->
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-undo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↩ Undo</button>
+    <button class="tb-btn" id="btn-redo" onclick="redo()" title="Redo (Ctrl+Y)" disabled>↪ Redo</button>
+  </div>
+
+  <!-- Align -->
+  <div class="tb-group">
+    <span class="tb-group-label">Align:</span>
+    <button class="tb-btn" onclick="alignElem('left')"    title="Align Left (elements)">⇤</button>
+    <button class="tb-btn" onclick="alignElem('centerH')" title="Center Horizontal">⇔</button>
+    <button class="tb-btn" onclick="alignElem('right')"   title="Align Right">⇥</button>
+    <span class="tb-sep"></span>
+    <button class="tb-btn" onclick="alignElem('top')"     title="Align Top">⇡</button>
+    <button class="tb-btn" onclick="alignElem('centerV')" title="Center Vertical">⇕</button>
+    <button class="tb-btn" onclick="alignElem('bottom')"  title="Align Bottom">⇣</button>
+  </div>
+
+  <!-- Duplicate -->
+  <div class="tb-group">
+    <button class="tb-btn" onclick="duplicateSelected()" title="Duplicate (Ctrl+D)">⧉ Dupe</button>
+    <button class="tb-btn" onclick="deleteSelected()"    title="Delete (Del)" id="btn-del">🗑</button>
+  </div>
+
+  <!-- Zoom -->
+  <div class="tb-group">
+    <span class="tb-group-label">Zoom:</span>
+    <select id="zoom-sel" onchange="setZoom(this.value)">
+      <option value="0.3">30%</option>
+      <option value="0.4">40%</option>
+      <option value="0.5" selected>50%</option>
+      <option value="0.6">60%</option>
+      <option value="0.75">75%</option>
+      <option value="1.0">100%</option>
+    </select>
+  </div>
+
+  <span id="tb-status"></span>
+
+  <!-- Export -->
+  <div class="tb-group">
+    <button class="tb-btn green" onclick="exportPNG()" title="Export 1920×1080 PNG (Ctrl+E)">⬇ Export PNG</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="side-panel" id="left-panel">
+
+    <!-- Background -->
+    <div class="panel">
+      <div class="panel-hdr" onclick="togglePanel(this)">
+        <span>🖼 Background</span><span class="chevron">▼</span>
+      </div>
+      <div class="panel-body">
+        <button class="btn" onclick="document.getElementById('file-input').click()">📂 Load Image</button>
+        <input type="file" id="file-input" accept="image/*" style="display:none" onchange="loadLocalImage(event)">
+        <button class="btn" onclick="showSessions()">📁 From Pipeline Session</button>
+        <label>BG Color (no image)</label>
+        <input type="color" id="bg-color" value="#1a1a1a" onchange="redraw()">
+      </div>
+    </div>
+
+    <!-- Effects -->
+    <div class="panel collapsed">
+      <div class="panel-hdr" onclick="togglePanel(this)">
+        <span>✨ Effects</span><span class="chevron">▼</span>
+      </div>
+      <div class="panel-body">
+        <label>Brightness</label>
+        <div class="range-row">
+          <input type="range" id="fx-brightness" min="10" max="200" value="100" oninput="updateFxLabel(this,'lbl-br');redraw()">
+          <span class="range-val" id="lbl-br">100%</span>
+        </div>
+        <label>Contrast</label>
+        <div class="range-row">
+          <input type="range" id="fx-contrast" min="10" max="200" value="100" oninput="updateFxLabel(this,'lbl-co');redraw()">
+          <span class="range-val" id="lbl-co">100%</span>
+        </div>
+        <label>Saturation</label>
+        <div class="range-row">
+          <input type="range" id="fx-saturation" min="0" max="300" value="100" oninput="updateFxLabel(this,'lbl-sa');redraw()">
+          <span class="range-val" id="lbl-sa">100%</span>
+        </div>
+        <label>Blur</label>
+        <div class="range-row">
+          <input type="range" id="fx-blur" min="0" max="30" value="0" oninput="updateFxLabel(this,'lbl-bl');redraw()">
+          <span class="range-val" id="lbl-bl">0</span>
+        </div>
+        <label>Vignette</label>
+        <div class="range-row">
+          <input type="range" id="fx-vignette" min="0" max="100" value="0" oninput="updateFxLabel(this,'lbl-vi');redraw()">
+          <span class="range-val" id="lbl-vi">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlays -->
+    <div class="panel">
+      <div class="panel-hdr" onclick="togglePanel(this)">
+        <span>📦 Overlays</span>
+        <div class="panel-hdr-actions" onclick="event.stopPropagation()">
+          <button class="panel-hdr-btn dim" onclick="document.getElementById('ov-file-in').click()">+ Custom</button>
+        </div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="panel-body">
+        <input type="text" id="overlay-search" placeholder="🔍 Search overlays..."
+               oninput="filterOverlays(this.value)" style="margin-bottom:8px">
+        <input type="file" id="ov-file-in" accept="image/*" style="display:none" onchange="loadCustomOverlay(event)">
+        <div id="overlay-grid">
+          <span style="font-size:11px;color:#444">Loading...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layers -->
+    <div class="panel" style="flex:1;display:flex;flex-direction:column">
+      <div class="panel-hdr" style="cursor:default">
+        <span>🗂 Layers</span>
+        <div class="panel-hdr-actions">
+          <button class="panel-hdr-btn" onclick="addElement()">+ Text</button>
+        </div>
+      </div>
+      <div class="panel-body" style="flex:1;overflow-y:auto;padding-bottom:4px">
+        <ul id="layer-list">
+          <li id="no-layer">No elements yet</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /left-panel -->
+
+  <!-- ══ CANVAS ══ -->
+  <div id="canvas-area">
+    <div id="canvas-container">
+      <canvas id="main-canvas" width="960" height="540"></canvas>
+      <div id="drag-overlay"></div>
+      <textarea id="inline-editor" rows="1" spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="side-panel" id="right-panel">
+
+    <!-- No selection -->
+    <div id="no-sel-msg">
+      <div class="ns-icon">🎯</div>
+      <div class="ns-text">Click an element to edit its properties.<br><br>Double-click text to edit inline.</div>
+    </div>
+
+    <!-- Image Properties -->
+    <div class="panel" id="img-props" style="display:none">
+      <div class="panel-hdr"><span>🖼 Image</span></div>
+      <div class="panel-body">
+        <label>Scale %</label>
+        <div class="range-row">
+          <input type="range" id="ip-scale" min="5" max="500" value="100" oninput="scaleImgElem(this.value)">
+          <span class="range-val" id="lbl-ip-scale">100%</span>
+        </div>
+        <div class="row2" style="margin-top:8px">
+          <div>
+            <label>Width px</label>
+            <input type="number" id="ip-width" value="300" min="10" max="3840" oninput="updateImgElem()">
+          </div>
+          <div>
+            <label>Height px</label>
+            <input type="number" id="ip-height" value="300" min="10" max="2160" oninput="updateImgElem()">
+          </div>
+        </div>
+        <label>Opacity %</label>
+        <div class="range-row">
+          <input type="range" id="ip-opacity" min="0" max="100" value="100" oninput="updateImgElem()">
+          <span class="range-val" id="lbl-ip-opacity">100%</span>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <div>
+            <label>X (0–1920)</label>
+            <input type="number" id="ip-x" value="0" oninput="updateImgElem()">
+          </div>
+          <div>
+            <label>Y (0–1080)</label>
+            <input type="number" id="ip-y" value="0" oninput="updateImgElem()">
+          </div>
+        </div>
+        <button class="btn red" onclick="deleteSelected()" style="margin-top:12px">🗑 Delete</button>
+      </div>
+    </div>
+
+    <!-- Text Properties -->
+    <div class="panel" id="elem-props" style="display:none">
+      <div class="panel-hdr"><span>T Text</span></div>
+      <div class="panel-body">
+        <label>Text</label>
+        <textarea id="ep-text" rows="3" oninput="updateElem()"></textarea>
+
+        <label>Font</label>
+        <select id="ep-font" onchange="updateElem()">
+          
+          <option value="aa_bebasneue">aa_bebasneue</option>
+          
+          <option value="Aarcover">Aarcover</option>
+          
+          <option value="Anime Ace v3">Anime Ace v3</option>
+          
+          <option value="Anime Ace">Anime Ace</option>
+          
+          <option value="AstroSpace">AstroSpace</option>
+          
+          <option value="bebasneuebold">bebasneuebold</option>
+          
+          <option value="bebasneuebook">bebasneuebook</option>
+          
+          <option value="bebasneuelight">bebasneuelight</option>
+          
+          <option value="BebasNeuePro-Bold">BebasNeuePro-Bold</option>
+          
+          <option value="bebasneueregular">bebasneueregular</option>
+          
+          <option value="bebasneuethin">bebasneuethin</option>
+          
+          <option value="BENZIN-BOLD">BENZIN-BOLD</option>
+          
+          <option value="Benzin-ExtraBold">Benzin-ExtraBold</option>
+          
+          <option value="BENZIN-MEDIUM">BENZIN-MEDIUM</option>
+          
+          <option value="BENZIN-REGULAR">BENZIN-REGULAR</option>
+          
+          <option value="BENZIN-SEMIBOLD">BENZIN-SEMIBOLD</option>
+          
+          <option value="Black Dogma__DEMO__VERSION">Black Dogma__DEMO__VERSION</option>
+          
+          <option value="BuyanBold">BuyanBold</option>
+          
+          <option value="BuyanRegular">BuyanRegular</option>
+          
+          <option value="BuyanThin">BuyanThin</option>
+          
+          <option value="CIRCE-BOLD">CIRCE-BOLD</option>
+          
+          <option value="CIRCE-EXTRABOLD">CIRCE-EXTRABOLD</option>
+          
+          <option value="CIRCE-LIGHT">CIRCE-LIGHT</option>
+          
+          <option value="CIRCE-REGULAR">CIRCE-REGULAR</option>
+          
+          <option value="CIRCE-THIN">CIRCE-THIN</option>
+          
+          <option value="Comic Sans MS">Comic Sans MS</option>
+          
+          <option value="DharmaGothicC-Bold">DharmaGothicC-Bold</option>
+          
+          <option value="DharmaGothicC-BoldItalic">DharmaGothicC-BoldItalic</option>
+          
+          <option value="DharmaGothicC-ExBold">DharmaGothicC-ExBold</option>
+          
+          <option value="DharmaGothicC-ExBoldItalic">DharmaGothicC-ExBoldItalic</option>
+          
+          <option value="DharmaGothicC-ExLight">DharmaGothicC-ExLight</option>
+          
+          <option value="DharmaGothicC-ExLightItalic">DharmaGothicC-ExLightItalic</option>
+          
+          <option value="DharmaGothicC-Heavy">DharmaGothicC-Heavy</option>
+          
+          <option value="DharmaGothicC-HeavyItalic">DharmaGothicC-HeavyItalic</option>
+          
+          <option value="DharmaGothicC-Light">DharmaGothicC-Light</option>
+          
+          <option value="DharmaGothicC-LightItalic">DharmaGothicC-LightItalic</option>
+          
+          <option value="DharmaGothicC-Regular">DharmaGothicC-Regular</option>
+          
+          <option value="DharmaGothicC-RegularItalic">DharmaGothicC-RegularItalic</option>
+          
+          <option value="DharmaGothicC-Thin">DharmaGothicC-Thin</option>
+          
+          <option value="DharmaGothicC-ThinItalic">DharmaGothicC-ThinItalic</option>
+          
+          <option value="DharmaGothicE-Bold">DharmaGothicE-Bold</option>
+          
+          <option value="DharmaGothicE-BoldItalic">DharmaGothicE-BoldItalic</option>
+          
+          <option value="DharmaGothicE-ExBold">DharmaGothicE-ExBold</option>
+          
+          <option value="DharmaGothicE-ExBoldItalic">DharmaGothicE-ExBoldItalic</option>
+          
+          <option value="DharmaGothicE-ExLight">DharmaGothicE-ExLight</option>
+          
+          <option value="DharmaGothicE-ExLightItalic">DharmaGothicE-ExLightItalic</option>
+          
+          <option value="DharmaGothicE-Heavy">DharmaGothicE-Heavy</option>
+          
+          <option value="DharmaGothicE-HeavyItalic">DharmaGothicE-HeavyItalic</option>
+          
+          <option value="DharmaGothicE-Light">DharmaGothicE-Light</option>
+          
+          <option value="DharmaGothicE-LightItalic">DharmaGothicE-LightItalic</option>
+          
+          <option value="DharmaGothicE-Regular">DharmaGothicE-Regular</option>
+          
+          <option value="DharmaGothicE-RegularItalic">DharmaGothicE-RegularItalic</option>
+          
+          <option value="DharmaGothicE-Thin">DharmaGothicE-Thin</option>
+          
+          <option value="DharmaGothicE-ThinItalic">DharmaGothicE-ThinItalic</option>
+          
+          <option value="DharmaGothicM-Bold">DharmaGothicM-Bold</option>
+          
+          <option value="DharmaGothicM-BoldItalic">DharmaGothicM-BoldItalic</option>
+          
+          <option value="DharmaGothicM-ExBold">DharmaGothicM-ExBold</option>
+          
+          <option value="DharmaGothicM-ExBoldItalic">DharmaGothicM-ExBoldItalic</option>
+          
+          <option value="DharmaGothicM-ExLight">DharmaGothicM-ExLight</option>
+          
+          <option value="DharmaGothicM-ExLightItalic">DharmaGothicM-ExLightItalic</option>
+          
+          <option value="DharmaGothicM-Heavy">DharmaGothicM-Heavy</option>
+          
+          <option value="DharmaGothicM-HeavyItalic">DharmaGothicM-HeavyItalic</option>
+          
+          <option value="DharmaGothicM-Light">DharmaGothicM-Light</option>
+          
+          <option value="DharmaGothicM-LightItalic">DharmaGothicM-LightItalic</option>
+          
+          <option value="DharmaGothicM-Regular">DharmaGothicM-Regular</option>
+          
+          <option value="DharmaGothicM-RegularItalic">DharmaGothicM-RegularItalic</option>
+          
+          <option value="DharmaGothicM-Thin">DharmaGothicM-Thin</option>
+          
+          <option value="DharmaGothicM-ThinItalic">DharmaGothicM-ThinItalic</option>
+          
+          <option value="DrukCyr-Bold">DrukCyr-Bold</option>
+          
+          <option value="DrukCyr-BoldItalic">DrukCyr-BoldItalic</option>
+          
+          <option value="DrukCyr-Heavy">DrukCyr-Heavy</option>
+          
+          <option value="DrukCyr-HeavyItalic">DrukCyr-HeavyItalic</option>
+          
+          <option value="DrukCyr-Medium">DrukCyr-Medium</option>
+          
+          <option value="DrukCyr-MediumItalic">DrukCyr-MediumItalic</option>
+          
+          <option value="DrukCyr-Super">DrukCyr-Super</option>
+          
+          <option value="DrukCyr-SuperItalic">DrukCyr-SuperItalic</option>
+          
+          <option value="F77 Minecraft">F77 Minecraft</option>
+          
+          <option value="futurabookc-italic">futurabookc-italic</option>
+          
+          <option value="futurabookc">futurabookc</option>
+          
+          <option value="futurademic-italic">futurademic-italic</option>
+          
+          <option value="futurademic">futurademic</option>
+          
+          <option value="futuralightc-italic">futuralightc-italic</option>
+          
+          <option value="futuralightc">futuralightc</option>
+          
+          <option value="futuramediumc-italic">futuramediumc-italic</option>
+          
+          <option value="futuramediumc">futuramediumc</option>
+          
+          <option value="Gabarito-VariableFont_wght">Gabarito-VariableFont_wght</option>
+          
+          <option value="GILROY-BLACK">GILROY-BLACK</option>
+          
+          <option value="GILROY-BLACKITALIC">GILROY-BLACKITALIC</option>
+          
+          <option value="GILROY-BOLD">GILROY-BOLD</option>
+          
+          <option value="GILROY-BOLDITALIC">GILROY-BOLDITALIC</option>
+          
+          <option value="GILROY-EXTRABOLD">GILROY-EXTRABOLD</option>
+          
+          <option value="GILROY-EXTRABOLDITALIC">GILROY-EXTRABOLDITALIC</option>
+          
+          <option value="GILROY-HEAVY">GILROY-HEAVY</option>
+          
+          <option value="GILROY-HEAVYITALIC">GILROY-HEAVYITALIC</option>
+          
+          <option value="GILROY-LIGHT">GILROY-LIGHT</option>
+          
+          <option value="GILROY-LIGHTITALIC">GILROY-LIGHTITALIC</option>
+          
+          <option value="GILROY-MEDIUM">GILROY-MEDIUM</option>
+          
+          <option value="GILROY-MEDIUMITALIC">GILROY-MEDIUMITALIC</option>
+          
+          <option value="GILROY-REGULAR">GILROY-REGULAR</option>
+          
+          <option value="GILROY-REGULARITALIC">GILROY-REGULARITALIC</option>
+          
+          <option value="GILROY-SEMIBOLD">GILROY-SEMIBOLD</option>
+          
+          <option value="GILROY-SEMIBOLDITALIC">GILROY-SEMIBOLDITALIC</option>
+          
+          <option value="GILROY-THIN">GILROY-THIN</option>
+          
+          <option value="GILROY-THINITALIC">GILROY-THINITALIC</option>
+          
+          <option value="GILROY-ULTRALIGHTITALIC">GILROY-ULTRALIGHTITALIC</option>
+          
+          <option value="LeagueSpartan-VariableFont_wght">LeagueSpartan-VariableFont_wght</option>
+          
+          <option value="LuckiestGuy-Regular">LuckiestGuy-Regular</option>
+          
+          <option value="minecraft-ten-font-cyrillic">minecraft-ten-font-cyrillic</option>
+          
+          <option value="Montserrat-Black">Montserrat-Black</option>
+          
+          <option value="Montserrat-BlackItalic">Montserrat-BlackItalic</option>
+          
+          <option value="Montserrat-Bold">Montserrat-Bold</option>
+          
+          <option value="Montserrat-BoldItalic">Montserrat-BoldItalic</option>
+          
+          <option value="MONTSERRAT-EXTRABOLD">MONTSERRAT-EXTRABOLD</option>
+          
+          <option value="Montserrat-ExtraBoldItalic">Montserrat-ExtraBoldItalic</option>
+          
+          <option value="MONTSERRAT-EXTRALIGHT">MONTSERRAT-EXTRALIGHT</option>
+          
+          <option value="MONTSERRAT-EXTRALIGHTITALIC">MONTSERRAT-EXTRALIGHTITALIC</option>
+          
+          <option value="MONTSERRAT-ITALIC">MONTSERRAT-ITALIC</option>
+          
+          <option value="MONTSERRAT-LIGHT">MONTSERRAT-LIGHT</option>
+          
+          <option value="MONTSERRAT-LIGHTITALIC">MONTSERRAT-LIGHTITALIC</option>
+          
+          <option value="Montserrat-Medium">Montserrat-Medium</option>
+          
+          <option value="MONTSERRAT-MEDIUMITALIC">MONTSERRAT-MEDIUMITALIC</option>
+          
+          <option value="Montserrat-Regular">Montserrat-Regular</option>
+          
+          <option value="Montserrat-SemiBold">Montserrat-SemiBold</option>
+          
+          <option value="Montserrat-SemiBoldItalic">Montserrat-SemiBoldItalic</option>
+          
+          <option value="Montserrat-Thin">Montserrat-Thin</option>
+          
+          <option value="MONTSERRAT-THINITALIC">MONTSERRAT-THINITALIC</option>
+          
+          <option value="Obelix Pro">Obelix Pro</option>
+          
+          <option value="ofont.ru_Forum">ofont.ru_Forum</option>
+          
+          <option value="ofont.ru_LeoHand">ofont.ru_LeoHand</option>
+          
+          <option value="ofont.ru_Miama Nueva">ofont.ru_Miama Nueva</option>
+          
+          <option value="ofont.ru_Panton">ofont.ru_Panton</option>
+          
+          <option value="Organetto">Organetto</option>
+          
+          <option value="Oswald-VariableFont_wght">Oswald-VariableFont_wght</option>
+          
+          <option value="PixelifySans-VariableFont_wght">PixelifySans-VariableFont_wght</option>
+          
+          <option value="PlayfairDisplay-Italic-VariableFont_wght">PlayfairDisplay-Italic-VariableFont_wght</option>
+          
+          <option value="PlayfairDisplay-VariableFont_wght">PlayfairDisplay-VariableFont_wght</option>
+          
+          <option value="Raleway-Italic-VariableFont_wght">Raleway-Italic-VariableFont_wght</option>
+          
+          <option value="Raleway-VariableFont_wght">Raleway-VariableFont_wght</option>
+          
+          <option value="Raleway">Raleway</option>
+          
+          <option value="Righteous-Regular">Righteous-Regular</option>
+          
+          <option value="Rostov">Rostov</option>
+          
+          <option value="Segoe UI Bold Italic">Segoe UI Bold Italic</option>
+          
+          <option value="Segoe UI Bold">Segoe UI Bold</option>
+          
+          <option value="Segoe UI Italic">Segoe UI Italic</option>
+          
+          <option value="Segoe UI">Segoe UI</option>
+          
+          <option value="SFPROTEXT-BOLD">SFPROTEXT-BOLD</option>
+          
+          <option value="SFPROTEXT-HEAVY">SFPROTEXT-HEAVY</option>
+          
+          <option value="SFPROTEXT-LIGHT">SFPROTEXT-LIGHT</option>
+          
+          <option value="SFPROTEXT-MEDIUM">SFPROTEXT-MEDIUM</option>
+          
+          <option value="SFPROTEXT-REGULAR">SFPROTEXT-REGULAR</option>
+          
+          <option value="SFPROTEXT-SEMIBOLD">SFPROTEXT-SEMIBOLD</option>
+          
+          <option value="the-bold-font">the-bold-font</option>
+          
+          <option value="TTNormsPro-Black">TTNormsPro-Black</option>
+          
+          <option value="TTNormsPro-BlackItalic">TTNormsPro-BlackItalic</option>
+          
+          <option value="TTNormsPro-Bold">TTNormsPro-Bold</option>
+          
+          <option value="TTNormsPro-BoldItalic">TTNormsPro-BoldItalic</option>
+          
+          <option value="TTNormsPro-ExtraBlack">TTNormsPro-ExtraBlack</option>
+          
+          <option value="TTNormsPro-ExtraBlackItalic">TTNormsPro-ExtraBlackItalic</option>
+          
+          <option value="TTNormsPro-ExtraBold">TTNormsPro-ExtraBold</option>
+          
+          <option value="TTNormsPro-ExtraBoldItalic">TTNormsPro-ExtraBoldItalic</option>
+          
+          <option value="TTNormsPro-ExtraLight">TTNormsPro-ExtraLight</option>
+          
+          <option value="TTNormsPro-ExtraLightItalic">TTNormsPro-ExtraLightItalic</option>
+          
+          <option value="TTNormsPro-Italic">TTNormsPro-Italic</option>
+          
+          <option value="TTNormsPro-Light">TTNormsPro-Light</option>
+          
+          <option value="TTNormsPro-LightItalic">TTNormsPro-LightItalic</option>
+          
+          <option value="TTNormsPro-Medium">TTNormsPro-Medium</option>
+          
+          <option value="TTNormsPro-MediumItalic">TTNormsPro-MediumItalic</option>
+          
+          <option value="TTNormsPro-Regular">TTNormsPro-Regular</option>
+          
+          <option value="TTNormsPro-Thin">TTNormsPro-Thin</option>
+          
+          <option value="TTNormsPro-ThinItalic">TTNormsPro-ThinItalic</option>
+          
+          <option value="Unbounded-Black">Unbounded-Black</option>
+          
+          <option value="Unbounded-Blond">Unbounded-Blond</option>
+          
+          <option value="Unbounded-Bold">Unbounded-Bold</option>
+          
+          <option value="Unbounded-Light">Unbounded-Light</option>
+          
+          <option value="Unbounded-Medium">Unbounded-Medium</option>
+          
+          <option value="Unbounded-Regular">Unbounded-Regular</option>
+          
+          <option value="VISUELTPRO-BLACK">VISUELTPRO-BLACK</option>
+          
+          <option value="VISUELTPRO-BLACKITALIC">VISUELTPRO-BLACKITALIC</option>
+          
+          <option value="VISUELTPRO-BOLD">VISUELTPRO-BOLD</option>
+          
+          <option value="VISUELTPRO-BOLDITALIC">VISUELTPRO-BOLDITALIC</option>
+          
+          <option value="VISUELTPRO-EXTRALIGHT">VISUELTPRO-EXTRALIGHT</option>
+          
+          <option value="VISUELTPRO-EXTRALIGHTITALIC">VISUELTPRO-EXTRALIGHTITALIC</option>
+          
+          <option value="VISUELTPRO-ITALIC">VISUELTPRO-ITALIC</option>
+          
+          <option value="VISUELTPRO-LIGHT">VISUELTPRO-LIGHT</option>
+          
+          <option value="VISUELTPRO-LIGHTITALIC">VISUELTPRO-LIGHTITALIC</option>
+          
+          <option value="VISUELTPRO-MEDIUM">VISUELTPRO-MEDIUM</option>
+          
+          <option value="VISUELTPRO-MEDIUMITALIC">VISUELTPRO-MEDIUMITALIC</option>
+          
+          <option value="VISUELTPRO-REGULAR">VISUELTPRO-REGULAR</option>
+          
+          <option value="VISUELTPRO-THIN">VISUELTPRO-THIN</option>
+          
+          <option value="VISUELTPRO-THINITALIC">VISUELTPRO-THINITALIC</option>
+          
+          <option value="Бонус 1">Бонус 1</option>
+          
+          <option value="Бонус 2">Бонус 2</option>
+          
+          <option value="8-BitDisintrest-Regular">8-BitDisintrest-Regular</option>
+          
+          <option value="Akira Expanded Demo">Akira Expanded Demo</option>
+          
+          <option value="animeace2_bld">animeace2_bld</option>
+          
+          <option value="animeace2_ital">animeace2_ital</option>
+          
+          <option value="animeace2_reg">animeace2_reg</option>
+          
+          <option value="DigitalPixel-Regular">DigitalPixel-Regular</option>
+          
+          <option value="Font Awesome 5 Brands-Regular-400">Font Awesome 5 Brands-Regular-400</option>
+          
+          <option value="Font Awesome 5 Free-Regular-400">Font Awesome 5 Free-Regular-400</option>
+          
+          <option value="Font Awesome 5 Free-Solid-900">Font Awesome 5 Free-Solid-900</option>
+          
+          <option value="GhastlyPanicCyr">GhastlyPanicCyr</option>
+          
+          <option value="Komika Title">Komika Title</option>
+          
+          <option value="TS Block Bold">TS Block Bold</option>
+          
+          <option value="TT Berlinerins Trial Grotesk">TT Berlinerins Trial Grotesk</option>
+          
+          <option value="TT Lovelies Script">TT Lovelies Script</option>
+          
+          <option value="tt-alientz-grotesque">tt-alientz-grotesque</option>
+          
+          <option value="Uni Sans Heavy Italic">Uni Sans Heavy Italic</option>
+          
+          <option value="Uni Sans Thin Italic">Uni Sans Thin Italic</option>
+          
+          <option value="Uni Sans Thin">Uni Sans Thin</option>
+          
+          <option value="Бонус 3">Бонус 3</option>
+          
+          <option value="Aldrich-Regular">Aldrich-Regular</option>
+          
+          <option value="ALGER">ALGER</option>
+          
+          <option value="Almendra-Bold">Almendra-Bold</option>
+          
+          <option value="Almendra-BoldItalic">Almendra-BoldItalic</option>
+          
+          <option value="Almendra-Italic">Almendra-Italic</option>
+          
+          <option value="Almendra-Regular">Almendra-Regular</option>
+          
+          <option value="AmaticSC-Bold">AmaticSC-Bold</option>
+          
+          <option value="AmaticSC-Regular">AmaticSC-Regular</option>
+          
+          <option value="Anton-Regular">Anton-Regular</option>
+          
+          <option value="AntonSC-Regular">AntonSC-Regular</option>
+          
+          <option value="ANTQUAB">ANTQUAB</option>
+          
+          <option value="ANTQUABI">ANTQUABI</option>
+          
+          <option value="ANTQUAI">ANTQUAI</option>
+          
+          <option value="arial">arial</option>
+          
+          <option value="arialbd">arialbd</option>
+          
+          <option value="arialbi">arialbi</option>
+          
+          <option value="ariali">ariali</option>
+          
+          <option value="ARIALN">ARIALN</option>
+          
+          <option value="ARIALNB">ARIALNB</option>
+          
+          <option value="ARIALNBI">ARIALNBI</option>
+          
+          <option value="ARIALNI">ARIALNI</option>
+          
+          <option value="ariblk">ariblk</option>
+          
+          <option value="bahnschrift">bahnschrift</option>
+          
+          <option value="Baloo-Regular">Baloo-Regular</option>
+          
+          <option value="BarlowCondensed-Black">BarlowCondensed-Black</option>
+          
+          <option value="BarlowCondensed-BlackItalic">BarlowCondensed-BlackItalic</option>
+          
+          <option value="BarlowCondensed-Bold">BarlowCondensed-Bold</option>
+          
+          <option value="BarlowCondensed-BoldItalic">BarlowCondensed-BoldItalic</option>
+          
+          <option value="BarlowCondensed-ExtraBold">BarlowCondensed-ExtraBold</option>
+          
+          <option value="BarlowCondensed-ExtraBoldItalic">BarlowCondensed-ExtraBoldItalic</option>
+          
+          <option value="BarlowCondensed-ExtraLight">BarlowCondensed-ExtraLight</option>
+          
+          <option value="BarlowCondensed-ExtraLightItalic">BarlowCondensed-ExtraLightItalic</option>
+          
+          <option value="BarlowCondensed-Italic">BarlowCondensed-Italic</option>
+          
+          <option value="BarlowCondensed-Light">BarlowCondensed-Light</option>
+          
+          <option value="BarlowCondensed-LightItalic">BarlowCondensed-LightItalic</option>
+          
+          <option value="BarlowCondensed-Medium">BarlowCondensed-Medium</option>
+          
+          <option value="BarlowCondensed-MediumItalic">BarlowCondensed-MediumItalic</option>
+          
+          <option value="BarlowCondensed-Regular">BarlowCondensed-Regular</option>
+          
+          <option value="BarlowCondensed-SemiBold">BarlowCondensed-SemiBold</option>
+          
+          <option value="BarlowCondensed-SemiBoldItalic">BarlowCondensed-SemiBoldItalic</option>
+          
+          <option value="BarlowCondensed-Thin">BarlowCondensed-Thin</option>
+          
+          <option value="BarlowCondensed-ThinItalic">BarlowCondensed-ThinItalic</option>
+          
+          <option value="BASKVILL">BASKVILL</option>
+          
+          <option value="BAUHS93">BAUHS93</option>
+          
+          <option value="BebasNeue-Regular">BebasNeue-Regular</option>
+          
+          <option value="BELL">BELL</option>
+          
+          <option value="BELLB">BELLB</option>
+          
+          <option value="BELLI">BELLI</option>
+          
+          <option value="Bentham-Regular">Bentham-Regular</option>
+          
+          <option value="BERNHC">BERNHC</option>
+          
+          <option value="BKANT">BKANT</option>
+          
+          <option value="BlackHanSans-Regular">BlackHanSans-Regular</option>
+          
+          <option value="BlackOpsOne-Regular">BlackOpsOne-Regular</option>
+          
+          <option value="BOD_PSTC">BOD_PSTC</option>
+          
+          <option value="BodoniModa-Italic-VariableFont_opsz,wght">BodoniModa-Italic-VariableFont_opsz,wght</option>
+          
+          <option value="BodoniModa-VariableFont_opsz,wght">BodoniModa-VariableFont_opsz,wght</option>
+          
+          <option value="BOOKOS">BOOKOS</option>
+          
+          <option value="BOOKOSB">BOOKOSB</option>
+          
+          <option value="BOOKOSBI">BOOKOSBI</option>
+          
+          <option value="BOOKOSI">BOOKOSI</option>
+          
+          <option value="BowlbyOneSC-Regular">BowlbyOneSC-Regular</option>
+          
+          <option value="BRITANIC">BRITANIC</option>
+          
+          <option value="BRLNSB">BRLNSB</option>
+          
+          <option value="BRLNSDB">BRLNSDB</option>
+          
+          <option value="BRLNSR">BRLNSR</option>
+          
+          <option value="BROADW">BROADW</option>
+          
+          <option value="BRUSHSCI">BRUSHSCI</option>
+          
+          <option value="BSSYM7">BSSYM7</option>
+          
+          <option value="Bungee-Regular">Bungee-Regular</option>
+          
+          <option value="BungeeInline-Regular">BungeeInline-Regular</option>
+          
+          <option value="BungeeShade-Regular">BungeeShade-Regular</option>
+          
+          <option value="CabinSketch-Bold">CabinSketch-Bold</option>
+          
+          <option value="CabinSketch-Regular">CabinSketch-Regular</option>
+          
+          <option value="calibri">calibri</option>
+          
+          <option value="calibrib">calibrib</option>
+          
+          <option value="calibrii">calibrii</option>
+          
+          <option value="calibril">calibril</option>
+          
+          <option value="calibrili">calibrili</option>
+          
+          <option value="calibriz">calibriz</option>
+          
+          <option value="CALIFB">CALIFB</option>
+          
+          <option value="CALIFI">CALIFI</option>
+          
+          <option value="CALIFR">CALIFR</option>
+          
+          <option value="cambriab">cambriab</option>
+          
+          <option value="cambriai">cambriai</option>
+          
+          <option value="cambriaz">cambriaz</option>
+          
+          <option value="Candara">Candara</option>
+          
+          <option value="Candarab">Candarab</option>
+          
+          <option value="Candarai">Candarai</option>
+          
+          <option value="Candaral">Candaral</option>
+          
+          <option value="Candarali">Candarali</option>
+          
+          <option value="Candaraz">Candaraz</option>
+          
+          <option value="Caprasimo-Regular">Caprasimo-Regular</option>
+          
+          <option value="CarterOne-Regular">CarterOne-Regular</option>
+          
+          <option value="CENTAUR">CENTAUR</option>
+          
+          <option value="CENTURY">CENTURY</option>
+          
+          <option value="CHILLER">CHILLER</option>
+          
+          <option value="Cinzel-Black">Cinzel-Black</option>
+          
+          <option value="Coiny-Regular">Coiny-Regular</option>
+          
+          <option value="COLONNA">COLONNA</option>
+          
+          <option value="comic">comic</option>
+          
+          <option value="comicbd">comicbd</option>
+          
+          <option value="comici">comici</option>
+          
+          <option value="comicz">comicz</option>
+          
+          <option value="consola">consola</option>
+          
+          <option value="consolab">consolab</option>
+          
+          <option value="consolai">consolai</option>
+          
+          <option value="consolaz">consolaz</option>
+          
+          <option value="constan">constan</option>
+          
+          <option value="constanb">constanb</option>
+          
+          <option value="constani">constani</option>
+          
+          <option value="constanz">constanz</option>
+          
+          <option value="Cookie-Regular">Cookie-Regular</option>
+          
+          <option value="COOPBL">COOPBL</option>
+          
+          <option value="corbel">corbel</option>
+          
+          <option value="corbelb">corbelb</option>
+          
+          <option value="corbeli">corbeli</option>
+          
+          <option value="corbell">corbell</option>
+          
+          <option value="corbelli">corbelli</option>
+          
+          <option value="corbelz">corbelz</option>
+          
+          <option value="Cormorant-Italic-VariableFont_wght">Cormorant-Italic-VariableFont_wght</option>
+          
+          <option value="Cormorant-VariableFont_wght">Cormorant-VariableFont_wght</option>
+          
+          <option value="cour">cour</option>
+          
+          <option value="courbd">courbd</option>
+          
+          <option value="courbi">courbi</option>
+          
+          <option value="Courgette-Regular">Courgette-Regular</option>
+          
+          <option value="couri">couri</option>
+          
+          <option value="Creepster-Regular">Creepster-Regular</option>
+          
+          <option value="CrimsonText-Bold">CrimsonText-Bold</option>
+          
+          <option value="CrimsonText-BoldItalic">CrimsonText-BoldItalic</option>
+          
+          <option value="CrimsonText-Italic">CrimsonText-Italic</option>
+          
+          <option value="CrimsonText-Regular">CrimsonText-Regular</option>
+          
+          <option value="CrimsonText-SemiBold">CrimsonText-SemiBold</option>
+          
+          <option value="CrimsonText-SemiBoldItalic">CrimsonText-SemiBoldItalic</option>
+          
+          <option value="DaiBannaSIL-Bold">DaiBannaSIL-Bold</option>
+          
+          <option value="DaiBannaSIL-BoldItalic">DaiBannaSIL-BoldItalic</option>
+          
+          <option value="DaiBannaSIL-Italic">DaiBannaSIL-Italic</option>
+          
+          <option value="DaiBannaSIL-Regular">DaiBannaSIL-Regular</option>
+          
+          <option value="DaysOne-Regular">DaysOne-Regular</option>
+          
+          <option value="DoppioOne-Regular">DoppioOne-Regular</option>
+          
+          <option value="ebrima">ebrima</option>
+          
+          <option value="ebrimabd">ebrimabd</option>
+          
+          <option value="Eczar-VariableFont_wght">Eczar-VariableFont_wght</option>
+          
+          <option value="EduVICWANTBeginner-VariableFont_wght">EduVICWANTBeginner-VariableFont_wght</option>
+          
+          <option value="euphorig">euphorig</option>
+          
+          <option value="framd">framd</option>
+          
+          <option value="framdit">framdit</option>
+          
+          <option value="FREESCPT">FREESCPT</option>
+          
+          <option value="FTLTLT">FTLTLT</option>
+          
+          <option value="FugazOne-Regular">FugazOne-Regular</option>
+          
+          <option value="Gabriola">Gabriola</option>
+          
+          <option value="gadugi">gadugi</option>
+          
+          <option value="gadugib">gadugib</option>
+          
+          <option value="GARA">GARA</option>
+          
+          <option value="GARABD">GARABD</option>
+          
+          <option value="GARAIT">GARAIT</option>
+          
+          <option value="georgia">georgia</option>
+          
+          <option value="georgiab">georgiab</option>
+          
+          <option value="georgiai">georgiai</option>
+          
+          <option value="georgiaz">georgiaz</option>
+          
+          <option value="GoblinOne-Regular">GoblinOne-Regular</option>
+          
+          <option value="GOTHIC">GOTHIC</option>
+          
+          <option value="GOTHICB">GOTHICB</option>
+          
+          <option value="GOTHICBI">GOTHICBI</option>
+          
+          <option value="GOTHICI">GOTHICI</option>
+          
+          <option value="GreatVibes-Regular">GreatVibes-Regular</option>
+          
+          <option value="HARLOWSI">HARLOWSI</option>
+          
+          <option value="HARNGTON">HARNGTON</option>
+          
+          <option value="himalaya">himalaya</option>
+          
+          <option value="holomdl2">holomdl2</option>
+          
+          <option value="HTOWERT">HTOWERT</option>
+          
+          <option value="HTOWERTI">HTOWERTI</option>
+          
+          <option value="impact">impact</option>
+          
+          <option value="INFROMAN">INFROMAN</option>
+          
+          <option value="Inkfree">Inkfree</option>
+          
+          <option value="Inter-Bold-slnt=0">Inter-Bold-slnt=0</option>
+          
+          <option value="Inter-Regular-slnt=0">Inter-Regular-slnt=0</option>
+          
+          <option value="ITCKRIST">ITCKRIST</option>
+          
+          <option value="javatext">javatext</option>
+          
+          <option value="JOKERMAN">JOKERMAN</option>
+          
+          <option value="JosefinSans-Bold">JosefinSans-Bold</option>
+          
+          <option value="JosefinSans-BoldItalic">JosefinSans-BoldItalic</option>
+          
+          <option value="JosefinSans-Italic-VariableFont_wght">JosefinSans-Italic-VariableFont_wght</option>
+          
+          <option value="JosefinSans-Italic">JosefinSans-Italic</option>
+          
+          <option value="JosefinSans-Regular">JosefinSans-Regular</option>
+          
+          <option value="JosefinSans-VariableFont_wght">JosefinSans-VariableFont_wght</option>
+          
+          <option value="JUICE___">JUICE___</option>
+          
+          <option value="Jura-VariableFont_wght">Jura-VariableFont_wght</option>
+          
+          <option value="Kalam-Bold">Kalam-Bold</option>
+          
+          <option value="Kalam-Light">Kalam-Light</option>
+          
+          <option value="Kalam-Regular">Kalam-Regular</option>
+          
+          <option value="Kanit-Light">Kanit-Light</option>
+          
+          <option value="KUNSTLER">KUNSTLER</option>
+          
+          <option value="l_10646">l_10646</option>
+          
+          <option value="Lalezar-Regular">Lalezar-Regular</option>
+          
+          <option value="LATINWD">LATINWD</option>
+          
+          <option value="LBRITE">LBRITE</option>
+          
+          <option value="LBRITED">LBRITED</option>
+          
+          <option value="LBRITEDI">LBRITEDI</option>
+          
+          <option value="LBRITEI">LBRITEI</option>
+          
+          <option value="LCALLIG">LCALLIG</option>
+          
+          <option value="LeckerliOne-Regular">LeckerliOne-Regular</option>
+          
+          <option value="LeelaUIb">LeelaUIb</option>
+          
+          <option value="LEELAWAD">LEELAWAD</option>
+          
+          <option value="LEELAWDB">LEELAWDB</option>
+          
+          <option value="LeelawUI">LeelawUI</option>
+          
+          <option value="LeelUIsl">LeelUIsl</option>
+          
+          <option value="Lemon-Regular">Lemon-Regular</option>
+          
+          <option value="LFAX">LFAX</option>
+          
+          <option value="LFAXD">LFAXD</option>
+          
+          <option value="LFAXDI">LFAXDI</option>
+          
+          <option value="LFAXI">LFAXI</option>
+          
+          <option value="LHANDW">LHANDW</option>
+          
+          <option value="LibreCaslonText-Bold">LibreCaslonText-Bold</option>
+          
+          <option value="LibreCaslonText-Italic">LibreCaslonText-Italic</option>
+          
+          <option value="LibreCaslonText-Regular">LibreCaslonText-Regular</option>
+          
+          <option value="Limelight-Regular">Limelight-Regular</option>
+          
+          <option value="lucon">lucon</option>
+          
+          <option value="MAGNETOB">MAGNETOB</option>
+          
+          <option value="malgun">malgun</option>
+          
+          <option value="malgunbd">malgunbd</option>
+          
+          <option value="malgunsl">malgunsl</option>
+          
+          <option value="MarcellusSC-Regular">MarcellusSC-Regular</option>
+          
+          <option value="marlett">marlett</option>
+          
+          <option value="MATURASC">MATURASC</option>
+          
+          <option value="MeaCulpa-Regular">MeaCulpa-Regular</option>
+          
+          <option value="Megrim">Megrim</option>
+          
+          <option value="MeieScript-Regular">MeieScript-Regular</option>
+          
+          <option value="micross">micross</option>
+          
+          <option value="MISTRAL">MISTRAL</option>
+          
+          <option value="mmrtext">mmrtext</option>
+          
+          <option value="mmrtextb">mmrtextb</option>
+          
+          <option value="MOD20">MOD20</option>
+          
+          <option value="Modak-Regular">Modak-Regular</option>
+          
+          <option value="monbaiti">monbaiti</option>
+          
+          <option value="Montserrat-Italic-VariableFont_wght">Montserrat-Italic-VariableFont_wght</option>
+          
+          <option value="Montserrat-VariableFont_wght">Montserrat-VariableFont_wght</option>
+          
+          <option value="MontserratSubrayada-Bold">MontserratSubrayada-Bold</option>
+          
+          <option value="MSUIGHUB">MSUIGHUB</option>
+          
+          <option value="MSUIGHUR">MSUIGHUR</option>
+          
+          <option value="msyi">msyi</option>
+          
+          <option value="MTCORSVA">MTCORSVA</option>
+          
+          <option value="mvboli">mvboli</option>
+          
+          <option value="Neonderthaw-Regular">Neonderthaw-Regular</option>
+          
+          <option value="NIAGENG">NIAGENG</option>
+          
+          <option value="NIAGSOL">NIAGSOL</option>
+          
+          <option value="Nirmala">Nirmala</option>
+          
+          <option value="NirmalaB">NirmalaB</option>
+          
+          <option value="NirmalaS">NirmalaS</option>
+          
+          <option value="Norican-Regular">Norican-Regular</option>
+          
+          <option value="NotoSans-Bold">NotoSans-Bold</option>
+          
+          <option value="NotoSans-BoldItalic">NotoSans-BoldItalic</option>
+          
+          <option value="NotoSans-Italic">NotoSans-Italic</option>
+          
+          <option value="NotoSans-Regular">NotoSans-Regular</option>
+          
+          <option value="NotoSansJP-Bold">NotoSansJP-Bold</option>
+          
+          <option value="ntailu">ntailu</option>
+          
+          <option value="ntailub">ntailub</option>
+          
+          <option value="Nunito-Italic-VariableFont_wght">Nunito-Italic-VariableFont_wght</option>
+          
+          <option value="Nunito-VariableFont_wght">Nunito-VariableFont_wght</option>
+          
+          <option value="OLDENGL">OLDENGL</option>
+          
+          <option value="ONYX">ONYX</option>
+          
+          <option value="Oranienbaum-Regular">Oranienbaum-Regular</option>
+          
+          <option value="Orbitron-Bold">Orbitron-Bold</option>
+          
+          <option value="pala">pala</option>
+          
+          <option value="palab">palab</option>
+          
+          <option value="palabi">palabi</option>
+          
+          <option value="palai">palai</option>
+          
+          <option value="PARCHM">PARCHM</option>
+          
+          <option value="PathwayGothicOne-Regular">PathwayGothicOne-Regular</option>
+          
+          <option value="PermanentMarker">PermanentMarker</option>
+          
+          <option value="phagspa">phagspa</option>
+          
+          <option value="phagspab">phagspab</option>
+          
+          <option value="PirataOne-Regular">PirataOne-Regular</option>
+          
+          <option value="Playball-Regular">Playball-Regular</option>
+          
+          <option value="PLAYBILL">PLAYBILL</option>
+          
+          <option value="PoetsenOne-Regular">PoetsenOne-Regular</option>
+          
+          <option value="POORICH">POORICH</option>
+          
+          <option value="Poppins-Black">Poppins-Black</option>
+          
+          <option value="Poppins-BlackItalic">Poppins-BlackItalic</option>
+          
+          <option value="Poppins-Bold">Poppins-Bold</option>
+          
+          <option value="Poppins-BoldItalic">Poppins-BoldItalic</option>
+          
+          <option value="Poppins-ExtraBold">Poppins-ExtraBold</option>
+          
+          <option value="Poppins-ExtraBoldItalic">Poppins-ExtraBoldItalic</option>
+          
+          <option value="Poppins-ExtraLight">Poppins-ExtraLight</option>
+          
+          <option value="Poppins-ExtraLightItalic">Poppins-ExtraLightItalic</option>
+          
+          <option value="Poppins-Italic">Poppins-Italic</option>
+          
+          <option value="Poppins-Light">Poppins-Light</option>
+          
+          <option value="Poppins-LightItalic">Poppins-LightItalic</option>
+          
+          <option value="Poppins-Medium">Poppins-Medium</option>
+          
+          <option value="Poppins-MediumItalic">Poppins-MediumItalic</option>
+          
+          <option value="Poppins-Regular">Poppins-Regular</option>
+          
+          <option value="Poppins-SemiBold">Poppins-SemiBold</option>
+          
+          <option value="Poppins-SemiBoldItalic">Poppins-SemiBoldItalic</option>
+          
+          <option value="Poppins-Thin">Poppins-Thin</option>
+          
+          <option value="Poppins-ThinItalic">Poppins-ThinItalic</option>
+          
+          <option value="ProtestStrike-Regular">ProtestStrike-Regular</option>
+          
+          <option value="Quicksand-Bold">Quicksand-Bold</option>
+          
+          <option value="Quicksand-Light">Quicksand-Light</option>
+          
+          <option value="Quicksand-Medium">Quicksand-Medium</option>
+          
+          <option value="Quicksand-Regular">Quicksand-Regular</option>
+          
+          <option value="RammettoOne-Regular">RammettoOne-Regular</option>
+          
+          <option value="RAVIE">RAVIE</option>
+          
+          <option value="REFSAN">REFSAN</option>
+          
+          <option value="REFSPCL">REFSPCL</option>
+          
+          <option value="Roboto-Bold_2">Roboto-Bold_2</option>
+          
+          <option value="Roboto-Light">Roboto-Light</option>
+          
+          <option value="Roboto-Medium">Roboto-Medium</option>
+          
+          <option value="Roboto-Regular">Roboto-Regular</option>
+          
+          <option value="Rokkitt-Italic-VariableFont_wght">Rokkitt-Italic-VariableFont_wght</option>
+          
+          <option value="Rokkitt-VariableFont_wght">Rokkitt-VariableFont_wght</option>
+          
+          <option value="Rubik-Bold">Rubik-Bold</option>
+          
+          <option value="Rubik-BoldItalic">Rubik-BoldItalic</option>
+          
+          <option value="Rubik-Italic">Rubik-Italic</option>
+          
+          <option value="Rubik-Regular">Rubik-Regular</option>
+          
+          <option value="RussoOne-Regular">RussoOne-Regular</option>
+          
+          <option value="Sansita-Regular">Sansita-Regular</option>
+          
+          <option value="SansitaOne">SansitaOne</option>
+          
+          <option value="segmdl2">segmdl2</option>
+          
+          <option value="segoepr">segoepr</option>
+          
+          <option value="segoeprb">segoeprb</option>
+          
+          <option value="segoesc">segoesc</option>
+          
+          <option value="segoescb">segoescb</option>
+          
+          <option value="segoeui">segoeui</option>
+          
+          <option value="segoeuib">segoeuib</option>
+          
+          <option value="segoeuii">segoeuii</option>
+          
+          <option value="segoeuil">segoeuil</option>
+          
+          <option value="segoeuisl">segoeuisl</option>
+          
+          <option value="segoeuiz">segoeuiz</option>
+          
+          <option value="seguibl">seguibl</option>
+          
+          <option value="seguibli">seguibli</option>
+          
+          <option value="seguiemj">seguiemj</option>
+          
+          <option value="seguihis">seguihis</option>
+          
+          <option value="seguili">seguili</option>
+          
+          <option value="seguisb">seguisb</option>
+          
+          <option value="seguisbi">seguisbi</option>
+          
+          <option value="seguisli">seguisli</option>
+          
+          <option value="seguisym">seguisym</option>
+          
+          <option value="SHOWG">SHOWG</option>
+          
+          <option value="Shrikhand-Regular">Shrikhand-Regular</option>
+          
+          <option value="SigmarOne-Regular">SigmarOne-Regular</option>
+          
+          <option value="simsunb">simsunb</option>
+          
+          <option value="SimsunExtG">SimsunExtG</option>
+          
+          <option value="SixCaps-Regular">SixCaps-Regular</option>
+          
+          <option value="Skranji-Bold">Skranji-Bold</option>
+          
+          <option value="SNAP____">SNAP____</option>
+          
+          <option value="SortsMillGoudy-Regular">SortsMillGoudy-Regular</option>
+          
+          <option value="SourceCodePro-Italic-VariableFont_wght">SourceCodePro-Italic-VariableFont_wght</option>
+          
+          <option value="SourceCodePro-VariableFont_wght">SourceCodePro-VariableFont_wght</option>
+          
+          <option value="SpicyRice-Regular">SpicyRice-Regular</option>
+          
+          <option value="Staatliches-Regular">Staatliches-Regular</option>
+          
+          <option value="STENCIL">STENCIL</option>
+          
+          <option value="sylfaen">sylfaen</option>
+          
+          <option value="symbol">symbol</option>
+          
+          <option value="Syne-VariableFont_wght">Syne-VariableFont_wght</option>
+          
+          <option value="tahoma">tahoma</option>
+          
+          <option value="tahomabd">tahomabd</option>
+          
+          <option value="taile">taile</option>
+          
+          <option value="taileb">taileb</option>
+          
+          <option value="Teko-SemiBold">Teko-SemiBold</option>
+          
+          <option value="Teko-VariableFont_wght">Teko-VariableFont_wght</option>
+          
+          <option value="TEMPSITC">TEMPSITC</option>
+          
+          <option value="times">times</option>
+          
+          <option value="timesbd">timesbd</option>
+          
+          <option value="timesbi">timesbi</option>
+          
+          <option value="timesi">timesi</option>
+          
+          <option value="TitanOne-Regular">TitanOne-Regular</option>
+          
+          <option value="trebuc">trebuc</option>
+          
+          <option value="trebucbd">trebucbd</option>
+          
+          <option value="trebucbi">trebucbi</option>
+          
+          <option value="trebucit">trebucit</option>
+          
+          <option value="UbuntuMono-Bold">UbuntuMono-Bold</option>
+          
+          <option value="UbuntuMono-Regular">UbuntuMono-Regular</option>
+          
+          <option value="Unbounded-VariableFont_wght">Unbounded-VariableFont_wght</option>
+          
+          <option value="VastShadow-Regular">VastShadow-Regular</option>
+          
+          <option value="verdana">verdana</option>
+          
+          <option value="verdanab">verdanab</option>
+          
+          <option value="verdanai">verdanai</option>
+          
+          <option value="verdanaz">verdanaz</option>
+          
+          <option value="VINERITC">VINERITC</option>
+          
+          <option value="VIVALDII">VIVALDII</option>
+          
+          <option value="VLADIMIR">VLADIMIR</option>
+          
+          <option value="webdings">webdings</option>
+          
+          <option value="WendyOne-Regular">WendyOne-Regular</option>
+          
+          <option value="wingding">wingding</option>
+          
+          <option value="WINGDNG2">WINGDNG2</option>
+          
+          <option value="WINGDNG3">WINGDNG3</option>
+          
+          <option value="YatraOne-Regular">YatraOne-Regular</option>
+          
+          <option value="Yellowtail-Regular">Yellowtail-Regular</option>
+          
+          <option value="Yesteryear-Regular">Yesteryear-Regular</option>
+          
+        </select>
+
+        <div class="row2" style="margin-top:6px">
+          <div>
+            <label>Size px</label>
+            <input type="number" id="ep-size" value="80" min="6" max="800" oninput="updateElem()">
+          </div>
+          <div>
+            <label>Scale %</label>
+            <div class="range-row" style="margin-top:3px">
+              <input type="range" id="ep-scale" min="5" max="500" value="100" oninput="scaleTextElem(this.value)" style="margin-top:0">
+              <span class="range-val" id="lbl-ep-scale">100%</span>
+            </div>
+          </div>
+        </div>
+
+        <label style="margin-top:8px">Color &amp; Stroke</label>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <div class="row" style="gap:4px">
+            <input type="color" id="ep-color" value="#ffffff" oninput="updateElem()">
+            <span style="font-size:10px;color:var(--dim)">Fill</span>
+          </div>
+          <div class="row" style="gap:4px">
+            <input type="color" id="ep-stroke-color" value="#000000" oninput="updateElem()">
+            <span style="font-size:10px;color:var(--dim)">Stroke</span>
+          </div>
+          <div style="flex:1;min-width:60px">
+            <input type="number" id="ep-stroke-width" value="0" min="0" max="30" oninput="updateElem()" placeholder="Stroke W">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px;gap:16px">
+          <label style="margin:0;display:flex;align-items:center;gap:5px">
+            <input type="checkbox" id="ep-bold" onchange="updateElem()"> Bold
+          </label>
+          <label style="margin:0;display:flex;align-items:center;gap:5px">
+            <input type="checkbox" id="ep-shadow" checked onchange="updateElem()"> Shadow
+          </label>
+        </div>
+
+        <label>Opacity %</label>
+        <div class="range-row">
+          <input type="range" id="ep-opacity" min="0" max="100" value="100" oninput="updateElem()">
+          <span class="range-val" id="lbl-opacity">100%</span>
+        </div>
+
+        <div class="row2" style="margin-top:6px">
+          <div>
+            <label>X (0–1920)</label>
+            <input type="number" id="ep-x" value="60" oninput="updateElem()">
+          </div>
+          <div>
+            <label>Y (0–1080)</label>
+            <input type="number" id="ep-y" value="60" oninput="updateElem()">
+          </div>
+        </div>
+
+        <button class="btn red" onclick="deleteSelected()" style="margin-top:12px">🗑 Delete Element</button>
+      </div>
+    </div>
+
+    <!-- Project & Export -->
+    <div class="panel">
+      <div class="panel-hdr" onclick="togglePanel(this)">
+        <span>💾 Project &amp; Export</span><span class="chevron">▼</span>
+      </div>
+      <div class="panel-body">
+        <div class="btn-row">
+          <button class="btn" onclick="saveProject()">💾 Save</button>
+          <button class="btn" onclick="document.getElementById('project-input').click()">📂 Load</button>
+        </div>
+        <input type="file" id="project-input" accept=".json" style="display:none" onchange="loadProject(event)">
+        <label style="margin-top:10px">Export path (optional)</label>
+        <input type="text" id="export-path" placeholder="D:/output/thumb.png">
+        <button class="btn green" onclick="exportPNG()" style="margin-top:8px">⬇ Export PNG 1920×1080</button>
+      </div>
+    </div>
+
+    <!-- Keyboard shortcuts -->
+    <div id="shortcuts-bar">
+      <span class="sc-key">Ctrl+Z</span> Undo &nbsp;
+      <span class="sc-key">Ctrl+Y</span> Redo<br>
+      <span class="sc-key">Ctrl+D</span> Duplicate &nbsp;
+      <span class="sc-key">Del</span> Delete<br>
+      <span class="sc-key">←↑→↓</span> Nudge &nbsp;
+      <span class="sc-key">Shift+↑↓</span> ×10<br>
+      <span class="sc-key">Ctrl+E</span> Export &nbsp;
+      <span class="sc-key">Ctrl+S</span> Save
+    </div>
+
+  </div><!-- /right-panel -->
+</div><!-- /main -->
+
+<!-- Session modal -->
+<div class="modal-overlay" id="session-modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span>📁 Select Image from Pipeline</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="session-list">Loading...</div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+const CANVAS_W = 1920, CANVAS_H = 1080;
+let zoom    = 0.5;
+let bgImage = null;
+let bgData  = null;
+let elements = [];
+let selectedId = null;
+let nextId  = 1;
+
+// History
+const _hist = [];
+let _histIdx = -1;
+
+const canvas  = document.getElementById('main-canvas');
+const ctx     = canvas.getContext('2d');
+const overlay = document.getElementById('drag-overlay');
+
+// ════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════
+function setStatus(msg) { document.getElementById('tb-status').textContent = msg; }
+
+let _toastTimer = null;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = ''; }, 2800);
+}
+
+function updateFxLabel(input, lblId) {
+  const unit = input.id === 'fx-blur' ? '' : '%';
+  document.getElementById(lblId).textContent = input.value + unit;
+}
+
+function togglePanel(hdr) {
+  hdr.closest('.panel').classList.toggle('collapsed');
+}
+
+// ════════════════════════════════════════════════════════
+// ZOOM
+// ════════════════════════════════════════════════════════
+function setZoom(z) {
+  zoom = parseFloat(z);
+  canvas.width  = Math.round(CANVAS_W * zoom);
+  canvas.height = Math.round(CANVAS_H * zoom);
+  overlay.style.width  = canvas.width  + 'px';
+  overlay.style.height = canvas.height + 'px';
+  redraw();
+}
+
+// ════════════════════════════════════════════════════════
+// HISTORY (Undo / Redo)
+// ════════════════════════════════════════════════════════
+function _serializeElements() {
+  return elements.map(el => {
+    if (el.type === 'image') { const { _img, _scaleBase, ...r } = el; return r; }
+    return el;
+  });
+}
+
+function pushHistory() {
+  _hist.splice(_histIdx + 1);
+  _hist.push(JSON.stringify({
+    elements: _serializeElements(),
+    bgData,
+    fx: getEffects(),
+  }));
+  _histIdx = _hist.length - 1;
+  _updateHistBtns();
+}
+
+function _updateHistBtns() {
+  document.getElementById('btn-undo').disabled = _histIdx <= 0;
+  document.getElementById('btn-redo').disabled = _histIdx >= _hist.length - 1;
+}
+
+function _restoreSnap(snap) {
+  const s = JSON.parse(snap);
+  // Restore effects
+  if (s.fx) {
+    const fx = s.fx;
+    ['brightness','contrast','saturation','blur','vignette'].forEach(k => {
+      const inp = document.getElementById('fx-' + k);
+      if (inp && fx[k] !== undefined) inp.value = fx[k];
+    });
+    document.getElementById('lbl-br').textContent = (s.fx.brightness||100)+'%';
+    document.getElementById('lbl-co').textContent = (s.fx.contrast||100)+'%';
+    document.getElementById('lbl-sa').textContent = (s.fx.saturation||100)+'%';
+    document.getElementById('lbl-bl').textContent = (s.fx.blur||0)+'';
+    document.getElementById('lbl-vi').textContent = (s.fx.vignette||0)+'%';
+  }
+  // Restore bg
+  if (s.bgData !== bgData) {
+    bgData = s.bgData;
+    if (bgData) {
+      const img = new Image();
+      img.onload = () => { bgImage = img; redraw(); };
+      img.src = bgData;
+    } else { bgImage = null; }
+  }
+  // Restore elements
+  elements = s.elements || [];
+  nextId = elements.length ? Math.max(...elements.map(e => e.id)) + 1 : 1;
+  selectedId = null;
+  // Reload _img for image elements
+  elements.forEach(el => {
+    if (el.type === 'image' && el.src) {
+      const img = new Image();
+      img.onload = () => { el._img = img; redraw(); };
+      img.src = el.src;
+    }
+  });
+  _hideProps();
+  renderLayerList();
+  redraw();
+}
+
+function undo() {
+  if (_histIdx <= 0) return;
+  _histIdx--;
+  _restoreSnap(_hist[_histIdx]);
+  _updateHistBtns();
+  toast('↩ Undo');
+}
+
+function redo() {
+  if (_histIdx >= _hist.length - 1) return;
+  _histIdx++;
+  _restoreSnap(_hist[_histIdx]);
+  _updateHistBtns();
+  toast('↪ Redo');
+}
+
+// ════════════════════════════════════════════════════════
+// EFFECTS
+// ════════════════════════════════════════════════════════
+function getEffects() {
+  return {
+    brightness: parseInt(document.getElementById('fx-brightness').value),
+    contrast:   parseInt(document.getElementById('fx-contrast').value),
+    saturation: parseInt(document.getElementById('fx-saturation').value),
+    blur:       parseInt(document.getElementById('fx-blur').value),
+    vignette:   parseInt(document.getElementById('fx-vignette').value),
+  };
+}
+
+// ════════════════════════════════════════════════════════
+// DRAWING
+// ════════════════════════════════════════════════════════
+function redraw() {
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  if (bgImage) {
+    const fx = getEffects();
+    ctx.filter = `brightness(${fx.brightness}%) contrast(${fx.contrast}%) saturate(${fx.saturation}%) blur(${fx.blur * zoom}px)`;
+    ctx.drawImage(bgImage, 0, 0, w, h);
+    ctx.filter = 'none';
+    if (fx.vignette > 0) {
+      const grad = ctx.createRadialGradient(w/2,h/2,h*0.2,w/2,h/2,h*0.8);
+      grad.addColorStop(0,'rgba(0,0,0,0)');
+      grad.addColorStop(1,`rgba(0,0,0,${fx.vignette/100})`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    }
+  } else {
+    ctx.fillStyle = document.getElementById('bg-color').value;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  elements.forEach(el => {
+    if (el.type === 'image') {
+      if (!el._img) return;
+      const sc = (el.scale || 100) / 100;
+      ctx.save();
+      ctx.globalAlpha = (el.opacity || 100) / 100;
+      ctx.drawImage(el._img, el.x*zoom, el.y*zoom, el.width*zoom*sc, el.height*zoom*sc);
+      ctx.restore();
+    } else {
+      if (_inlineEl && el.id === _inlineEl.id) return;
+      drawTextElement(ctx, el, zoom);
+    }
+  });
+
+  // Selection + resize handles
+  if (selectedId !== null) {
+    const el = elements.find(e => e.id === selectedId);
+    if (el) {
+      const b = getElementBBox(el);
+      // Dashed selection rect
+      ctx.save();
+      ctx.strokeStyle = 'rgba(74,158,255,0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 3]);
+      ctx.strokeRect(b.x - 2, b.y - 2, b.w + 4, b.h + 4);
+      ctx.setLineDash([]);
+      ctx.restore();
+      // Resize handles
+      _drawHandles(b);
+    }
+  }
+}
+
+function _drawHandles(b) {
+  const hs = _handlePositions(b);
+  ctx.save();
+  Object.values(hs).forEach(h => {
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#4a9eff';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(h.x - 5, h.y - 5, 10, 10);
+    ctx.strokeRect(h.x - 5, h.y - 5, 10, 10);
+  });
+  ctx.restore();
+}
+
+function _handlePositions(b) {
+  return {
+    tl: {x: b.x,          y: b.y},
+    tm: {x: b.x + b.w/2,  y: b.y},
+    tr: {x: b.x + b.w,    y: b.y},
+    ml: {x: b.x,          y: b.y + b.h/2},
+    mr: {x: b.x + b.w,    y: b.y + b.h/2},
+    bl: {x: b.x,          y: b.y + b.h},
+    bm: {x: b.x + b.w/2,  y: b.y + b.h},
+    br: {x: b.x + b.w,    y: b.y + b.h},
+  };
+}
+
+function _hitHandle(mx, my, b) {
+  const hs = _handlePositions(b);
+  for (const [id, h] of Object.entries(hs)) {
+    if (Math.abs(mx - h.x) <= 7 && Math.abs(my - h.y) <= 7) return id;
+  }
+  return null;
+}
+
+const _handleCursors = {
+  tl:'nwse-resize', tr:'nesw-resize', bl:'nesw-resize', br:'nwse-resize',
+  tm:'ns-resize', bm:'ns-resize', ml:'ew-resize', mr:'ew-resize',
+};
+
+function drawTextElement(ctx, el, scale) {
+  const x      = el.x * scale;
+  const y      = el.y * scale;
+  const size   = (el.size || 80) * scale * ((el.scale || 100) / 100);
+  const text   = el.text || '';
+  const color  = el.color || '#ffffff';
+  const opacity = (el.opacity || 100) / 100;
+  const strokeW = (el.stroke_width || 0) * scale;
+  const shadow  = el.shadow !== false;
+  const font    = `${el.bold ? 'bold ' : ''}${size}px "${el.font||'Arial'}", Arial, sans-serif`;
+
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.font = font;
+  ctx.textBaseline = 'top';
+
+  const lines = text.split('\n');
+  const lineH = size * 1.2;
+
+  lines.forEach((line, i) => {
+    const ly = y + i * lineH;
+    if (strokeW > 0) {
+      ctx.shadowColor = 'transparent';
+      ctx.strokeStyle = el.stroke_color || '#000';
+      ctx.lineWidth   = strokeW * 2;
+      ctx.lineJoin    = 'round';
+      ctx.strokeText(line, x, ly);
+    }
+    ctx.shadowColor   = shadow ? 'rgba(0,0,0,0.85)' : 'transparent';
+    ctx.shadowBlur    = shadow ? 8 * scale : 0;
+    ctx.shadowOffsetX = shadow ? 3 * scale : 0;
+    ctx.shadowOffsetY = shadow ? 3 * scale : 0;
+    ctx.fillStyle = color;
+    ctx.fillText(line, x, ly);
+  });
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════
+// BBOX
+// ════════════════════════════════════════════════════════
+function getElementBBox(el) {
+  return _bbox(el, zoom);
+}
+function getElementBBoxRaw(el) {
+  return _bbox(el, 1);
+}
+
+function _bbox(el, scale) {
+  if (el.type === 'image') {
+    const sc = (el.scale || 100) / 100;
+    return { x: el.x*scale, y: el.y*scale, w: el.width*scale*sc, h: el.height*scale*sc };
+  }
+  const size  = (el.size || 80) * scale * ((el.scale || 100) / 100);
+  const lines = (el.text || '').split('\n');
+  const lineH = size * 1.2;
+  ctx.save();
+  ctx.font = `${el.bold ? 'bold ' : ''}${size}px "${el.font||'Arial'}", Arial, sans-serif`;
+  const maxW = Math.max(10, ...lines.map(l => ctx.measureText(l).width));
+  ctx.restore();
+  return { x: el.x*scale, y: el.y*scale, w: maxW + 20, h: lineH * lines.length + 10 };
+}
+
+function hitTest(mx, my) {
+  for (let i = elements.length - 1; i >= 0; i--) {
+    const el = elements[i];
+    const b  = getElementBBox(el);
+    if (mx >= b.x - 8 && mx <= b.x + b.w + 8 && my >= b.y - 8 && my <= b.y + b.h + 8)
+      return el;
+  }
+  return null;
+}
+
+// ════════════════════════════════════════════════════════
+// MOUSE INTERACTION (drag + resize)
+// ════════════════════════════════════════════════════════
+let _dragging = false, _dragEl = null, _offX = 0, _offY = 0;
+let _resizing = false, _resizeH = null, _resizeStart = null;
+
+canvas.addEventListener('mousedown', e => {
+  if (_inlineEl) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  // Check resize handle first
+  if (selectedId !== null) {
+    const el = elements.find(e2 => e2.id === selectedId);
+    if (el) {
+      const b = getElementBBox(el);
+      const h = _hitHandle(mx, my, b);
+      if (h) {
+        _resizing = true;
+        _resizeH  = h;
+        _resizeStart = { mx, my, x: el.x, y: el.y, w: el.width, h: el.height, size: el.size, scale: el.scale || 100 };
+        canvas.style.cursor = _handleCursors[h] || 'crosshair';
+        e.preventDefault();
+        return;
+      }
+    }
+  }
+
+  // Click to select / drag
+  const hit = hitTest(mx, my);
+  if (hit) {
+    _dragging = true;
+    _dragEl   = hit;
+    const b   = getElementBBox(hit);
+    _offX = mx - b.x;
+    _offY = my - b.y;
+    if (hit.type === 'image') selectImgElem(hit.id);
+    else selectElement(hit.id);
+    canvas.style.cursor = 'grabbing';
+    e.preventDefault();
+  } else {
+    _clearSelection();
+  }
+});
+
+document.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  if (_resizing && _resizeStart) {
+    const el = elements.find(e2 => e2.id === selectedId);
+    if (!el) return;
+    const dx = (mx - _resizeStart.mx) / zoom;
+    const dy = (my - _resizeStart.my) / zoom;
+    const h  = _resizeH;
+    if (el.type === 'image') {
+      const sc0 = (_resizeStart.scale || 100) / 100;
+      const ew0 = _resizeStart.w * sc0, eh0 = _resizeStart.h * sc0;
+      if (h.includes('r')) el.width  = Math.max(10, Math.round((ew0 + dx)));
+      if (h.includes('l')) { el.x = Math.round(_resizeStart.x + dx); el.width  = Math.max(10, Math.round(ew0 - dx)); }
+      if (h.includes('b')) el.height = Math.max(10, Math.round(eh0 + dy));
+      if (h.includes('t')) { el.y = Math.round(_resizeStart.y + dy); el.height = Math.max(10, Math.round(eh0 - dy)); }
+      el.scale = 100;
+      el._scaleBase = null;
+      document.getElementById('ip-scale').value  = 100;
+      document.getElementById('lbl-ip-scale').textContent = '100%';
+      document.getElementById('ip-width').value  = el.width;
+      document.getElementById('ip-height').value = el.height;
+      document.getElementById('ip-x').value = el.x;
+      document.getElementById('ip-y').value = el.y;
+    } else {
+      // Scale text via resize
+      if (h === 'br' || h === 'mr' || h === 'bm') {
+        el.size = Math.max(8, Math.round(_resizeStart.size + (dx + dy) / 4));
+        document.getElementById('ep-size').value = el.size;
+      }
+      if (h.includes('r') || h === 'bm' || h === 'tm') {
+        el.x = _resizeStart.x;
+        el.y = _resizeStart.y;
+      }
+    }
+    redraw();
+    return;
+  }
+
+  if (_dragging && _dragEl) {
+    _dragEl.x = Math.round((mx - _offX) / zoom);
+    _dragEl.y = Math.round((my - _offY) / zoom);
+    if (_dragEl.type === 'image') {
+      document.getElementById('ip-x').value = _dragEl.x;
+      document.getElementById('ip-y').value = _dragEl.y;
+    } else {
+      document.getElementById('ep-x').value = _dragEl.x;
+      document.getElementById('ep-y').value = _dragEl.y;
+    }
+    redraw();
+    return;
+  }
+
+  // Cursor hover
+  if (!_dragging && !_resizing) {
+    if (selectedId !== null) {
+      const el = elements.find(e2 => e2.id === selectedId);
+      if (el) {
+        const b = getElementBBox(el);
+        const h = _hitHandle(mx, my, b);
+        if (h) { canvas.style.cursor = _handleCursors[h] || 'crosshair'; return; }
+      }
+    }
+    canvas.style.cursor = hitTest(mx, my) ? 'grab' : 'default';
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  if (_dragging || _resizing) {
+    pushHistory();
+    _dragging = false; _dragEl = null;
+    _resizing = false; _resizeH = null; _resizeStart = null;
+    canvas.style.cursor = 'default';
+  }
+});
+
+// Double-click → inline edit
+canvas.addEventListener('dblclick', e => {
+  const rect = canvas.getBoundingClientRect();
+  const hit  = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+  if (hit && hit.type !== 'image') {
+    selectElement(hit.id);
+    showInlineEditor(hit);
+    e.preventDefault();
+  }
+});
+
+// ════════════════════════════════════════════════════════
+// INLINE EDITOR
+// ════════════════════════════════════════════════════════
+const inlineEditor = document.getElementById('inline-editor');
+let _inlineEl = null;
+
+function _resizeInlineEd() {
+  inlineEditor.style.height = 'auto';
+  inlineEditor.style.height = inlineEditor.scrollHeight + 'px';
+}
+
+function showInlineEditor(el) {
+  _inlineEl = el;
+  const sz = (el.size || 80) * zoom * ((el.scale || 100) / 100);
+  inlineEditor.style.left       = (el.x * zoom) + 'px';
+  inlineEditor.style.top        = (el.y * zoom) + 'px';
+  inlineEditor.style.fontSize   = sz + 'px';
+  inlineEditor.style.lineHeight = '1.2';
+  inlineEditor.style.fontFamily = `"${el.font||'Arial'}", Arial, sans-serif`;
+  inlineEditor.style.fontWeight = el.bold ? 'bold' : 'normal';
+  inlineEditor.style.color      = el.color || '#fff';
+  inlineEditor.style.maxWidth   = (canvas.width - el.x * zoom - 10) + 'px';
+  inlineEditor.style.minWidth   = Math.min(200, canvas.width * 0.4) + 'px';
+  inlineEditor.style.height     = 'auto';
+  inlineEditor.value            = el.text || '';
+  inlineEditor.style.display    = 'block';
+  _resizeInlineEd();
+  inlineEditor.focus();
+  inlineEditor.setSelectionRange(0, inlineEditor.value.length);
+  redraw();
+}
+
+function hideInlineEditor() {
+  if (!_inlineEl) return;
+  pushHistory();
+  inlineEditor.style.display = 'none';
+  _inlineEl = null;
+  redraw();
+}
+
+inlineEditor.addEventListener('input', () => {
+  if (!_inlineEl) return;
+  _inlineEl.text = inlineEditor.value;
+  document.getElementById('ep-text').value = inlineEditor.value;
+  _resizeInlineEd();
+  renderLayerList();
+  redraw();
+});
+inlineEditor.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { hideInlineEditor(); e.preventDefault(); }
+});
+inlineEditor.addEventListener('mousedown', e => e.stopPropagation());
+document.addEventListener('mousedown', e => {
+  if (!_inlineEl) return;
+  if (e.target === inlineEditor) return;
+  if (e.target === canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const hit  = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+    if (hit && hit.id === _inlineEl.id) return;
+  }
+  hideInlineEditor();
+});
+
+// ════════════════════════════════════════════════════════
+// ELEMENTS
+// ════════════════════════════════════════════════════════
+function addElement() {
+  const el = {
+    id: nextId++, type: 'text',
+    text: 'Your Title Here',
+    font: document.getElementById('ep-font')?.options[0]?.value || 'Arial',
+    size: 80, color: '#ffffff',
+    x: 60, y: 60,
+    bold: false, shadow: true,
+    stroke_width: 0, stroke_color: '#000000',
+    opacity: 100, scale: 100,
+  };
+  elements.push(el);
+  selectElement(el.id);
+  renderLayerList();
+  pushHistory();
+  redraw();
+}
+
+function deleteSelected() {
+  if (selectedId === null) return;
+  elements = elements.filter(e => e.id !== selectedId);
+  selectedId = null;
+  _hideProps();
+  renderLayerList();
+  pushHistory();
+  redraw();
+}
+
+function deleteElem(id) {
+  elements = elements.filter(e => e.id !== id);
+  if (selectedId === id) { selectedId = null; _hideProps(); }
+  renderLayerList();
+  pushHistory();
+  redraw();
+}
+
+function duplicateSelected() {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el) return;
+  const { _img, _scaleBase, ...clean } = el;
+  const copy = { ...JSON.parse(JSON.stringify(clean)), id: nextId++, x: el.x + 20, y: el.y + 20 };
+  if (el.type === 'image' && el._img) copy._img = el._img;
+  elements.push(copy);
+  if (copy.type === 'image') selectImgElem(copy.id);
+  else selectElement(copy.id);
+  renderLayerList();
+  pushHistory();
+  redraw();
+  toast('⧉ Duplicated');
+}
+
+function moveLayerUp(id) {
+  const i = elements.findIndex(e => e.id === id);
+  if (i < elements.length - 1) {
+    [elements[i], elements[i+1]] = [elements[i+1], elements[i]];
+    renderLayerList(); redraw(); pushHistory();
+  }
+}
+function moveLayerDown(id) {
+  const i = elements.findIndex(e => e.id === id);
+  if (i > 0) {
+    [elements[i], elements[i-1]] = [elements[i-1], elements[i]];
+    renderLayerList(); redraw(); pushHistory();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// ALIGN
+// ════════════════════════════════════════════════════════
+function alignElem(type) {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el) return;
+  const b = getElementBBoxRaw(el);
+  switch(type) {
+    case 'left':    el.x = 0; break;
+    case 'right':   el.x = Math.round(CANVAS_W - b.w); break;
+    case 'centerH': el.x = Math.round((CANVAS_W - b.w) / 2); break;
+    case 'top':     el.y = 0; break;
+    case 'bottom':  el.y = Math.round(CANVAS_H - b.h); break;
+    case 'centerV': el.y = Math.round((CANVAS_H - b.h) / 2); break;
+  }
+  _updateXYFromEl(el);
+  pushHistory();
+  redraw();
+}
+
+function _updateXYFromEl(el) {
+  if (el.type === 'image') {
+    document.getElementById('ip-x').value = el.x;
+    document.getElementById('ip-y').value = el.y;
+  } else {
+    document.getElementById('ep-x').value = el.x;
+    document.getElementById('ep-y').value = el.y;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// PROPERTIES PANELS
+// ════════════════════════════════════════════════════════
+function _hideProps() {
+  document.getElementById('img-props').style.display  = 'none';
+  document.getElementById('elem-props').style.display = 'none';
+  document.getElementById('no-sel-msg').style.display = 'block';
+}
+
+function _clearSelection() {
+  selectedId = null;
+  _hideProps();
+  renderLayerList();
+  redraw();
+}
+
+function selectElement(id, focusText = false) {
+  selectedId = id;
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+
+  document.getElementById('no-sel-msg').style.display = 'none';
+  document.getElementById('img-props').style.display  = 'none';
+  const panel = document.getElementById('elem-props');
+  panel.style.display = 'block';
+
+  document.getElementById('ep-text').value         = el.text || '';
+  document.getElementById('ep-font').value         = el.font || 'Arial';
+  document.getElementById('ep-size').value         = el.size || 80;
+  document.getElementById('ep-color').value        = el.color || '#ffffff';
+  document.getElementById('ep-stroke-color').value = el.stroke_color || '#000000';
+  document.getElementById('ep-stroke-width').value = el.stroke_width || 0;
+  document.getElementById('ep-bold').checked       = !!el.bold;
+  document.getElementById('ep-shadow').checked     = el.shadow !== false;
+  document.getElementById('ep-opacity').value      = el.opacity ?? 100;
+  document.getElementById('lbl-opacity').textContent = (el.opacity ?? 100) + '%';
+  document.getElementById('ep-scale').value        = el.scale || 100;
+  document.getElementById('lbl-ep-scale').textContent = (el.scale || 100) + '%';
+  document.getElementById('ep-x').value            = el.x;
+  document.getElementById('ep-y').value            = el.y;
+
+  renderLayerList();
+  redraw();
+  if (focusText) setTimeout(() => { document.getElementById('ep-text').focus(); }, 80);
+}
+
+function selectImgElem(id) {
+  selectedId = id;
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+
+  document.getElementById('no-sel-msg').style.display = 'none';
+  document.getElementById('elem-props').style.display = 'none';
+  const p = document.getElementById('img-props');
+  p.style.display = 'block';
+
+  document.getElementById('ip-scale').value  = el.scale || 100;
+  document.getElementById('lbl-ip-scale').textContent = (el.scale || 100) + '%';
+  document.getElementById('ip-width').value  = el.width;
+  document.getElementById('ip-height').value = el.height;
+  document.getElementById('ip-opacity').value = el.opacity ?? 100;
+  document.getElementById('lbl-ip-opacity').textContent = (el.opacity ?? 100) + '%';
+  document.getElementById('ip-x').value = el.x;
+  document.getElementById('ip-y').value = el.y;
+
+  renderLayerList();
+  redraw();
+}
+
+function updateElem() {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el || el.type === 'image') return;
+  el.text         = document.getElementById('ep-text').value;
+  el.font         = document.getElementById('ep-font').value;
+  el.size         = parseInt(document.getElementById('ep-size').value) || 80;
+  el.color        = document.getElementById('ep-color').value;
+  el.stroke_color = document.getElementById('ep-stroke-color').value;
+  el.stroke_width = parseInt(document.getElementById('ep-stroke-width').value) || 0;
+  el.bold         = document.getElementById('ep-bold').checked;
+  el.shadow       = document.getElementById('ep-shadow').checked;
+  el.opacity      = parseInt(document.getElementById('ep-opacity').value) ?? 100;
+  el.x            = parseInt(document.getElementById('ep-x').value) || 0;
+  el.y            = parseInt(document.getElementById('ep-y').value) || 0;
+  document.getElementById('lbl-opacity').textContent = el.opacity + '%';
+  renderLayerList();
+  redraw();
+}
+
+function scaleTextElem(val) {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el || el.type === 'image') return;
+  el.scale = parseInt(val) || 100;
+  document.getElementById('lbl-ep-scale').textContent = el.scale + '%';
+  redraw();
+}
+
+function updateImgElem() {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el || el.type !== 'image') return;
+  el.width   = parseInt(document.getElementById('ip-width').value)   || 300;
+  el.height  = parseInt(document.getElementById('ip-height').value)  || 300;
+  el.opacity = parseInt(document.getElementById('ip-opacity').value) ?? 100;
+  el.x       = parseInt(document.getElementById('ip-x').value) || 0;
+  el.y       = parseInt(document.getElementById('ip-y').value) || 0;
+  document.getElementById('lbl-ip-opacity').textContent = el.opacity + '%';
+  redraw();
+}
+
+function scaleImgElem(val) {
+  if (selectedId === null) return;
+  const el = elements.find(e => e.id === selectedId);
+  if (!el || el.type !== 'image') return;
+  const s = parseInt(val) || 100;
+  el.scale = s;
+  document.getElementById('lbl-ip-scale').textContent = s + '%';
+  if (el._img) {
+    const base = el._scaleBase || { w: el._img.naturalWidth, h: el._img.naturalHeight };
+    el._scaleBase = base;
+    el.width  = Math.max(10, Math.round(base.w * s / 100));
+    el.height = Math.max(10, Math.round(base.h * s / 100));
+    document.getElementById('ip-width').value  = el.width;
+    document.getElementById('ip-height').value = el.height;
+  }
+  redraw();
+}
+
+// ════════════════════════════════════════════════════════
+// LAYER LIST
+// ════════════════════════════════════════════════════════
+function renderLayerList() {
+  const list = document.getElementById('layer-list');
+  const noEl = document.getElementById('no-layer');
+  Array.from(list.querySelectorAll('li:not(#no-layer)')).forEach(li => li.remove());
+  if (elements.length === 0) { if (noEl) noEl.style.display = 'block'; return; }
+  if (noEl) noEl.style.display = 'none';
+
+  // Render in reverse order (top layers first)
+  [...elements].reverse().forEach(el => {
+    const li = document.createElement('li');
+    li.className = el.id === selectedId ? 'active' : '';
+    const icon  = el.type === 'image' ? '🖼' : 'T';
+    const label = el.type === 'image'
+      ? (el.name || 'image')
+      : ((el.text||'').split('\n')[0].slice(0,20) || '(empty)');
+    li.innerHTML = `
+      <span class="layer-icon">${icon}</span>
+      <span class="layer-name" title="${label}">${label}</span>
+      <span class="layer-actions">
+        <button class="layer-btn" onclick="event.stopPropagation();moveLayerUp(${el.id})" title="Move up">↑</button>
+        <button class="layer-btn" onclick="event.stopPropagation();moveLayerDown(${el.id})" title="Move down">↓</button>
+        <button class="layer-btn del" onclick="event.stopPropagation();deleteElem(${el.id})" title="Delete">✕</button>
+      </span>`;
+    li.onclick = () => el.type === 'image' ? selectImgElem(el.id) : selectElement(el.id);
+    list.appendChild(li);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// OVERLAYS
+// ════════════════════════════════════════════════════════
+let _allOverlays = [];
+
+async function loadOverlayGrid() {
+  const r = await fetch('/api/overlays');
+  _allOverlays = await r.json();
+  renderOverlayGrid(_allOverlays);
+}
+
+function renderOverlayGrid(list) {
+  const grid = document.getElementById('overlay-grid');
+  grid.innerHTML = '';
+  if (!list.length) {
+    grid.innerHTML = '<span style="font-size:11px;color:#444">No overlays found</span>';
+    return;
+  }
+  list.forEach(ov => {
+    const label = ov.label || ov.name;
+    const btn = document.createElement('div');
+    btn.className = 'ov-btn';
+    btn.title = label + (ov.tags?.length ? '\n🏷 ' + ov.tags.slice(0,5).join(', ') : '');
+    const img = document.createElement('img');
+    img.src = '/api/overlay-img/' + encodeURIComponent(ov.file);
+    img.loading = 'lazy';
+    btn.appendChild(img);
+    btn.innerHTML += `<div class="ov-label">${label}</div>`;
+    btn.firstChild; // img reference kept
+    btn.onclick = () => addOverlayFromUrl('/api/overlay/' + encodeURIComponent(ov.file), label);
+    grid.appendChild(btn);
+  });
+}
+
+function filterOverlays(q) {
+  q = q.toLowerCase().trim();
+  if (!q) { renderOverlayGrid(_allOverlays); return; }
+  const filtered = _allOverlays.filter(ov => {
+    const label = (ov.label || ov.name).toLowerCase();
+    const tags  = (ov.tags || []).join(' ').toLowerCase();
+    return label.includes(q) || tags.includes(q);
+  });
+  renderOverlayGrid(filtered);
+}
+
+async function addOverlayFromUrl(apiUrl, name) {
+  setStatus('Loading overlay...');
+  const r = await fetch(apiUrl);
+  const d = await r.json();
+  if (d.error) { setStatus('Error: ' + d.error); return; }
+  const img = new Image();
+  img.onload = () => {
+    const sc = Math.min(400 / img.naturalWidth, 400 / img.naturalHeight, 1);
+    const w  = Math.round(img.naturalWidth * sc);
+    const h  = Math.round(img.naturalHeight * sc);
+    const el = { id: nextId++, type: 'image', name, src: d.data,
+      x: Math.round((CANVAS_W - w) / 2), y: Math.round((CANVAS_H - h) / 2),
+      width: w, height: h, opacity: 100, scale: 100, _img: img };
+    elements.push(el);
+    selectImgElem(el.id);
+    renderLayerList();
+    pushHistory();
+    redraw();
+    setStatus('');
+    toast('✔ Added: ' + name, 'ok');
+  };
+  img.src = d.data;
+}
+
+function loadCustomOverlay(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const src = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      const sc = Math.min(400 / img.naturalWidth, 400 / img.naturalHeight, 1);
+      const w  = Math.round(img.naturalWidth * sc);
+      const h  = Math.round(img.naturalHeight * sc);
+      const el = { id: nextId++, type: 'image', name: file.name.replace(/\.[^.]+$/, ''),
+        src, x: Math.round((CANVAS_W - w) / 2), y: Math.round((CANVAS_H - h) / 2),
+        width: w, height: h, opacity: 100, scale: 100, _img: img };
+      elements.push(el);
+      selectImgElem(el.id);
+      renderLayerList();
+      pushHistory();
+      redraw();
+    };
+    img.src = src;
+  };
+  reader.readAsDataURL(file);
+  evt.target.value = '';
+}
+
+// ════════════════════════════════════════════════════════
+// BACKGROUND LOADING
+// ════════════════════════════════════════════════════════
+function loadLocalImage(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    bgData = e.target.result;
+    const img = new Image();
+    img.onload = () => { bgImage = img; pushHistory(); redraw(); toast('🖼 Background loaded', 'ok'); };
+    img.src = bgData;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function loadFromPath(path) {
+  closeModal();
+  setStatus('Loading...');
+  const r = await fetch('/api/load_image', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path})});
+  const d = await r.json();
+  if (d.error) { setStatus('Error: ' + d.error); return; }
+  bgData = d.data;
+  const img = new Image();
+  img.onload = () => { bgImage = img; pushHistory(); redraw(); setStatus(''); toast('🖼 Loaded', 'ok'); };
+  img.src = bgData;
+}
+
+// ════════════════════════════════════════════════════════
+// SESSIONS MODAL
+// ════════════════════════════════════════════════════════
+async function showSessions() {
+  document.getElementById('session-modal').classList.add('open');
+  document.getElementById('session-list').innerHTML = 'Loading...';
+  const r = await fetch('/api/sessions');
+  const sessions = await r.json();
+  if (!sessions.length) {
+    document.getElementById('session-list').innerHTML = '<p style="color:#666">No sessions found.</p>';
+    return;
+  }
+  let html = '';
+  sessions.forEach(sess => {
+    html += `<div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:6px">${sess.channel} / ${sess.session}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">`;
+    sess.photos.forEach(p => {
+      const name = p.split(/[\\/]/).pop();
+      html += `<div style="cursor:pointer;background:#2a2a2a;padding:5px 10px;border-radius:4px;font-size:11px;border:1px solid #3a3a3a;transition:background 0.15s"
+        onmouseover="this.style.background='#333'"
+        onmouseout="this.style.background='#2a2a2a'"
+        onclick="loadFromPath('${p.replace(/\\/g,'/')}')">${name}</div>`;
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('session-list').innerHTML = html;
+}
+
+function closeModal() {
+  document.getElementById('session-modal').classList.remove('open');
+}
+
+// ════════════════════════════════════════════════════════
+// EXPORT
+// ════════════════════════════════════════════════════════
+async function exportPNG() {
+  setStatus('Exporting...');
+  toast('⏳ Exporting...');
+  const payload = {
+    bg_data:     bgData || null,
+    effects:     getEffects(),
+    elements:    _serializeElements(),
+    output_path: document.getElementById('export-path').value.trim(),
+  };
+  const r = await fetch('/api/export', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) { setStatus('Export failed'); toast('✖ Export failed', 'err'); return; }
+  const blob = await r.blob();
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'thumbnail.png'; a.click();
+  URL.revokeObjectURL(url);
+  const mb = (blob.size / 1024 / 1024).toFixed(1);
+  setStatus('');
+  toast(`✔ Exported ${mb} MB`, 'ok');
+}
+
+// ════════════════════════════════════════════════════════
+// PROJECT SAVE / LOAD
+// ════════════════════════════════════════════════════════
+function saveProject() {
+  const project = {
+    version: 2,
+    bg_data: bgData,
+    effects: getEffects(),
+    elements: _serializeElements(),
+    export_path: document.getElementById('export-path').value,
+  };
+  const blob = new Blob([JSON.stringify(project, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'thumbnail_project.json'; a.click();
+  URL.revokeObjectURL(url);
+  toast('💾 Project saved', 'ok');
+}
+
+function loadProject(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const project = JSON.parse(e.target.result);
+      // BG
+      if (project.bg_data) {
+        bgData = project.bg_data;
+        const img = new Image();
+        img.onload = () => { bgImage = img; redraw(); };
+        img.src = bgData;
+      } else { bgImage = null; bgData = null; }
+      // Effects
+      const fx = project.effects || {};
+      ['brightness','contrast','saturation','blur','vignette'].forEach(k => {
+        const el = document.getElementById('fx-'+k);
+        if (el && fx[k] !== undefined) el.value = fx[k];
+      });
+      document.getElementById('lbl-br').textContent = (fx.brightness||100)+'%';
+      document.getElementById('lbl-co').textContent = (fx.contrast||100)+'%';
+      document.getElementById('lbl-sa').textContent = (fx.saturation||100)+'%';
+      document.getElementById('lbl-bl').textContent = (fx.blur||0)+'';
+      document.getElementById('lbl-vi').textContent = (fx.vignette||0)+'%';
+      // Elements
+      elements = project.elements || [];
+      nextId = elements.length ? Math.max(...elements.map(e => e.id)) + 1 : 1;
+      selectedId = null;
+      _hideProps();
+      let pending = elements.filter(e => e.type === 'image' && e.src).length;
+      if (pending === 0) { renderLayerList(); redraw(); }
+      elements.forEach(el => {
+        if (el.type === 'image' && el.src) {
+          const img = new Image();
+          img.onload = () => { el._img = img; pending--; if (!pending) { renderLayerList(); redraw(); } };
+          img.src = el.src;
+        }
+      });
+      if (project.export_path) document.getElementById('export-path').value = project.export_path;
+      // Reset history with loaded state
+      _hist.length = 0; _histIdx = -1;
+      pushHistory();
+      toast('📂 Project loaded', 'ok');
+    } catch(err) {
+      toast('✖ Load error: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+// ════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName;
+  const inInput = ['INPUT','TEXTAREA','SELECT'].includes(tag);
+
+  // Esc always works
+  if (e.key === 'Escape') {
+    if (_inlineEl) { hideInlineEditor(); e.preventDefault(); }
+    else { _clearSelection(); }
+    return;
+  }
+
+  // Ctrl combos work even in inputs
+  if (e.ctrlKey && e.key === 'z')                        { undo(); e.preventDefault(); return; }
+  if (e.ctrlKey && (e.key === 'y' || e.key === 'Z'))     { redo(); e.preventDefault(); return; }
+  if (e.ctrlKey && e.key === 's')                        { saveProject(); e.preventDefault(); return; }
+  if (e.ctrlKey && e.key === 'e')                        { exportPNG(); e.preventDefault(); return; }
+
+  if (inInput) return; // rest only outside inputs
+
+  if (e.ctrlKey && e.key === 'd')                        { duplicateSelected(); e.preventDefault(); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace')       { deleteSelected(); e.preventDefault(); return; }
+
+  // Arrow nudge
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key) && selectedId !== null) {
+    const el = elements.find(x => x.id === selectedId);
+    if (!el) return;
+    const step = e.shiftKey ? 10 : 1;
+    if (e.key === 'ArrowLeft')  el.x -= step;
+    if (e.key === 'ArrowRight') el.x += step;
+    if (e.key === 'ArrowUp')    el.y -= step;
+    if (e.key === 'ArrowDown')  el.y += step;
+    _updateXYFromEl(el);
+    redraw();
+    e.preventDefault();
+  }
+});
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+setZoom(0.5);
+redraw();
+loadOverlayGrid();
+pushHistory(); // initial empty snapshot
+</script>
+</body>
+</html>

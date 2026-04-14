@@ -1,0 +1,13 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/3132185978_2974089236_2021740181.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_1422451518_792069856.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_4030695232_3105753983.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_2102656379_603144244.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_3070548368_1213087455.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_2127751342_421003895.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_1935357796_1659295574.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_2352694974_3447855554.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_2632665964_423185350.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_4237291445_830778141.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_3423429278_297393898.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_infographics/480p15/partial_movie_files/HistogramPanel/603911562_2299220129_2358810818.mp4'

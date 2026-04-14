@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>CRS-24 · Live Overlay</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      color: #e0f4ff;
+    }
+
+    #scaler {
+      width: 1920px;
+      height: 1080px;
+      position: absolute;
+      top: 0; left: 0;
+    }
+
+    :root {
+      --cyan:     #00cfff;
+      --orange:   #ffb830;
+      --green:    #00ff88;
+      --red:      #ff3366;
+      --panel:    rgba(0, 5, 10, 1.0);
+      --border:   rgba(0, 207, 255, 0.35);
+    }
+
+    /* ════════════════════════════════════════
+       GRID LAYOUT
+       60px header | content row (970px) | 50px footer
+    ════════════════════════════════════════ */
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      grid-template-rows: 60px 1fr 50px;
+      width: 1920px;
+      height: 1080px;
+      background: transparent;
+    }
+
+    /* ════════ HEADER ════════ */
+    .header {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      background: var(--panel);
+      border-bottom: 2px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+    }
+
+    /* ════════ LEFT SIDEBAR ════════ */
+    .sidebar-left {
+      grid-column: 1;
+      grid-row: 2;
+      background: var(--panel);
+      border-right: 2px solid var(--border);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: hidden;
+    }
+
+    /* ════════ CENTER (transparent video area) ════════ */
+    .center {
+      grid-column: 2;
+      grid-row: 2;
+      position: relative;
+      background: transparent;
+    }
+
+    .center-frame {
+      position: absolute;
+      inset: 0;
+      border-left: 1px solid rgba(0,207,255,0.18);
+      border-right: 1px solid rgba(0,207,255,0.18);
+      pointer-events: none;
+    }
+
+    /* corner brackets */
+    .corner-dec {
+      position: absolute;
+      width: 16px; height: 16px;
+    }
+    .corner-dec.tl { top: 0; left: 0;  border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+    .corner-dec.tr { top: 0; right: 0; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+    .corner-dec.bl { bottom: 0; left: 0;  border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+    .corner-dec.br { bottom: 0; right: 0; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+
+    /* center bottom overlay strip */
+    .center-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 76px;
+      background: linear-gradient(to bottom, transparent, rgba(0,13,26,0.82) 45%);
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 10px;
+      overflow: hidden;
+    }
+
+    /* ════════ RIGHT SIDEBAR ════════ */
+    .sidebar-right {
+      grid-column: 3;
+      grid-row: 2;
+      background: var(--panel);
+      border-left: 2px solid var(--border);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    /* ════════ FOOTER TICKER ════════ */
+    .bottom-bar {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      background: #000;
+      border-top: 2px solid var(--cyan);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ════════════════════════════════════════
+       HEADER ELEMENTS
+    ════════════════════════════════════════ */
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .live-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 10px var(--red);
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.15; }
+    }
+
+    .live-word {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--red);
+      letter-spacing: 3px;
+    }
+
+    .hdr-divider {
+      width: 1px; height: 30px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .hdr-mission-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--cyan);
+      letter-spacing: 3px;
+      flex-shrink: 0;
+    }
+
+    .hdr-phase {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      color: rgba(170,212,238,0.7);
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+
+    .header-center {
+      flex: 1;
+      text-align: center;
+    }
+
+    .header-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 5px;
+      text-shadow: 0 0 24px rgba(0,207,255,0.55);
+    }
+
+    .header-subtitle {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      color: rgba(0,207,255,0.6);
+      letter-spacing: 3px;
+      margin-top: 3px;
+    }
+
+    .utc-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    .utc-time {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      color: var(--cyan);
+      letter-spacing: 2px;
+    }
+
+    .flag-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      color: rgba(170,212,238,0.7);
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+
+    /* ════════════════════════════════════════
+       SHARED PANEL COMPONENTS
+    ════════════════════════════════════════ */
+    .panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 3px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 7px;
+    }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 8px;
+      color: rgba(122,170,187,0.85);
+      letter-spacing: 2px;
+    }
+
+    .metric-num {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+
+    .metric-value {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+      text-shadow: 0 0 14px rgba(0,207,255,0.45);
+      transition: color 0.3s;
+    }
+
+    .metric-unit {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      color: var(--cyan);
+    }
+
+    .bar-track {
+      height: 4px;
+      background: rgba(0,207,255,0.12);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 1.2s cubic-bezier(.25,.8,.25,1);
+    }
+
+    .bar-fill.speed {
+      background: linear-gradient(90deg, #005580, var(--cyan));
+      box-shadow: 0 0 6px rgba(0,207,255,0.5);
+    }
+
+    .bar-fill.alt {
+      background: linear-gradient(90deg, #005533, var(--green));
+      box-shadow: 0 0 6px rgba(0,255,136,0.4);
+    }
+
+    /* T+ timer */
+    .t-plus {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--orange);
+      text-shadow: 0 0 12px rgba(255,184,48,0.5);
+      letter-spacing: 2px;
+    }
+
+    /* Phase badge */
+    .phase-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(0,207,255,0.08);
+      border: 1px solid rgba(0,207,255,0.25);
+      border-radius: 3px;
+      padding: 4px 10px;
+    }
+
+    .phase-pulse {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 6px var(--cyan);
+      animation: pulse-cyan 1.5s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-cyan {
+      0%, 100% { box-shadow: 0 0 4px var(--cyan); }
+      50% { box-shadow: 0 0 14px var(--cyan); }
+    }
+
+    .phase-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      color: var(--cyan);
+      letter-spacing: 2px;
+    }
+
+    /* Countdown box */
+    .countdown-box {
+      background: rgba(255,184,48,0.05);
+      border: 1px solid rgba(255,184,48,0.22);
+      border-radius: 4px;
+      padding: 9px 12px;
+    }
+
+    .countdown-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 8px;
+      color: rgba(122,170,187,0.8);
+      letter-spacing: 1.5px;
+      margin-bottom: 4px;
+    }
+
+    .countdown-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--orange);
+      text-shadow: 0 0 10px rgba(255,184,48,0.4);
+      letter-spacing: 1px;
+    }
+
+    /* Status list */
+    .status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-green {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse-green 2s ease-in-out infinite;
+    }
+
+    .dot-orange {
+      background: var(--orange);
+      box-shadow: 0 0 6px var(--orange);
+      animation: pulse-orange 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-green {
+      0%, 100% { box-shadow: 0 0 4px var(--green); }
+      50% { box-shadow: 0 0 10px var(--green); }
+    }
+
+    @keyframes pulse-orange {
+      0%, 100% { box-shadow: 0 0 4px var(--orange); }
+      50% { box-shadow: 0 0 10px var(--orange); }
+    }
+
+    .status-name {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      color: rgba(170,212,238,0.85);
+      letter-spacing: 1.5px;
+    }
+
+    .status-val {
+      margin-left: auto;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+    }
+
+    /* ISS map canvas */
+    .iss-map-wrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+
+    #issMap {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ISS data grid */
+    .iss-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .iss-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .iss-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 7.5px;
+      color: rgba(122,170,187,0.8);
+      letter-spacing: 1.5px;
+    }
+
+    .iss-val {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--green);
+      text-shadow: 0 0 10px rgba(0,255,136,0.3);
+      line-height: 1;
+    }
+
+    .iss-unit {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 7.5px;
+      color: rgba(122,170,187,0.7);
+    }
+
+    /* Germany pass */
+    .germany-box {
+      background: rgba(0,255,136,0.05);
+      border: 1px solid rgba(0,255,136,0.22);
+      border-radius: 4px;
+      padding: 8px 12px;
+    }
+
+    /* Cygnus panel */
+    .cygnus-panel {
+      background: rgba(255,184,48,0.04);
+      border: 1px solid rgba(255,184,48,0.22);
+      border-radius: 4px;
+      padding: 10px 12px;
+    }
+
+    .cygnus-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    .cygnus-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(255,184,48,0.08);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+    }
+
+    .cygnus-row:last-child { border-bottom: none; }
+    .cygnus-row .ck { color: rgba(122,170,187,0.75); }
+    .cygnus-row .cv { color: var(--orange); }
+
+    /* ════════════════════════════════════════
+       TICKERS
+    ════════════════════════════════════════ */
+    .ticker-wrap {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .ticker-badge {
+      flex-shrink: 0;
+      background: var(--cyan);
+      color: #000;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 0 14px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .ticker-scroll-wrap {
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .ticker-scroll {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: #c8e4f4;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+      animation: scroll-left 70s linear infinite;
+    }
+
+    @keyframes scroll-left {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    .center-ticker {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--cyan);
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+      animation: scroll-left 35s linear infinite;
+    }
+
+    /* ════════════════════════════════════════
+       TELEMETRY GRAPH (canvas)
+    ════════════════════════════════════════ */
+    .graph-wrap {
+      position: relative;
+      background: rgba(0,207,255,0.04);
+      border: 1px solid rgba(0,207,255,0.18);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .graph-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 8px 3px;
+    }
+
+    .graph-title {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 7.5px;
+      color: rgba(0,207,255,0.7);
+      letter-spacing: 1.5px;
+    }
+
+    .graph-cur {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .graph-canvas {
+      display: block;
+      width: 100%;
+    }
+
+    /* Signal bars */
+    .signal-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 28px;
+    }
+
+    .signal-bar {
+      flex: 1;
+      border-radius: 2px 2px 0 0;
+      transition: height 0.5s ease, opacity 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+<div id="scaler">
+<div class="layout">
+
+  <!-- ═══════════════════════════════════════════════
+       HEADER
+  ═══════════════════════════════════════════════ -->
+  <header class="header">
+    <!-- left: LIVE badge + mission label -->
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span class="live-word">LIVE</span>
+    </div>
+    <div class="hdr-divider"></div>
+    <div>
+      <div class="hdr-mission-label">FALCON 9 · CRS-24 · ISS VERSORGUNG</div>
+      <div class="hdr-phase" id="missionPhase">MISSIONSPHASE: AUFSTIEG</div>
+    </div>
+
+    <!-- center: mission name -->
+    <div class="header-center">
+      <div class="header-title">NORTHROP GRUMMAN CRS-24</div>
+      <div class="header-subtitle">CYGNUS XL · VERSORGUNGSFLUG ZUR INTERNATIONALEN RAUMSTATION</div>
+    </div>
+
+    <!-- right: UTC + flag -->
+    <div class="utc-block">
+      <div class="utc-time" id="utcClock">00:00:00 UTC</div>
+      <div class="flag-label">AUF DEUTSCH 🇩🇪</div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════
+       LEFT SIDEBAR – FALCON 9 TELEMETRIE
+  ═══════════════════════════════════════════════ -->
+  <aside class="sidebar-left">
+    <div class="panel-title">⚡ FALCON 9 TELEMETRIE</div>
+
+    <!-- Geschwindigkeit Graph -->
+    <div class="metric">
+      <div class="metric-label">GESCHWINDIGKEIT</div>
+      <div class="metric-num">
+        <span class="metric-value" id="speed">0</span>
+        <span class="metric-unit">km/h</span>
+      </div>
+    </div>
+    <div class="graph-wrap">
+      <canvas class="graph-canvas" id="speedGraph" height="44"></canvas>
+    </div>
+
+    <!-- Höhe Graph -->
+    <div class="metric">
+      <div class="metric-label">HÖHE</div>
+      <div class="metric-num">
+        <span class="metric-value" id="altitude">0</span>
+        <span class="metric-unit">km</span>
+      </div>
+    </div>
+    <div class="graph-wrap">
+      <canvas class="graph-canvas" id="altGraph" height="44"></canvas>
+    </div>
+
+    <!-- Missionszeit -->
+    <div class="metric">
+      <div class="metric-label">MISSIONSZEIT</div>
+      <div class="t-plus" id="tPlus">T+ 00:00:00</div>
+    </div>
+
+    <!-- Phase badge -->
+    <div class="phase-badge">
+      <div class="phase-pulse"></div>
+      <span class="phase-text" id="phaseLabel">AUFSTIEG</span>
+    </div>
+
+    <!-- BIS ZUR ISS ANKUNFT -->
+    <div class="countdown-box">
+      <div class="countdown-label">BIS ZUR ISS ANKUNFT</div>
+      <div class="countdown-value" id="issCountdown">01d 23:19:00</div>
+    </div>
+
+    <!-- Systemstatus -->
+    <div>
+      <div class="panel-title" style="margin-bottom:8px;">SYSTEMSTATUS</div>
+      <div class="status-list">
+        <div class="status-item">
+          <div class="status-dot dot-green"></div>
+          <span class="status-name">TRIEBWERK</span>
+          <span class="status-val" style="color:var(--green)">NOMINAL</span>
+        </div>
+        <div class="status-item">
+          <div class="status-dot dot-green"></div>
+          <span class="status-name">TREIBSTOFF</span>
+          <span class="status-val" style="color:var(--green)">OK</span>
+        </div>
+        <div class="status-item">
+          <div class="status-dot dot-green"></div>
+          <span class="status-name">SIGNAL</span>
+          <span class="status-val" style="color:var(--green)">SIGNAL OK</span>
+        </div>
+        <div class="status-item">
+          <div class="status-dot dot-orange"></div>
+          <span class="status-name">TREIBST. VERBL.</span>
+          <span class="status-val" style="color:var(--orange)" id="fuelPct">94%</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════
+       CENTER – transparent video area
+  ═══════════════════════════════════════════════ -->
+  <main class="center">
+    <div class="center-frame">
+      <div class="corner-dec tl"></div>
+      <div class="corner-dec tr"></div>
+      <div class="corner-dec bl"></div>
+      <div class="corner-dec br"></div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════
+       RIGHT SIDEBAR – ISS + CYGNUS
+  ═══════════════════════════════════════════════ -->
+  <aside class="sidebar-right">
+    <div class="panel-title">🌍 ISS POSITION</div>
+
+    <!-- Animated ISS map -->
+    <div class="iss-map-wrap">
+      <canvas id="issMap"></canvas>
+    </div>
+
+    <!-- ISS data grid -->
+    <div class="iss-grid">
+      <div class="iss-item">
+        <span class="iss-label">ORBITHÖHE</span>
+        <span class="iss-val">408<span class="iss-unit"> km</span></span>
+      </div>
+      <div class="iss-item">
+        <span class="iss-label">GESCHW.</span>
+        <span class="iss-val">27.600<span class="iss-unit"> km/h</span></span>
+      </div>
+      <div class="iss-item">
+        <span class="iss-label">ORBITS/TAG</span>
+        <span class="iss-val">15,5</span>
+      </div>
+      <div class="iss-item">
+        <span class="iss-label">NEIGUNG</span>
+        <span class="iss-val">51,6<span class="iss-unit">°</span></span>
+      </div>
+    </div>
+
+    <!-- Signal strength graph -->
+    <div class="graph-wrap">
+      <div class="graph-label-row">
+        <span class="graph-title">SIGNALSTÄRKE · DOWNLINK</span>
+        <span class="graph-cur" style="color:var(--green);font-size:11px;" id="signalPct">98%</span>
+      </div>
+      <canvas class="graph-canvas" id="signalGraph" height="44"></canvas>
+    </div>
+
+    <!-- Next Germany overpass -->
+    <div class="germany-box">
+      <div class="countdown-label" style="color:rgba(0,200,100,0.7);">NÄCHSTER ÜBERFLUG DEUTSCHLAND</div>
+      <div class="countdown-value" style="color:var(--green);font-size:14px;" id="germanyPass">—</div>
+    </div>
+
+    <!-- Cygnus cargo panel -->
+    <div class="cygnus-panel">
+      <div class="cygnus-title">🚀 CYGNUS XL — FRACHTMANIFEST</div>
+      <div class="cygnus-row"><span class="ck">GESAMTFRACHT</span><span class="cv">3.400 kg</span></div>
+      <div class="cygnus-row"><span class="ck">WISSENSCHAFT</span><span class="cv">842 kg</span></div>
+      <div class="cygnus-row"><span class="ck">LEBENSMITTEL</span><span class="cv">1.150 kg</span></div>
+      <div class="cygnus-row"><span class="ck">AUSRÜSTUNG</span><span class="cv">1.408 kg</span></div>
+      <div class="cygnus-row"><span class="ck">ANDOCKEN</span><span class="cv" id="dockDate">13. APR · 14:30 UTC</span></div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════
+       BOTTOM TICKER
+  ═══════════════════════════════════════════════ -->
+  <footer class="bottom-bar">
+    <div class="ticker-wrap">
+      <div class="ticker-badge">NEWS</div>
+      <div class="ticker-scroll-wrap">
+        <div class="ticker-scroll" id="mainTicker"></div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+</div><!-- /scaler -->
+
+<script>
+
+// ═══ TELEMETRY HISTORY ═══════════════════════════
+const HISTORY_LEN = 60;
+const speedHistory  = [];
+const altHistory    = [];
+const signalHistory = [];
+
+// ═══ CONSTANTS ═══════════════════════════════════
+const LAUNCH_TIME  = new Date('2026-04-11T13:41:00Z');
+const ISS_CAPTURE  = new Date('2026-04-13T14:30:00Z');
+
+// ISS orbit: 92 min = 5520s, inclination 51.6°
+const ISS_PERIOD   = 5520;
+const ISS_EPOCH    = Date.now();
+const ISS_ANGLE0   = Math.random() * Math.PI * 2;
+
+// ═══ TICKER TEXT ═════════════════════════════════
+const BOTTOM_MSGS = [
+  '▸ CRS-24 ist die 24. kommerzielle Versorgungsmission von Northrop Grumman zur Internationalen Raumstation',
+  '▸ Cygnus XL transportiert insgesamt 3.400 kg Fracht – darunter Lebensmittel, Ausrüstung und Experimente',
+  '▸ Die Internationale Raumstation umkreist die Erde alle 92 Minuten in einer Höhe von 408 Kilometern',
+  '▸ Nach dem Andocken am 13. April 2026 wird Cygnus XL mehrere Monate an der ISS verbleiben',
+  '▸ Falcon 9 startete vom Kennedy Space Center Launch Complex 39A in Cape Canaveral, Florida',
+  '▸ Die aktuelle ISS-Besatzung besteht aus 7 Astronauten aus USA, Russland und Japan',
+  '▸ Northrop Grumman liefert seit 2013 regelmäßig Versorgungsgüter zur ISS im Rahmen des NASA CRS-Programms',
+  '▸ CRS-24 enthält Experimente zur Materialforschung, Pflanzenwachstum und Medizin im Weltall',
+];
+
+const CENTER_MSGS = [
+  '▸ MISSION AKTIV · FALCON 9 TRÄGERRAKETE · NORTHROP GRUMMAN CRS-24 · START: 11. APRIL 2026 · 13:41 UTC',
+  '▸ ANDOCKEN GEPLANT: 13. APRIL 2026 · 14:30 UTC · ISS-EINHEIT: HARMONY NODE 1',
+  '▸ CYGNUS XL IM AUFSTIEG · ORBIT ZIEL: 408 KM · ISS KURS AKTIV',
+];
+
+// ═══ UTILS ═══════════════════════════════════════
+function numDe(n) {
+  return Math.round(n).toLocaleString('de-DE');
+}
+
+function fmtElapsed(sec) {
+  const sign = sec < 0 ? '-' : '+';
+  const abs  = Math.abs(sec);
+  const h = String(Math.floor(abs / 3600)).padStart(2, '0');
+  const m = String(Math.floor((abs % 3600) / 60)).padStart(2, '0');
+  const s = String(Math.floor(abs % 60)).padStart(2, '0');
+  return `T${sign} ${h}:${m}:${s}`;
+}
+
+function fmtCountdown(ms) {
+  if (ms <= 0) return '00:00:00';
+  const tot = Math.floor(ms / 1000);
+  const d   = Math.floor(tot / 86400);
+  const h   = String(Math.floor((tot % 86400) / 3600)).padStart(2, '0');
+  const m   = String(Math.floor((tot % 3600) / 60)).padStart(2, '0');
+  const s   = String(Math.floor(tot % 60)).padStart(2, '0');
+  return d > 0 ? `${d}d ${h}:${m}:${s}` : `${h}:${m}:${s}`;
+}
+
+// ═══ TELEMETRY MODEL ═════════════════════════════
+function getTelemetry(now) {
+  const elapsedMs  = now - LAUNCH_TIME;
+  const elapsedSec = elapsedMs / 1000;
+
+  const ASCENT = 560;    // seconds to orbit insertion
+  const RAISE  = 2 * 86400; // 2 days to ISS
+
+  let speed, altitude, phase, fuelPct;
+
+  if (elapsedSec < 0) {
+    // pre-launch
+    speed = 0; altitude = 0; phase = 'STARTBEREIT'; fuelPct = 100;
+
+  } else if (elapsedSec < ASCENT) {
+    const f = elapsedSec / ASCENT;
+    // sigmoid-ish speed curve
+    speed    = Math.round(Math.pow(f, 0.55) * 27600);
+    // altitude: fast at first, eases off
+    altitude = Math.round(Math.pow(f, 0.72) * 210);
+    fuelPct  = Math.round(100 - f * 42);
+
+    if (elapsedSec < 140)       phase = 'AUFSTIEG';
+    else if (elapsedSec < 250)  phase = 'MAX-Q BEREICH';
+    else if (elapsedSec < 420)  phase = 'STUFE 2 ZÜNDUNG';
+    else                        phase = 'ORBIT EINSCHUSS';
+
+  } else {
+    // in orbit: altitude climbs from 210→408 over 2 days
+    const orbitFrac = Math.min(1, (elapsedSec - ASCENT) / RAISE);
+    altitude = Math.round(210 + orbitFrac * 198);
+    speed    = Math.round(27800 - orbitFrac * 200);
+    fuelPct  = Math.round(58 - orbitFrac * 18);
+
+    if (orbitFrac < 0.08)        phase = 'NUTZLAST AUSKLAPP.';
+    else if (orbitFrac < 0.85)   phase = 'ORBIT ANPASSUNG';
+    else                          phase = 'ISS ANNÄHERUNG';
+  }
+
+  return { speed, altitude, phase, fuelPct, elapsedSec };
+}
+
+// ═══ TELEMETRY GRAPHS ════════════════════════════
+function drawLineGraph(canvasId, history, maxVal, color, fillColor) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const W = canvas.offsetWidth || 252;
+  const H = canvas.height || 44;
+  canvas.width = W;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // grid lines
+  ctx.strokeStyle = 'rgba(0,207,255,0.07)';
+  ctx.lineWidth = 0.5;
+  for (let i = 1; i < 4; i++) {
+    const y = H * i / 4;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  if (history.length < 2) return;
+
+  const pts = history.map((v, i) => ({
+    x: (i / (HISTORY_LEN - 1)) * W,
+    y: H - (Math.min(v, maxVal) / maxVal) * (H - 2) - 1,
+  }));
+
+  // fill area
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, H);
+  ctx.closePath();
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+
+  // line
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // current dot
+  const last = pts[pts.length - 1];
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 10;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+// ═══ ISS MAP (canvas) ════════════════════════════
+function drawIssMap() {
+  const canvas = document.getElementById('issMap');
+  const wrap   = canvas.parentElement;
+  const W = wrap.clientWidth  || 252;
+  const H = wrap.clientHeight || 190;
+
+  if (canvas.width !== W || canvas.height !== H) {
+    canvas.width  = W;
+    canvas.height = H;
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // deep space background
+  const bg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.7);
+  bg.addColorStop(0, 'rgba(0,24,48,0.9)');
+  bg.addColorStop(1, 'rgba(0,5,14,0.98)');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // faint grid
+  ctx.strokeStyle = 'rgba(0,207,255,0.07)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < W; x += W / 6) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += H / 4) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Earth
+  const cx = W * 0.5, cy = H * 0.52;
+  const rx = W * 0.22, ry = H * 0.30;
+
+  // atmosphere glow
+  ctx.save();
+  for (let r = 14; r > 0; r--) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx + r * 1.4, ry + r * 1.4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0,80,180,${0.018 - r * 0.001})`;
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Earth body
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  const eg = ctx.createRadialGradient(cx - rx * 0.3, cy - ry * 0.3, 0, cx, cy, Math.max(rx, ry));
+  eg.addColorStop(0, '#1e6fcc');
+  eg.addColorStop(0.55, '#0e4896');
+  eg.addColorStop(1, '#051e45');
+  ctx.fillStyle = eg;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,207,255,0.45)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.restore();
+
+  // ISS orbit path
+  const ox = rx * 1.52, oy = ry * 1.52;
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, ox, oy, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,207,255,0.22)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // ISS position
+  const now   = Date.now();
+  const angle = ISS_ANGLE0 + (now - ISS_EPOCH) / 1000 / ISS_PERIOD * Math.PI * 2;
+  const issX  = cx + Math.cos(angle) * ox;
+  const issY  = cy + Math.sin(angle) * oy;
+
+  // trail
+  for (let i = 1; i <= 8; i++) {
+    const ta = angle - i * 0.10;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(ta) * ox, cy + Math.sin(ta) * oy, 2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0,207,255,${0.18 - i * 0.02})`;
+    ctx.fill();
+  }
+
+  // ISS dot
+  ctx.beginPath();
+  ctx.arc(issX, issY, 5.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#00cfff';
+  ctx.shadowColor = '#00cfff';
+  ctx.shadowBlur = 14;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.font = 'bold 8px "Share Tech Mono"';
+  ctx.fillStyle = '#00cfff';
+  ctx.fillText('ISS', issX + 8, issY - 4);
+
+  // Cygnus (behind ISS by some angular offset)
+  const elapsedSec = (now - LAUNCH_TIME) / 1000;
+  const ASCENT = 560;
+  let cygOffset = 0.38; // behind ISS before docking
+  if (elapsedSec > 0) {
+    const frac = Math.min(1, Math.max(0, (elapsedSec - ASCENT) / (2 * 86400)));
+    cygOffset = 0.38 * (1 - frac); // converges to ISS
+  }
+
+  if (cygOffset > 0.01) {
+    const ca  = angle - cygOffset;
+    const cygX = cx + Math.cos(ca) * ox;
+    const cygY = cy + Math.sin(ca) * oy;
+    ctx.beginPath();
+    ctx.arc(cygX, cygY, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffb830';
+    ctx.shadowColor = '#ffb830';
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.font = '7px "Share Tech Mono"';
+    ctx.fillStyle = '#ffb830';
+    ctx.fillText('CRS-24', cygX + 6, cygY - 3);
+
+    // approach line
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cygX, cygY);
+    ctx.lineTo(issX, issY);
+    ctx.strokeStyle = 'rgba(255,184,48,0.18)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // Germany marker
+  const gx = cx + rx * 0.25;
+  const gy = cy - ry * 0.45;
+  ctx.beginPath();
+  ctx.arc(gx, gy, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffdd00';
+  ctx.shadowColor = '#ffdd00';
+  ctx.shadowBlur = 6;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.font = '7px "Share Tech Mono"';
+  ctx.fillStyle = '#ffdd00';
+  ctx.fillText('DE', gx + 4, gy + 3);
+
+  // label
+  ctx.font = '7.5px "Share Tech Mono"';
+  ctx.fillStyle = 'rgba(0,207,255,0.45)';
+  ctx.fillText('LIVE TRAJEKTORIE', 5, H - 6);
+}
+
+// ═══ GERMANY PASS ════════════════════════════════
+function nextGermanyPass() {
+  // ISS passes ~Germany (lat≈52N) roughly every 92min
+  // Simplified: compute next time angle crosses ~52°N band
+  const now = Date.now();
+  const phase = ((now - ISS_EPOCH) / 1000 % ISS_PERIOD + ISS_PERIOD) % ISS_PERIOD;
+  const remaining = ISS_PERIOD * 0.55 - phase;
+  const nextMs = remaining > 0 ? remaining : remaining + ISS_PERIOD;
+  const passTime = new Date(now + nextMs * 1000);
+  const h = String(passTime.getUTCHours()).padStart(2, '0');
+  const m = String(passTime.getUTCMinutes()).padStart(2, '0');
+  return `${h}:${m} UTC`;
+}
+
+// ═══ TICKERS ═════════════════════════════════════
+function setupTickers() {
+  const bottomText = BOTTOM_MSGS.join('   ·   ');
+  const bt = document.getElementById('mainTicker');
+  bt.textContent = bottomText + '   ·   ' + bottomText;
+
+  const centerText = CENTER_MSGS.join('   ·   ');
+  const ct = document.getElementById('centerTicker');
+  ct.textContent = centerText + '   ·   ' + centerText;
+}
+
+// ═══ MAIN UPDATE ═════════════════════════════════
+function update() {
+  const now = new Date();
+
+  // UTC clock
+  const h = String(now.getUTCHours()).padStart(2, '0');
+  const m = String(now.getUTCMinutes()).padStart(2, '0');
+  const s = String(now.getUTCSeconds()).padStart(2, '0');
+  document.getElementById('utcClock').textContent = `${h}:${m}:${s} UTC`;
+
+  // Telemetry
+  const t = getTelemetry(now);
+
+  document.getElementById('speed').textContent    = numDe(t.speed);
+  document.getElementById('altitude').textContent = numDe(t.altitude);
+  document.getElementById('tPlus').textContent    = fmtElapsed(t.elapsedSec);
+  document.getElementById('phaseLabel').textContent  = t.phase;
+  document.getElementById('missionPhase').textContent = 'MISSIONSPHASE: ' + t.phase;
+  document.getElementById('fuelPct').textContent  = Math.max(0, t.fuelPct) + '%';
+
+  // History push
+  speedHistory.push(t.speed);
+  if (speedHistory.length > HISTORY_LEN) speedHistory.shift();
+  altHistory.push(t.altitude);
+  if (altHistory.length > HISTORY_LEN) altHistory.shift();
+
+  // Signal: realistic noise around 95-99%
+  const sig = 96 + Math.sin(Date.now() / 4000) * 2 + (Math.random() - 0.5) * 2;
+  signalHistory.push(Math.round(Math.max(85, Math.min(100, sig))));
+  if (signalHistory.length > HISTORY_LEN) signalHistory.shift();
+  const sigEl = document.getElementById('signalPct');
+  if (sigEl) sigEl.textContent = Math.round(sig) + '%';
+
+  // Draw graphs
+  drawLineGraph('speedGraph', speedHistory, 27600,
+    '#00cfff', 'rgba(0,207,255,0.10)');
+  drawLineGraph('altGraph', altHistory, 420,
+    '#00ff88', 'rgba(0,255,136,0.09)');
+  drawLineGraph('signalGraph', signalHistory, 100,
+    '#00ff88', 'rgba(0,255,136,0.08)');
+
+  // ISS countdown
+  const toIss = ISS_CAPTURE - now;
+  document.getElementById('issCountdown').textContent =
+    toIss > 0 ? fmtCountdown(toIss) : 'ANGEDOCKT ✓';
+
+  // Germany pass
+  document.getElementById('germanyPass').textContent = nextGermanyPass();
+}
+
+// ═══ ANIMATION LOOP ══════════════════════════════
+function animateMap() {
+  drawIssMap();
+  requestAnimationFrame(animateMap);
+}
+
+// ═══ SEED HISTORY ════════════════════════════════
+function seedHistory() {
+  const now = Date.now();
+  for (let i = HISTORY_LEN - 1; i >= 0; i--) {
+    const t = new Date(now - i * 3000);
+    const tel = getTelemetry(t);
+    speedHistory.push(tel.speed);
+    altHistory.push(tel.altitude);
+    // signal: nice noisy baseline
+    const sig = 95 + Math.sin(i * 0.3) * 3 + (Math.random() - 0.5) * 2;
+    signalHistory.push(Math.max(85, Math.min(100, Math.round(sig))));
+  }
+}
+
+// ═══ INIT ════════════════════════════════════════
+function init() {
+  seedHistory();
+  setupTickers();
+  update();
+  setInterval(update, 1000);
+  setTimeout(() => {
+    animateMap();
+  }, 100);
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

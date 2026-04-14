@@ -1,0 +1,7 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ShockwaveReveal/3862454583_2226833135_324649435.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ShockwaveReveal/3799820123_1989302486_4100673716.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ShockwaveReveal/3799820123_432776653_3741959464.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ShockwaveReveal/3799820123_1591258486_788735060.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ShockwaveReveal/3799820123_3423429278_247259533.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ShockwaveReveal/3799820123_3349258927_2358810818.mp4'

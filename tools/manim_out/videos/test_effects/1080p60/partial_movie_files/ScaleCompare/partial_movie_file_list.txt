@@ -1,0 +1,12 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3862454583_2972648287_1397794037.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_547451693_2226835785.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_1327205964_4256237304.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_3106250475_200711132.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_3032963384_1468829452.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_2026980215_1352581168.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_745307756_1984294143.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_74082002_1369116492.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_1646638838_1210026634.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_3423429278_4175428751.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_effects/1080p60/partial_movie_files/ScaleCompare/3799820123_80114110_2358810818.mp4'

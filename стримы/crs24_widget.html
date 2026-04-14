@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>CRS-24 · ISS Kopplung · Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:     #000d1a;
+    --bg2:    #00111f;
+    --blue:   #2a7de1;
+    --yellow: #f0a820;
+    --red:    #cc2222;
+    --green:  #00e87a;
+    --bdr:    rgba(42,125,225,0.30);
+  }
+
+  html, body {
+    width: 1920px; height: 1080px;
+    background: transparent;
+    color: #c8dff5;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+  }
+
+  /* ════════════════════════════════
+     LAYOUT: 1920×1080 OBS overlay
+     left(440) | center(transparent) | right(440)
+  ════════════════════════════════ */
+  #app {
+    width: 1920px;
+    height: 1080px;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  /* ══ HEADER ══════════════════════════ */
+  #hdr {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 10px 20px;
+    background: #00111f;
+    border-bottom: 1px solid var(--bdr);
+    height: 60px;
+    flex-shrink: 0;
+  }
+  #hdr-c { flex:1; text-align:center; }
+  .htitle { font-family:'Orbitron',monospace; font-size:17px; font-weight:700; color:#fff; letter-spacing:5px; text-shadow:0 0 18px rgba(42,125,225,.6); }
+  .hsub   { font-size:9px; color:rgba(200,223,245,.4); letter-spacing:2.5px; margin-top:3px; }
+
+  .live-pill { display:flex; align-items:center; gap:7px; background:rgba(204,34,34,.12); border:1px solid rgba(204,34,34,.4); border-radius:3px; padding:4px 12px; }
+  .live-dot  { width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 10px var(--red); animation:blink 1s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+  .live-txt  { font-family:'Orbitron',monospace; font-size:9px; font-weight:700; color:var(--red); letter-spacing:2px; }
+  #utc       { font-size:11px; color:var(--blue); letter-spacing:2px; margin-top:2px; }
+  #api-badge { font-size:7.5px; letter-spacing:1.5px; padding:3px 7px; border-radius:2px; margin-top:3px; }
+
+  /* ══ BODY ════════════════════════════ */
+  #body { display:flex; overflow:hidden; flex:1; }
+
+  /* ══ LEFT PANEL ══════════════════════ */
+  #left {
+    width: 440px;
+    flex-shrink: 0;
+    background: #000d1a;
+    border-right: 1px solid var(--bdr);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* ISS live block — top of left panel */
+  #iss-live {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--bdr);
+  }
+
+  .sec { font-family:'Orbitron',monospace; font-size:8px; font-weight:700; color:var(--blue); letter-spacing:3px; border-bottom:1px solid rgba(42,125,225,.2); padding-bottom:6px; margin-bottom:10px; }
+  .sec.g { color:var(--green); border-color:rgba(0,232,122,.2); }
+
+  /* big ISS data rows — like iss-tracker.com */
+  .iss-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(42,125,225,.07);
+  }
+  .iss-row:last-child { border-bottom:none; }
+  .ir-lbl { font-size:9px; color:rgba(200,223,245,.5); letter-spacing:1.5px; width:120px; flex-shrink:0; }
+  .ir-val { font-size:28px; font-weight:700; color:#fff; text-shadow:0 0 14px rgba(42,125,225,.5); line-height:1; transition:color .3s; }
+  .ir-val.g { color:var(--green); text-shadow:0 0 14px rgba(0,232,122,.4); }
+  .ir-unit { font-size:10px; color:var(--blue); margin-left:4px; }
+
+  /* CRS-24 approach block */
+  #approach {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--bdr);
+    flex-shrink: 0;
+  }
+
+  .trow { display:flex; justify-content:space-between; align-items:baseline; padding:5px 0; border-bottom:1px solid rgba(42,125,225,.07); }
+  .trow:last-child { border-bottom:none; }
+  .tlbl { font-size:9px; color:rgba(200,223,245,.5); letter-spacing:1px; }
+  .tnum { font-size:22px; font-weight:700; color:#fff; text-shadow:0 0 10px rgba(42,125,225,.4); }
+  .tunit { font-size:10px; color:var(--blue); margin-left:3px; }
+
+  .bar-t { height:4px; background:rgba(42,125,225,.1); border-radius:2px; margin-top:3px; overflow:hidden; }
+  .bar-f { height:100%; border-radius:2px; transition:width 1.4s ease; }
+
+  /* Status box */
+  #status-box {
+    margin: 10px 14px;
+    background:rgba(42,125,225,.05);
+    border:1px solid var(--bdr);
+    border-radius:4px;
+    padding:10px 12px;
+    flex-shrink:0;
+  }
+  #phase-lbl { font-family:'Orbitron',monospace; font-size:12px; font-weight:700; color:var(--yellow); letter-spacing:1.5px; margin-bottom:6px; }
+  .srow { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .sdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .sdot.g { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .sdot.y { background:var(--yellow); box-shadow:0 0 6px var(--yellow); animation:blink .8s infinite; }
+  .slbl { font-size:9px; color:rgba(200,223,245,.5); letter-spacing:1px; }
+  .sval { margin-left:auto; font-size:10px; font-weight:700; letter-spacing:.5px; }
+
+  /* Buttons */
+  #btn-row { display:flex; gap:10px; padding:12px 14px; margin-top:auto; }
+  .btn {
+    flex:1; padding:10px 6px;
+    border:1px solid var(--blue);
+    background:rgba(42,125,225,.08);
+    color:var(--blue);
+    font-family:'Orbitron',monospace;
+    font-size:8px; font-weight:700; letter-spacing:1px;
+    cursor:pointer; border-radius:3px;
+    transition:background .2s, box-shadow .2s;
+  }
+  .btn:hover { background:rgba(42,125,225,.22); box-shadow:0 0 10px rgba(42,125,225,.3); }
+  .btn.y { border-color:var(--yellow); color:var(--yellow); background:rgba(240,168,32,.06); }
+  .btn.y:hover { background:rgba(240,168,32,.2); }
+  .btn:disabled { opacity:.3; cursor:not-allowed; }
+
+  /* ══ CENTER (transparent passthrough) ═══ */
+  #center {
+    flex: 1;
+    background: transparent;
+    min-width: 0;
+  }
+
+  /* ══ RIGHT ORBIT ════════════════════ */
+  #right {
+    width: 440px;
+    flex-shrink: 0;
+    background: #000d1a;
+    border-left: 1px solid var(--bdr);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  #orbit-canvas { display:block; flex:1; width:100%; }
+
+  #approach-wrap {
+    position:absolute; top:10px; left:10px; right:10px;
+    pointer-events:none;
+  }
+  #approach-lbl  { font-size:8px; color:rgba(200,223,245,.4); letter-spacing:1.5px; margin-bottom:3px; }
+  #approach-track{ height:5px; background:rgba(42,125,225,.12); border-radius:2px; overflow:hidden; border:1px solid var(--bdr); }
+  #approach-fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--green)); box-shadow:0 0 6px var(--green); transition:width 1.4s ease; border-radius:2px; }
+
+  #viz-stats {
+    position:absolute; bottom:10px; left:10px; right:10px;
+    display:grid; grid-template-columns:1fr 1fr; gap:6px;
+    pointer-events:none;
+  }
+  .vs { background:rgba(0,13,26,.88); border:1px solid var(--bdr); border-radius:4px; padding:6px 9px; }
+  .vs-l { font-size:8px; color:rgba(200,223,245,.4); letter-spacing:1px; }
+  .vs-v { font-size:15px; font-weight:700; color:#fff; line-height:1.3; }
+  .vs-u { font-size:8px; color:var(--blue); }
+
+  /* ══ TICKER ══════════════════════════ */
+  #ticker {
+    height:36px; background:#000d1a;
+    border-top:1px solid var(--bdr);
+    display:flex; align-items:center; overflow:hidden; flex-shrink:0;
+  }
+  #t-badge { flex-shrink:0; background:var(--blue); color:#000; font-family:'Orbitron',monospace; font-size:8px; font-weight:900; letter-spacing:2px; padding:0 16px; height:100%; display:flex; align-items:center; z-index:2; }
+  #t-wrap  { overflow:hidden; flex:1; }
+  #t-txt   { font-size:12px; color:#c8dff5; white-space:nowrap; letter-spacing:.5px; animation:ticker 55s linear infinite; }
+  @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+  /* dock flash */
+  @keyframes dock-flash { 0%,100%{box-shadow:0 0 0 rgba(0,232,122,0)} 50%{box-shadow:0 0 50px 8px rgba(0,232,122,.3)} }
+  #app.docking { animation:dock-flash .5s ease-in-out 6; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══ HEADER ═══════════════════════════════ -->
+<div id="hdr">
+  <svg width="38" height="38" viewBox="0 0 100 100" style="flex-shrink:0">
+    <defs><radialGradient id="ng" cx="38%" cy="32%"><stop offset="0%" stop-color="#2255bb"/><stop offset="100%" stop-color="#0d1f66"/></radialGradient></defs>
+    <circle cx="50" cy="50" r="48" fill="url(#ng)" stroke="#1a3399" stroke-width="1.5"/>
+    <ellipse cx="50" cy="50" rx="46" ry="17" fill="none" stroke="#c8dff5" stroke-width="3" transform="rotate(-30 50 50)"/>
+    <circle cx="22" cy="28" r="2" fill="#fff"/><circle cx="75" cy="20" r="1.5" fill="#fff"/>
+    <circle cx="82" cy="65" r="1.5" fill="#fff"/><circle cx="18" cy="72" r="2" fill="#fff"/>
+    <text x="50" y="57" text-anchor="middle" font-family="Arial Black,sans-serif" font-size="18" font-weight="900" fill="#e8232e" letter-spacing="1">NASA</text>
+  </svg>
+
+  <div id="hdr-c">
+    <div class="htitle">CRS-24 · CYGNUS XL · ISS KOPPLUNG</div>
+    <div class="hsub">NORTHROP GRUMMAN · INTERNATIONALE RAUMSTATION · ECHTZEIT-TELEMETRIE</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+    <div class="live-pill"><div class="live-dot"></div><span class="live-txt">LIVE</span></div>
+    <div id="utc">00:00:00 UTC</div>
+    <div id="api-badge" style="font-size:6.5px;letter-spacing:1.5px;padding:2px 6px;border-radius:2px;border:1px solid rgba(240,168,32,.4);background:rgba(240,168,32,.06);color:var(--yellow)">○ VERBINDE…</div>
+  </div>
+</div>
+
+<!-- ═══ BODY ══════════════════════════════════ -->
+<div id="body">
+
+  <!-- LEFT -->
+  <div id="left">
+
+    <!-- ISS LIVE — big numbers from wheretheiss.at -->
+    <div id="iss-live">
+      <div class="sec g">🌍 ISS LIVE · WHERETHEISS.AT</div>
+
+      <div class="iss-row">
+        <span class="ir-lbl">GESCHWINDIGKEIT</span>
+        <span><span class="ir-val g" id="l-spd">—</span><span class="ir-unit">km/h</span></span>
+      </div>
+      <div class="iss-row">
+        <span class="ir-lbl">ORBITALHÖHE</span>
+        <span><span class="ir-val g" id="l-alt">—</span><span class="ir-unit">km</span></span>
+      </div>
+      <div class="iss-row">
+        <span class="ir-lbl">BREITENGRAD</span>
+        <span><span class="ir-val" id="l-lat">—</span><span class="ir-unit" id="l-lat-dir"></span></span>
+      </div>
+      <div class="iss-row">
+        <span class="ir-lbl">LÄNGENGRAD</span>
+        <span><span class="ir-val" id="l-lon">—</span><span class="ir-unit" id="l-lon-dir"></span></span>
+      </div>
+      <div class="iss-row">
+        <span class="ir-lbl">SICHTBARKEIT</span>
+        <span><span class="ir-val" id="l-vis" style="font-size:11px">—</span></span>
+      </div>
+      <div class="iss-row">
+        <span class="ir-lbl">ORBITAL-PERIODE</span>
+        <span><span class="ir-val" id="l-per" style="font-size:13px">93m 11s</span></span>
+      </div>
+    </div>
+
+    <!-- CRS-24 approach -->
+    <div id="approach">
+      <div class="sec">⚡ CRS-24 KOPPELTELEMETRIE</div>
+      <div>
+        <div class="trow">
+          <span class="tlbl">ENTFERNUNG ZUR ISS</span>
+          <span><span class="tnum" id="t-dist">48.21</span><span class="tunit">km</span></span>
+        </div>
+        <div class="bar-t"><div class="bar-f" id="bar-dist" style="width:3%;background:var(--blue);box-shadow:0 0 5px var(--blue)"></div></div>
+      </div>
+      <div style="margin-top:5px">
+        <div class="trow">
+          <span class="tlbl">ANNÄHERUNGSGESCHW.</span>
+          <span><span class="tnum" id="t-appr">1.83</span><span class="tunit">m/s</span></span>
+        </div>
+        <div class="bar-t"><div class="bar-f" id="bar-appr" style="width:91%;background:var(--yellow);box-shadow:0 0 5px var(--yellow)"></div></div>
+      </div>
+      <div class="trow" style="margin-top:5px">
+        <span class="tlbl">MISSIONSDAUER</span>
+        <span><span class="tnum" id="t-elapsed" style="font-size:13px;letter-spacing:1px">00d 00:00:00</span></span>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div id="status-box">
+      <div id="phase-lbl">ANNÄHERUNGSPHASE</div>
+      <div class="srow">
+        <div class="sdot g" id="dot-arm"></div>
+        <span class="slbl">CANADARM2</span>
+        <span class="sval" id="val-arm" style="color:var(--green)">BEREIT</span>
+      </div>
+      <div class="srow">
+        <div class="sdot g"></div>
+        <span class="slbl">KOMMUNIKATION</span>
+        <span class="sval" style="color:var(--green)">NOMINAL</span>
+      </div>
+    </div>
+
+    <div id="btn-row">
+      <button class="btn y" id="btn-dock" onclick="startDocking()">🤝 KOPPLUNG SIM.</button>
+      <button class="btn" onclick="resetSim()">↺ RESET</button>
+    </div>
+  </div>
+
+  <!-- CENTER (transparent passthrough for OBS) -->
+  <div id="center"></div>
+
+  <!-- RIGHT ORBIT VIZ -->
+  <div id="right">
+    <div id="approach-wrap">
+      <div id="approach-lbl">ANNÄHERUNGSFORTSCHRITT</div>
+      <div id="approach-track"><div id="approach-fill" style="width:4%"></div></div>
+    </div>
+
+    <canvas id="orbit-canvas"></canvas>
+
+    <div id="viz-stats">
+      <div class="vs"><div class="vs-l">INKLINATION</div><div class="vs-v">51.6<span class="vs-u">°</span></div></div>
+      <div class="vs"><div class="vs-l">PERIODE</div><div class="vs-v">92.7<span class="vs-u"> min</span></div></div>
+      <div class="vs"><div class="vs-l">SICHTBARKEIT</div><div class="vs-v" id="viz-vis" style="font-size:9px">—</div></div>
+      <div class="vs"><div class="vs-l">FUSSABDRUCK</div><div class="vs-v"><span id="viz-foot">—</span><span class="vs-u"> km</span></div></div>
+    </div>
+  </div>
+
+</div><!-- /body -->
+
+<!-- ═══ TICKER ═══════════════════════════════ -->
+<div id="ticker">
+  <div id="t-badge">MISSION</div>
+  <div id="t-wrap"><div id="t-txt"></div></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ══ CONSTANTS ════════════════════════════════
+const LAUNCH  = new Date('2026-04-11T11:41:00Z');
+const ISS_PER = 5562;
+const ISS_A0  = 1.2;
+const t0      = Date.now();
+
+// ══ SIM STATE ════════════════════════════════
+let S = { dist:48.21, appr:1.83, docked:false, docking:false, phase:0, arm:0 };
+const PHASES = ['ANNÄHERUNGSPHASE','ENDANFLUG','GREIFVORGANG','GESICHERT ✓'];
+const ARMTXT = ['BEREIT','GREIFT …','GESICHERT'];
+const ARMCOL = ['var(--green)','var(--yellow)','var(--green)'];
+
+// ══ LIVE ISS API (wheretheiss.at) ════════════
+let liveIss = null;
+
+async function fetchISS() {
+  try {
+    const r = await fetch('https://api.wheretheiss.at/v1/satellites/25544');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    liveIss = d;
+
+    // Speed: display as km/h with comma-thousands
+    document.getElementById('l-spd').textContent = Math.round(d.velocity).toLocaleString('de-DE');
+
+    // Altitude
+    document.getElementById('l-alt').textContent = d.altitude.toFixed(2);
+
+    // Latitude — show absolute + N/S
+    const lat = d.latitude;
+    document.getElementById('l-lat').textContent    = Math.abs(lat).toFixed(2);
+    document.getElementById('l-lat-dir').textContent = lat >= 0 ? '° N' : '° S';
+
+    // Longitude — show absolute + E/W
+    const lon = d.longitude;
+    document.getElementById('l-lon').textContent    = Math.abs(lon).toFixed(2);
+    document.getElementById('l-lon-dir').textContent = lon >= 0 ? '° O' : '° W';
+
+    // Visibility
+    const vis = d.visibility === 'daylight' ? 'TAGSEITE' : 'NACHTSEITE';
+    document.getElementById('l-vis').textContent  = vis;
+    document.getElementById('viz-vis').textContent = vis;
+    document.getElementById('viz-foot').textContent = Math.round(d.footprint);
+
+    setApiLive(true);
+  } catch(e) {
+    setApiLive(false);
+  }
+}
+
+function setApiLive(ok) {
+  const b = document.getElementById('api-badge');
+  if (ok) {
+    b.textContent = '● ISS LIVE';
+    b.style.cssText = 'font-size:6.5px;letter-spacing:1.5px;padding:2px 6px;border-radius:2px;border:1px solid rgba(0,232,122,.4);background:rgba(0,232,122,.06);color:var(--green)';
+  } else {
+    b.textContent = '○ MODELL';
+    b.style.cssText = 'font-size:6.5px;letter-spacing:1.5px;padding:2px 6px;border-radius:2px;border:1px solid rgba(240,168,32,.4);background:rgba(240,168,32,.06);color:var(--yellow)';
+  }
+}
+
+
+// ══ CLOCK + TELEM UPDATE ═════════════════════
+let tick = 0;
+
+function fmtElapsed(ms) {
+  if (ms < 0) ms = 0;
+  const s  = Math.floor(ms / 1000);
+  const d  = Math.floor(s / 86400);
+  const hh = String(Math.floor((s % 86400) / 3600)).padStart(2,'0');
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2,'0');
+  const ss = String(s % 60).padStart(2,'0');
+  return `${d}d ${hh}:${mm}:${ss}`;
+}
+
+function update() {
+  tick++;
+  const now = new Date();
+  document.getElementById('utc').textContent =
+    String(now.getUTCHours()).padStart(2,'0') + ':' +
+    String(now.getUTCMinutes()).padStart(2,'0') + ':' +
+    String(now.getUTCSeconds()).padStart(2,'0') + ' UTC';
+
+  document.getElementById('t-elapsed').textContent = fmtElapsed(now - LAUNCH);
+
+  if (!S.docked) {
+    S.dist = Math.max(0, S.dist - 0.012 + (Math.random()-.5)*.004);
+    S.appr = Math.max(0, Math.min(2.0, S.appr - 0.001 + (Math.random()-.5)*.002));
+    S.phase = S.dist < 0.1 ? 2 : S.dist < 2.0 ? 1 : 0;
+  }
+
+  document.getElementById('t-dist').textContent = S.dist.toFixed(2);
+  document.getElementById('t-appr').textContent = S.appr.toFixed(2);
+
+  document.getElementById('bar-dist').style.width = Math.max(0,Math.min(100,(S.dist/50)*100)) + '%';
+  document.getElementById('bar-appr').style.width = Math.max(0,Math.min(100,(S.appr/2)*100)) + '%';
+  document.getElementById('approach-fill').style.width = Math.max(0,Math.min(100,(1-S.dist/50)*100)).toFixed(1) + '%';
+
+  const pl = document.getElementById('phase-lbl');
+  pl.textContent = PHASES[S.phase];
+  pl.style.color = S.phase === 3 ? 'var(--green)' : 'var(--yellow)';
+
+  const va = document.getElementById('val-arm');
+  va.textContent = ARMTXT[S.arm];
+  va.style.color = ARMCOL[S.arm];
+  document.getElementById('dot-arm').className = 'sdot ' + (S.arm === 1 ? 'y' : 'g');
+}
+
+// ══ DOCKING SEQUENCE ════════════════════════
+function startDocking() {
+  if (S.docked || S.docking) return;
+  S.docking = true;
+  document.getElementById('btn-dock').disabled = true;
+  setTimeout(()=>{ S.phase=1; S.dist=1.5; S.appr=0.8; },500);
+  setTimeout(()=>{ S.phase=2; S.dist=0.05; S.appr=0.1; S.arm=1; },3000);
+  setTimeout(()=>{
+    S.phase=3; S.dist=0; S.appr=0; S.arm=2; S.docked=true;
+    document.getElementById('t-dist').textContent='0.00';
+    document.getElementById('t-appr').textContent='0.00';
+    document.getElementById('bar-dist').style.width='0%';
+    document.getElementById('bar-appr').style.width='0%';
+    const af=document.getElementById('approach-fill');
+    af.style.width='100%'; af.style.background='var(--green)';
+    document.getElementById('app').classList.add('docking');
+    setTimeout(()=>document.getElementById('app').classList.remove('docking'),3200);
+  },5500);
+}
+
+function resetSim() {
+  S = { dist:48.21, appr:1.83, docked:false, docking:false, phase:0, arm:0 };
+  document.getElementById('btn-dock').disabled = false;
+  const af=document.getElementById('approach-fill');
+  af.style.background=''; af.style.width='4%';
+}
+
+// ══ WORLD MAP (simplified land polygons, [lon,lat]) ══════
+const LAND = [
+  // North America
+  [[-168,71],[-141,60],[-130,54],[-125,49],[-124,37],[-116,32],[-110,24],[-97,19],[-90,16],[-83,10],[-77,8],[-80,25],[-75,35],[-65,44],[-53,46],[-57,51],[-64,63],[-168,71]],
+  // South America
+  [[-82,8],[-79,0],[-75,-10],[-70,-18],[-72,-28],[-77,-35],[-75,-50],[-66,-56],[-40,-24],[-40,-20],[-38,-14],[-35,-9],[-35,-4],[-50,1],[-60,12],[-82,8]],
+  // Europe
+  [[-10,36],[5,36],[15,37],[28,35],[37,40],[42,38],[45,43],[45,48],[38,55],[28,65],[15,68],[5,60],[0,51],[-5,48],[-8,38],[-10,36]],
+  // Africa
+  [[-18,14],[5,36],[28,35],[37,28],[50,12],[45,-5],[40,-10],[35,-20],[25,-35],[20,-35],[15,-30],[10,-20],[8,-5],[0,5],[-5,5],[-15,10],[-18,14]],
+  // Asia
+  [[30,70],[70,75],[120,70],[140,60],[145,45],[145,35],[140,35],[130,34],[125,25],[115,22],[110,18],[105,12],[100,5],[100,0],[105,-5],[110,-8],[125,-10],[130,5],[120,20],[105,20],[100,20],[95,25],[90,25],[80,30],[70,23],[60,22],[55,25],[50,30],[45,43],[42,38],[37,40],[38,55],[35,70],[30,70]],
+  // Australia
+  [[115,-35],[116,-22],[126,-14],[138,-14],[142,-12],[148,-14],[154,-20],[155,-28],[155,-35],[140,-40],[130,-35],[115,-35]],
+  // Greenland
+  [[-43,59],[-19,65],[-19,80],[-45,85],[-60,80],[-43,59]],
+  // Antarctica
+  [[-180,-70],[180,-70],[180,-90],[-180,-90],[-180,-70]],
+  // Japan (simplified)
+  [[130,30],[131,33],[133,34],[136,34],[141,42],[142,44],[140,40],[137,36],[135,35],[132,33],[130,31],[130,30]],
+  // UK
+  [[-6,50],[-2,50],[1,52],[0,58],[-2,59],[-5,58],[-4,53],[-6,50]],
+  // Iceland
+  [[-24,63],[-13,63],[-13,66],[-24,66],[-24,63]],
+  // New Zealand (S)
+  [[166,-46],[172,-47],[172,-43],[168,-43],[166,-46]],
+];
+
+function ll2xy(lat, lon, W, H) {
+  return [(lon + 180) / 360 * W, (90 - lat) / 180 * H];
+}
+
+// ══ ORBIT CANVAS ════════════════════════════
+const canvas = document.getElementById('orbit-canvas');
+const ctx    = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = r.width  || 280;
+  canvas.height = r.height || 400;
+}
+
+function drawOrbit() {
+  const W = canvas.width, H = canvas.height;
+  if (!W || !H) { requestAnimationFrame(drawOrbit); return; }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Ocean background
+  ctx.fillStyle = '#000d20';
+  ctx.fillRect(0, 0, W, H);
+
+  // Lat/lon grid
+  ctx.strokeStyle = 'rgba(42,125,225,.08)';
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([]);
+  for (let lon = -180; lon <= 180; lon += 30) {
+    const [gx] = ll2xy(0, lon, W, H);
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+  }
+  for (let lat = -90; lat <= 90; lat += 30) {
+    const [, gy] = ll2xy(lat, 0, W, H);
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  }
+
+  // Continents
+  for (const poly of LAND) {
+    ctx.beginPath();
+    for (let i = 0; i < poly.length; i++) {
+      const [px, py] = ll2xy(poly[i][1], poly[i][0], W, H);
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(25,80,40,.55)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(50,140,65,.4)';
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }
+
+  // Equator highlight
+  ctx.strokeStyle = 'rgba(42,125,225,.25)';
+  ctx.lineWidth = 0.8;
+  const [, eqY] = ll2xy(0, 0, W, H);
+  ctx.beginPath(); ctx.moveTo(0, eqY); ctx.lineTo(W, eqY); ctx.stroke();
+
+  // ISS inclination band (51.6°)
+  const [, topY] = ll2xy(51.6, 0, W, H);
+  const [, botY] = ll2xy(-51.6, 0, W, H);
+  ctx.fillStyle = 'rgba(42,125,225,.03)';
+  ctx.fillRect(0, topY, W, botY - topY);
+  ctx.strokeStyle = 'rgba(42,125,225,.12)';
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(0, topY); ctx.lineTo(W, topY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, botY); ctx.lineTo(W, botY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (liveIss) {
+    const lat = liveIss.latitude, lon = liveIss.longitude;
+    const [issX, issY] = ll2xy(lat, lon, W, H);
+
+    // Footprint (visibility circle)
+    const footKm  = liveIss.footprint || 4500;
+    const footPxH = (footKm / 2 / 111) / 180 * H;
+    const footPxW = footPxH; // equirectangular distortion ignored for small circles
+    const fgrd = ctx.createRadialGradient(issX, issY, 0, issX, issY, footPxH);
+    fgrd.addColorStop(0, 'rgba(42,125,225,.10)');
+    fgrd.addColorStop(1, 'rgba(42,125,225,0)');
+    ctx.beginPath(); ctx.ellipse(issX, issY, footPxW, footPxH, 0, 0, Math.PI*2);
+    ctx.fillStyle = fgrd; ctx.fill();
+    ctx.strokeStyle = 'rgba(42,125,225,.30)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    // Approx ground track: 5 past + 5 future points along orbit
+    // ISS moves ~0.065°/s east at equator, period ~92.7 min
+    const TRACK_STEP = 60; // seconds
+    const lon_rate   = 360 / (92.7 * 60);  // deg/s eastward
+    const inc_rad    = 51.6 * Math.PI / 180;
+    ctx.strokeStyle = 'rgba(42,125,225,.45)';
+    ctx.lineWidth   = 1.2;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    let prevX = null, prevY = null;
+    for (let t = -8; t <= 8; t++) {
+      const dLon = lon + t * TRACK_STEP * lon_rate;
+      // Approximate lat using sinusoidal ground track
+      const phase = (dLon - lon) * Math.PI / 180 * (360/51.6) * 0.00175;
+      const dLat  = Math.max(-51.6, Math.min(51.6, lat + (dLon-lon) * Math.cos(Math.atan2(Math.cos(inc_rad),Math.sin(inc_rad))) * 0.45));
+      const normLon = ((dLon + 180) % 360 + 360) % 360 - 180;
+      const [tx, ty] = ll2xy(dLat, normLon, W, H);
+      if (prevX !== null && Math.abs(tx - prevX) < W * 0.4) {
+        ctx.lineTo(tx, ty);
+      } else {
+        ctx.moveTo(tx, ty);
+      }
+      prevX = tx; prevY = ty;
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Cygnus position (offset along track, ≈ 0.08°/km behind)
+    if (!S.docked) {
+      const cygLon = ((lon - S.dist * 0.09 + 180) % 360 + 360) % 360 - 180;
+      const cygLat = lat - S.dist * 0.02;
+      const [cygX, cygY] = ll2xy(cygLat, cygLon, W, H);
+      if (Math.abs(cygX - issX) < W * 0.5) {
+        ctx.beginPath(); ctx.moveTo(cygX, cygY); ctx.lineTo(issX, issY);
+        ctx.strokeStyle = 'rgba(0,232,122,.25)';
+        ctx.lineWidth = 0.8;
+        ctx.setLineDash([3, 5]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(cygX, cygY, 3.5, 0, Math.PI*2);
+        ctx.fillStyle = '#f0a820';
+        ctx.shadowColor = '#f0a820'; ctx.shadowBlur = 10;
+        ctx.fill(); ctx.shadowBlur = 0;
+        ctx.font = '6px "Courier New"'; ctx.fillStyle = '#f0a820';
+        ctx.fillText('CRS-24', cygX + 5, cygY - 3);
+      }
+    }
+
+    // ISS dot
+    ctx.beginPath(); ctx.arc(issX, issY, 5.5, 0, Math.PI*2);
+    ctx.fillStyle = '#2a7de1';
+    ctx.shadowColor = '#2a7de1'; ctx.shadowBlur = 16;
+    ctx.fill(); ctx.shadowBlur = 0;
+    ctx.font = 'bold 7px "Courier New"'; ctx.fillStyle = '#c8dff5';
+    ctx.fillText('ISS', issX + 8, issY - 4);
+
+    // Docked glow
+    if (S.docked) {
+      ctx.beginPath(); ctx.arc(issX, issY, 8, 0, Math.PI*2);
+      ctx.fillStyle = '#00e87a';
+      ctx.shadowColor = '#00e87a'; ctx.shadowBlur = 22;
+      ctx.fill(); ctx.shadowBlur = 0;
+      ctx.font = '6px "Courier New"'; ctx.fillStyle = '#00e87a';
+      ctx.fillText('GESICHERT', issX + 10, issY + 3);
+    }
+  } else {
+    // No data yet — show placeholder
+    ctx.font = '8px "Courier New"'; ctx.fillStyle = 'rgba(42,125,225,.4)';
+    ctx.textAlign = 'center'; ctx.fillText('VERBINDE…', W/2, H/2); ctx.textAlign = 'left';
+  }
+
+  requestAnimationFrame(drawOrbit);
+}
+
+// ══ TICKER ═══════════════════════════════════
+const MSGS=[
+  '▸ ISS-Position, Geschwindigkeit und Höhe live von wheretheiss.at  ',
+  '▸ CRS-24 Cygnus XL nähert sich der ISS — Kopplungseinheit Harmony Node-1  ',
+  '▸ Canadarm2 in Bereitschaft · Greifmanöver auf Kommando  ',
+  '▸ Start: 11. April 2026, 07:41 EDT · Kennedy Space Center LC-39A  ',
+  '▸ Cygnus XL: 3.400 kg Fracht · Wissenschaft, Lebensmittel, Ausrüstung  ',
+  '▸ ISS umkreist Erde alle ~92 Minuten · Inklination 51,6° · ~408 km Höhe  ',
+  '▸ Northrop Grumman CRS-24 · 24. kommerzielle ISS-Versorgungsmission  ',
+];
+(function(){
+  const msg=MSGS.join('   ·   ');
+  document.getElementById('t-txt').textContent=msg+'   ·   '+msg;
+})();
+
+// ══ INIT ══════════════════════════════════════
+window.addEventListener('load', () => {
+  resizeCanvas();
+  update(); setInterval(update, 1000);
+  fetchISS(); setInterval(fetchISS, 5000);
+  drawOrbit();
+});
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>

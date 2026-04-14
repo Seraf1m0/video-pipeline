@@ -141,7 +141,6 @@ def stage_transcribe(channel_id: str) -> str | None:
         "agents/transcriber/transcriber.py",
         "--channel", channel_id,
         "--mode", "random",
-        "--no-meta",
     ]
     ok = _run(cmd, "TRANSCRIBE — Whisper ->result.json")
     if not ok:
@@ -156,6 +155,7 @@ def stage_assemble(channel_id: str, channel_alias: str, session: str) -> bool:
         "agents/assembler/gosha_rubchinskiy.py",
         "--channel", channel_alias,
         "--session", session,
+        "--skip-visual-queries",
     ]
     return _run(cmd, "ASSEMBLE — Gosha ->clip selection + render ->final.mp4")
 

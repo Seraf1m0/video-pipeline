@@ -1,0 +1,7 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/1080p60/partial_movie_files/ShockV3/3862454583_1317676352_1072470862.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/1080p60/partial_movie_files/ShockV3/3799820123_1042439748_933464991.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/1080p60/partial_movie_files/ShockV3/3799820123_1273729904_3323722786.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/1080p60/partial_movie_files/ShockV3/3799820123_1972024628_4135972703.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/1080p60/partial_movie_files/ShockV3/3799820123_2164560990_2292403550.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/1080p60/partial_movie_files/ShockV3/3799820123_2850983161_2358810818.mp4'

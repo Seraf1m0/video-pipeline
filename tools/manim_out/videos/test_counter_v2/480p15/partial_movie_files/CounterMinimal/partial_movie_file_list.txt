@@ -1,0 +1,7 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterMinimal/3132185978_25252910_3939119820.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterMinimal/603911562_2449494840_1151180285.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterMinimal/603911562_4044115847_4253771454.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterMinimal/603911562_3423429278_174983908.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterMinimal/603911562_1585492000_2358810818.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterMinimal/603911562_884610985_631829896.mp4'

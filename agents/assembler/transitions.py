@@ -780,7 +780,150 @@ _XFADE_MAP = {
     "fadewhite":     "fadewhite",
     "fadeblack":     "fadeblack",
     "fade":          "fade",
+    # ── Расширенный пул (random режим) ───────────────────────────────────────
+    "dissolve_fast": "dissolve",
+    "distance":      "distance",
+    "wipe_left":     "wipeleft",
+    "wipe_right":    "wiperight",
+    "wipe_up":       "wipeup",
+    "wipe_down":     "wipedown",
+    "wipe_tl":       "wipetl",
+    "wipe_tr":       "wipetr",
+    "wipe_bl":       "wipebl",
+    "wipe_br":       "wipebr",
+    "slide_left":    "slideleft",
+    "slide_right":   "slideright",
+    "slide_up":      "slideup",
+    "slide_down":    "slidedown",
+    "cover_left":    "coverleft",
+    "cover_right":   "coverright",
+    "cover_up":      "coverup",
+    "cover_down":    "coverdown",
+    "reveal_left":   "revealleft",
+    "reveal_right":  "revealright",
+    "reveal_up":     "revealup",
+    "radial":        "radial",
+    "rect_crop":     "rectcrop",
+    "squeeze_h":     "squeezeh",
+    "squeeze_v":     "squeezev",
+    "diag_tl":       "diagtl",
+    "zoomin":        "zoomin",
+    "hblur":         "hblur",
+    "pixelize_fast": "pixelize",
+    "pixelize_slow": "pixelize",
+    "hl_slice":      "hlslice",
+    "hr_slice":      "hrslice",
+    "vu_slice":      "vuslice",
+    "vd_slice":      "vdslice",
+    "hl_wind":       "hlwind",
+    "hr_wind":       "hrwind",
+    "vu_wind":       "vuwind",
+    "vd_wind":       "vdwind",
 }
+
+# ── Пул переходов для random-режима ──────────────────────────────────────────
+# (name, duration, weight)
+# Нулевые и лёгкие — высокий вес
+# Тяжёлые (whip, glitch, mblur) — низкий вес + отдельный лимит
+
+_POOL_LIGHT = [
+    ("fadeblack",    0.35, 12),
+    ("fadewhite",    0.30,  8),
+    ("dissolve_fast",0.25, 10),
+    ("dissolve",     0.40,  8),
+    ("distance",     0.40,  5),
+    ("wipe_left",    0.35,  7),
+    ("wipe_right",   0.35,  7),
+    ("wipe_up",      0.30,  5),
+    ("wipe_down",    0.30,  5),
+    ("wipe_tl",      0.40,  3),
+    ("wipe_tr",      0.40,  3),
+    ("wipe_bl",      0.40,  3),
+    ("wipe_br",      0.40,  3),
+    ("slide_left",   0.40,  6),
+    ("slide_right",  0.40,  6),
+    ("slide_up",     0.35,  4),
+    ("slide_down",   0.35,  4),
+    ("cover_left",   0.40,  5),
+    ("cover_right",  0.40,  5),
+    ("cover_up",     0.35,  3),
+    ("cover_down",   0.35,  3),
+    ("reveal_left",  0.40,  5),
+    ("reveal_right", 0.40,  5),
+    ("reveal_up",    0.35,  3),
+    ("radial",       0.45,  4),
+    ("rect_crop",    0.45,  3),
+    ("squeeze_h",    0.40,  3),
+    ("squeeze_v",    0.40,  3),
+    ("diag_tl",      0.40,  3),
+    ("zoomin",       0.45,  4),
+    ("hblur",        0.35,  5),
+    ("pixelize_fast",0.25,  4),
+    ("hl_slice",     0.40,  3),
+    ("hr_slice",     0.40,  3),
+    ("vu_slice",     0.40,  3),
+    ("vd_slice",     0.40,  3),
+    ("hl_wind",      0.45,  3),
+    ("hr_wind",      0.45,  3),
+    ("vu_wind",      0.45,  3),
+    ("vd_wind",      0.45,  3),
+    ("additive_fast",0.20,  4),
+    ("additive_mid", 0.40,  3),
+    ("invert_fast",  0.15,  3),
+]
+
+_POOL_HEAVY = [
+    ("whip_h",       0.30,  4),
+    ("whip_v",       0.25,  3),
+    ("motion_blur",  0.20,  3),
+    ("glitch_rgb",   0.22,  2),
+    ("crossfade",    0.50,  3),   # crossfade тоже редкий — медленнее рендерится
+]
+
+_POOL_LIGHT_WEIGHTS = [w for _, _, w in _POOL_LIGHT]
+_POOL_HEAVY_WEIGHTS = [w for _, _, w in _POOL_HEAVY]
+
+
+def _weighted_choice(pool, weights, rng):
+    total = sum(weights)
+    r = rng.uniform(0, total)
+    cumul = 0
+    for item, w in zip(pool, weights):
+        cumul += w
+        if r <= cumul:
+            return item
+    return pool[-1]
+
+
+def build_random_trans_seq(n_boundaries: int, seed=None, light_only: bool = False) -> list:
+    """
+    Сгенерировать список переходов для n_boundaries склеек.
+    light_only=True  → только лёгкие (зона B).
+    light_only=False → лёгкие + тяжёлые (зона A): max 2 тяжёлых, не чаще раз в 15 стыков.
+    """
+    rng = random.Random(seed)
+    seq = []
+    heavy_used = 0
+    heavy_max      = min(2, max(1, n_boundaries // 15))
+    last_heavy_idx = -20
+
+    for i in range(n_boundaries):
+        can_heavy = (
+            not light_only
+            and heavy_used < heavy_max
+            and (i - last_heavy_idx) >= 15
+            and rng.random() < 0.08
+        )
+        if can_heavy:
+            name, dur, _ = _weighted_choice(_POOL_HEAVY, _POOL_HEAVY_WEIGHTS, rng)
+            heavy_used += 1
+            last_heavy_idx = i
+        else:
+            name, dur, _ = _weighted_choice(_POOL_LIGHT, _POOL_LIGHT_WEIGHTS, rng)
+
+        seq.append({"type": name, "dur": dur})
+
+    return seq
 
 _GLITCH_MAX_DUR  = 0.12
 _FLASH_TYPES     = frozenset({"fadewhite", "fadeblack", "fade"})
@@ -1544,6 +1687,108 @@ def _concat_chunk(clip_paths, durations, output_path,
     return True
 
 
+# ── Mixed transitions (random mode) ──────────────────────────────────────────
+
+def _concat_with_mixed_trans(clip_paths, durations, output_path, trans_seq) -> bool:
+    """
+    Склеить клипы с разными переходами на каждой границе (random режим).
+    Группируем consecutive xfade-совместимые границы в чанки.
+    Тяжёлые (whip/glitch/mblur) обрабатываем через попарный рендер.
+    """
+    _HEAVY = {"whip_h", "whip_v", "motion_blur", "glitch_rgb"}
+    _XFADE_COMPAT = set(_XFADE_MAP.keys()) | {"additive_fast", "additive_mid",
+                                               "invert_fast", "invert_mid",
+                                               "fadeblack", "fadewhite",
+                                               "dissolve", "crossfade"}
+
+    tmp_dir = _TEMP_DIR / "mixed_trans"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    # Разбиваем на сегменты: группы xfade-совместимых + одиночные тяжёлые
+    segments: list[tuple] = []   # ("xfade", [clips], [durs], [types], [xdurs]) | ("heavy", clip_a, clip_b, type, dur)
+    seg_clips = [clip_paths[0]]
+    seg_durs  = [durations[0]]
+    seg_types = []
+
+    for i, t in enumerate(trans_seq):
+        tname = t["type"]
+        tdur  = t.get("dur", 0.35)
+
+        if tname in _HEAVY:
+            # Закрываем текущий xfade-сегмент
+            if len(seg_clips) > 1:
+                segments.append(("xfade", list(seg_clips), list(seg_durs), list(seg_types)))
+            elif len(seg_clips) == 1:
+                segments.append(("pass", seg_clips[0], seg_durs[0]))
+            # Тяжёлый попарный переход
+            segments.append(("heavy", seg_clips[-1] if seg_clips else clip_paths[i],
+                             clip_paths[i + 1], tname, tdur))
+            seg_clips = [clip_paths[i + 1]]
+            seg_durs  = [durations[i + 1]]
+            seg_types = []
+        else:
+            seg_clips.append(clip_paths[i + 1])
+            seg_durs.append(durations[i + 1])
+            seg_types.append((tname, tdur))
+
+    # Последний сегмент
+    if len(seg_clips) > 1:
+        segments.append(("xfade", list(seg_clips), list(seg_durs), list(seg_types)))
+    elif len(seg_clips) == 1:
+        segments.append(("pass", seg_clips[0], seg_durs[0]))
+
+    # Рендер каждого сегмента в tmp файл
+    rendered: list[Path] = []
+    for si, seg in enumerate(segments):
+        seg_out = tmp_dir / f"seg_{si:03d}.mp4"
+
+        if seg[0] == "xfade":
+            _, sc, sd, st = seg
+            if len(sc) == 1:
+                seg_out = sc[0]
+            else:
+                # Все xfade в одном filter_complex через concat_clips_xfade
+                # Используем преобладающий тип (можно улучшить до per-boundary)
+                xf_types = [_XFADE_MAP.get(n, "dissolve") for n, _ in st]
+                xf_durs  = [d for _, d in st]
+                dominant_xf = max(set(xf_types), key=xf_types.count)
+                dominant_dur = sum(xf_durs) / len(xf_durs)
+                concat_clips_xfade(sc, sd, seg_out, dominant_dur, fps=25)
+
+        elif seg[0] == "pass":
+            seg_out = seg[1]
+
+        elif seg[0] == "heavy":
+            _, ca, cb, tname, tdur = seg
+            if tname in ("whip_h", "whip_v"):
+                direction = "h" if tname == "whip_h" else "v"
+                whip_pan_transition(ca, cb, seg_out, duration=tdur, direction=direction)
+            elif tname == "motion_blur":
+                # mblur → fallback к fadeblack если нет специальной реализации
+                _fadeblack_chunk([ca, cb], [get_video_duration(str(ca)),
+                                            get_video_duration(str(cb))],
+                                 seg_out, fade_dur=tdur / 2)
+            elif tname == "glitch_rgb":
+                # glitch → chromatic aberration + fadeblack
+                _concat_chunk([ca, cb],
+                              [get_video_duration(str(ca)), get_video_duration(str(cb))],
+                              seg_out, "glitch_flash", tdur)
+            else:
+                _fadeblack_chunk([ca, cb], [get_video_duration(str(ca)),
+                                            get_video_duration(str(cb))],
+                                 seg_out, fade_dur=tdur / 2)
+
+        rendered.append(seg_out)
+
+    if len(rendered) == 1:
+        shutil.copy(str(rendered[0]), str(output_path))
+        return True
+
+    # Финальный склей сегментов через simple concat (без overlap)
+    _simple_concat(rendered, output_path)
+    return True
+
+
 def concat_all_with_transitions(
     clip_paths,
     output_path,
@@ -1587,6 +1832,15 @@ def concat_all_with_transitions(
 
     with ThreadPoolExecutor(max_workers=8) as ex:
         durations = list(ex.map(get_video_duration, [str(p) for p in clip_paths]))
+
+    # ── Random mode: генерируем trans_seq и диспатчим по-граничам ────────────
+    if transition == "random":
+        if trans_seq is None:
+            trans_seq = build_random_trans_seq(n - 1)
+        heavy_names = {t["type"] for t in trans_seq
+                       if t["type"] in {p[0] for p in _POOL_HEAVY}}
+        print(f"  [random] {n} клипов, тяжёлые: {heavy_names or 'нет'} → {output_path.name}", flush=True)
+        return _concat_with_mixed_trans(clip_paths, durations, output_path, trans_seq)
 
     # ── Fast path: crossfade via built-in xfade (10–20× faster than blend) ────
     if transition == "crossfade":

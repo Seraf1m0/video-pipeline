@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>ISS · EN DIRECT</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#05090f;
+  --panel:#080e1a;
+  --border:rgba(40,80,140,.45);
+  --blue:#2d7fff;
+  --cyan:#00d4ff;
+  --gold:#ffc107;
+  --red:#ff3c3c;
+  --green:#00e676;
+  --text:#dce8f5;
+  --muted:#4a6880;
+  --dim:#0a1320;
+}
+html,body{width:100%;height:100%;background:transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+
+#root{
+  width:1920px;height:1080px;
+  background:transparent;
+  display:grid;
+  grid-template-rows:640px 1fr;
+  overflow:hidden;
+  transform-origin:top left;
+  font-family:'Inter',sans-serif;
+  color:var(--text);
+  position:relative;
+}
+
+/* ── TOP: STREAM ─────────────────────────────── */
+#stream{
+  position:relative;
+  background:transparent;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+#stream-ph{display:none;}
+#stream-ph .icon{font-size:60px;}
+#stream-ph .lbl{font-size:14px;letter-spacing:5px;color:var(--blue);}
+#stream-ph .sub{font-size:9px;letter-spacing:3px;color:var(--muted);}
+
+/* corner decorations */
+.corner{position:absolute;width:28px;height:28px;border-color:rgba(45,127,255,.4);border-style:solid;}
+.corner.tl{top:16px;left:16px;border-width:2px 0 0 2px;}
+.corner.tr{top:16px;right:16px;border-width:2px 2px 0 0;}
+.corner.bl{bottom:16px;left:16px;border-width:0 0 2px 2px;}
+.corner.br{bottom:16px;right:16px;border-width:0 2px 2px 0;}
+
+/* top bar overlay on stream */
+#stream-bar{
+  position:absolute;top:0;left:0;right:0;
+  height:44px;
+  background:linear-gradient(180deg,rgba(5,9,15,.85) 0%,transparent 100%);
+  display:flex;align-items:center;padding:0 24px;gap:20px;
+  z-index:10;
+}
+#sb-logo{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.7);}
+#sb-sep{flex:1;}
+#sb-live{display:flex;align-items:center;gap:7px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);animation:blink 1.6s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(1.5)}}
+.live-txt{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;color:var(--red);}
+#sb-clock{font-family:'Space Mono',monospace;font-size:13px;color:rgba(255,255,255,.6);letter-spacing:1px;}
+
+/* bottom bar overlay on stream */
+#stream-bot-bar{
+  position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--blue),var(--cyan),var(--blue),transparent);
+  opacity:.5;
+}
+
+/* ── BOTTOM: PANELS ──────────────────────────── */
+#bottom{
+  display:grid;
+  grid-template-columns:460px 210px 480px 1fr;
+  border-top:1px solid var(--border);
+  background:transparent;
+}
+#p-map, #p-detail{
+  background:transparent !important;
+  border:none !important;
+}
+.panel{position:relative;overflow:hidden;border-right:1px solid var(--border);}
+.panel:last-child{border-right:none;}
+
+/* ── PANEL 1: WORLD MAP ─── */
+#p-map{background:#040b16;}
+#map-canvas{display:none;}
+
+/* map overlay labels */
+#map-overlay{
+  position:absolute;bottom:6px;left:8px;
+  font-family:'Space Mono',monospace;font-size:7px;color:rgba(255,255,255,.35);
+  letter-spacing:1px;
+}
+
+/* ── PANEL 2: DETAIL ─── */
+#p-detail{background:#040c18;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;}
+#detail-canvas{display:none;}
+
+/* ── PANEL 3: TELEMETRY TEXT ─── */
+#p-telem{
+  background:#060d1c;
+  display:flex;flex-direction:column;
+  padding:18px 22px;
+  gap:0;
+}
+#location-name{
+  font-family:'Inter',sans-serif;
+  font-size:28px;font-weight:700;
+  color:#fff;
+  line-height:1.1;
+  margin-bottom:10px;
+  padding-left:4px;
+  transition:all .5s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#sunrise-line{
+  font-size:13px;font-weight:500;
+  color:var(--gold);
+  margin-bottom:16px;
+  display:flex;align-items:center;gap:7px;
+}
+.sun-icon{font-size:15px;}
+#telem-rows{flex:1;display:flex;flex-direction:column;gap:0;}
+.trow{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid rgba(40,80,140,.2);
+}
+.trow:last-child{border-bottom:none;}
+.trow-lbl{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;}
+.trow-val{font-family:'Space Mono',monospace;font-size:14px;color:var(--text);font-weight:700;}
+.trow-val.hl{color:var(--cyan);}
+.trow-val.g{color:var(--gold);}
+
+#status-badge{
+  margin-top:14px;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:5px 14px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:2px;
+  border:1px solid;width:fit-content;
+}
+
+/* visibility */
+#vis-line{
+  margin-top:10px;
+  font-size:11px;font-weight:600;color:var(--muted);
+  display:flex;align-items:center;gap:6px;
+}
+
+/* ── PANEL 4: EARTH VIEW ─── */
+#p-earth{background:#020810;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;}
+#earth-canvas{width:100%;height:100%;display:block;}
+#earth-img{width:100%;height:100%;object-fit:cover;display:none;}
+#earth-overlay{
+  position:absolute;bottom:8px;right:10px;
+  font-family:'Space Mono',monospace;font-size:7px;color:rgba(255,255,255,.3);
+  letter-spacing:1px;text-align:right;
+}
+</style>
+</head>
+<body>
+<div id="root">
+
+<!-- ═══ STREAM AREA ═══ -->
+<div id="stream">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div id="stream-bar">
+    <div id="sb-logo">STATION SPATIALE INTERNATIONALE</div>
+    <div id="sb-sep"></div>
+    <div id="sb-live"><div class="live-dot"></div><span class="live-txt">EN DIRECT</span></div>
+    <div id="sb-clock">00:00:00 UTC</div>
+  </div>
+  <div id="stream-ph">
+    <div class="icon">🎙️</div>
+    <div class="lbl">SOURCE OBS</div>
+    <div class="sub">VIDÉO STREAMER ICI</div>
+  </div>
+  <div id="stream-bot-bar"></div>
+</div>
+
+<!-- ═══ BOTTOM PANELS ═══ -->
+<div id="bottom">
+
+  <!-- MAP -->
+  <div class="panel" id="p-map">
+    <canvas id="map-canvas"></canvas>
+    <div id="map-overlay">TRAJECTOIRE ORBITALE ISS</div>
+  </div>
+
+  <!-- DETAIL: zoomed regional map -->
+  <div class="panel" id="p-detail">
+    <canvas id="detail-canvas"></canvas>
+  </div>
+
+  <!-- TELEMETRY TEXT -->
+  <div class="panel" id="p-telem">
+    <div id="location-name">—</div>
+    <div id="sunrise-line"><span class="sun-icon">☀</span><span id="sunrise-txt">Calcul en cours…</span></div>
+    <div id="telem-rows">
+      <div class="trow">
+        <span class="trow-lbl">Date / Heure UTC</span>
+        <span class="trow-val" id="tr-dt">—</span>
+      </div>
+      <div class="trow">
+        <span class="trow-lbl">Vitesse</span>
+        <span class="trow-val hl" id="tr-spd">—</span>
+      </div>
+      <div class="trow">
+        <span class="trow-lbl">Altitude</span>
+        <span class="trow-val g" id="tr-alt">—</span>
+      </div>
+      <div class="trow">
+        <span class="trow-lbl">Latitude</span>
+        <span class="trow-val" id="tr-lat">—</span>
+      </div>
+      <div class="trow">
+        <span class="trow-lbl">Longitude</span>
+        <span class="trow-val" id="tr-lon">—</span>
+      </div>
+      <div class="trow">
+        <span class="trow-lbl">Période orbitale</span>
+        <span class="trow-val" id="tr-period">—</span>
+      </div>
+      <div class="trow">
+        <span class="trow-lbl">Orbites / jour</span>
+        <span class="trow-val" id="tr-opd">—</span>
+      </div>
+    </div>
+    <div id="vis-line" id="tr-vis">
+      <span id="vis-icon">—</span><span id="vis-txt">—</span>
+    </div>
+    <div id="status-badge">
+      <div class="live-dot"></div><span id="badge-txt">EN ORBITE</span>
+    </div>
+  </div>
+
+  <!-- EARTH VIEW -->
+  <div class="panel" id="p-earth">
+    <canvas id="earth-canvas"></canvas>
+    <div id="earth-overlay">DSCOVR EPIC · NASA</div>
+  </div>
+
+</div>
+</div>
+
+<script>
+/* ── Scaling ─────────────────────────────────────── */
+function rescale(){
+  const s=Math.min(innerWidth/1920,innerHeight/1080);
+  document.getElementById('root').style.transform=`scale(${s})`;
+}
+rescale();addEventListener('resize',rescale);
+
+/* ── Clock ──────────────────────────────────────── */
+function fmtPad(v){return String(v).padStart(2,'0');}
+function nowUTCStr(){
+  const n=new Date();
+  return `${n.getUTCFullYear()}-${fmtPad(n.getUTCMonth()+1)}-${fmtPad(n.getUTCDate())}  ${fmtPad(n.getUTCHours())}:${fmtPad(n.getUTCMinutes())}:${fmtPad(n.getUTCSeconds())} UTC`;
+}
+function clockTick(){
+  document.getElementById('sb-clock').textContent=`${fmtPad(new Date().getUTCHours())}:${fmtPad(new Date().getUTCMinutes())}:${fmtPad(new Date().getUTCSeconds())} UTC`;
+  document.getElementById('tr-dt').textContent=nowUTCStr();
+}
+setInterval(clockTick,1000);clockTick();
+
+/* ── Orbital mechanics ──────────────────────────── */
+const MU=398600.4418,RE=6371,I_DEG=51.64,I_RAD=51.64*Math.PI/180;
+function orbPeriodSec(altKm){return 2*Math.PI*Math.sqrt(Math.pow(RE+altKm,3)/MU);}
+
+/* ── Location names ─────────────────────────────── */
+function locationName(lat,lon){
+  if(lat>70)return 'Arctique';
+  if(lat<-70)return 'Antarctique';
+  // continents rough bounding boxes
+  if(lat>35&&lat<72&&lon>-25&&lon<45)return 'Europe';
+  if(lat>-36&&lat<37&&lon>-18&&lon<52)return 'Afrique';
+  if(lat>-12&&lat<37&&lon>52&&lon<80)return 'Péninsule Arabique';
+  if(lat>10&&lat<55&&lon>55&&lon<100)return 'Asie du Sud';
+  if(lat>20&&lat<75&&lon>100&&lon<145)return 'Asie de l\'Est';
+  if(lat>-12&&lat<25&&lon>95&&lon<145)return 'Asie du Sud-Est';
+  if(lat>-48&&lat<-10&&lon>112&&lon<155)return 'Australie';
+  if(lat>-60&&lat<5&&lon>-85&&lon<-32)return 'Amérique du Sud';
+  if(lat>5&&lat<40&&lon>-120&&lon<-60)return 'Amérique Centrale / Mexique';
+  if(lat>40&&lat<75&&lon>-140&&lon<-52)return 'Amérique du Nord';
+  // oceans
+  if(lon>20&&lon<110&&lat>-60&&lat<25)return 'Océan Indien';
+  if((lon>120||lon<-70)&&lat>-60&&lat<60)return 'Océan Pacifique';
+  return 'Océan Atlantique';
+}
+
+/* ── Sunrise counter ────────────────────────────── */
+let lastVisibility='daylight',lastEclipseStart=null,sunriseCount=0;
+let orbitPeriodSec=5568;
+
+function calcSunrise(visibility,altKm){
+  orbitPeriodSec=orbPeriodSec(altKm);
+  const daylightFrac=0.60; // ~60% of orbit in sunlight
+  const eclipseDur=orbitPeriodSec*(1-daylightFrac);
+  // count sunrises since midnight UTC
+  const now=new Date();
+  const secsSinceMidnight=now.getUTCHours()*3600+now.getUTCMinutes()*60+now.getUTCSeconds();
+  const risesPerDay=86400/orbitPeriodSec;
+  const riseNum=Math.floor(secsSinceMidnight/orbitPeriodSec)+1;
+
+  let secsToNextRise;
+  if(visibility==='daylight'){
+    // no sunrise info — next is after current daylight + eclipse
+    secsToNextRise=null;
+  } else {
+    // currently eclipsed; estimate time remaining in eclipse
+    if(lastVisibility==='daylight'){lastEclipseStart=Date.now();}
+    const eclipseElapsed=lastEclipseStart?(Date.now()-lastEclipseStart)/1000:eclipseDur/2;
+    secsToNextRise=Math.max(0,eclipseDur-eclipseElapsed);
+  }
+  lastVisibility=visibility;
+
+  const riseStr=secsToNextRise!=null
+    ?`Lever solaire #${riseNum} dans ${Math.floor(secsToNextRise/60)}m ${Math.floor(secsToNextRise%60)}s`
+    :`Lever solaire #${riseNum} · Côté jour actuel`;
+  document.getElementById('sunrise-txt').textContent=riseStr;
+}
+
+/* ── State ──────────────────────────────────────── */
+let curLat=0,curLon=0,curAlt=420,curSpd=27600;
+let issLat=0,issLon=0,issPrevLat=0,issPrevLon=0,issLerpT=1;
+const ISS_FETCH_INTERVAL=5000;
+
+/* ── Telemetry fetch ────────────────────────────── */
+async function fetchISS(){
+  try{
+    const d=await fetch('https://api.wheretheiss.at/v1/satellites/25544').then(r=>r.json());
+    issPrevLat=issLat; issPrevLon=issLon; issLerpT=0;
+    curLat=d.latitude;curLon=d.longitude;curAlt=d.altitude;curSpd=d.velocity;
+    issLat=d.latitude; issLon=d.longitude;
+    const la=Math.abs(d.latitude).toFixed(2),ld=d.latitude>=0?'N':'S';
+    const lo=Math.abs(d.longitude).toFixed(2),od=d.longitude>=0?'E':'O';
+    const T=orbPeriodSec(d.altitude);
+    document.getElementById('location-name').textContent=locationName(d.latitude,d.longitude);
+    document.getElementById('tr-spd').textContent=`${d.velocity.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} km/h  ·  ${(d.velocity/3600).toFixed(4)} km/s`;
+    document.getElementById('tr-alt').textContent=`${d.altitude.toFixed(2)} km`;
+    document.getElementById('tr-lat').textContent=`${Math.abs(d.latitude).toFixed(2)} °  ${d.latitude>=0?'North':'South'}`;
+    document.getElementById('tr-lon').textContent=`${Math.abs(d.longitude).toFixed(2)} °  ${d.longitude>=0?'East':'West'}`;
+    document.getElementById('tr-period').textContent=`${Math.floor(T/60)} m ${Math.floor(T%60)} s`;
+    document.getElementById('tr-opd').textContent=(86400/T).toFixed(8);
+    const day=d.visibility==='daylight';
+    document.getElementById('vis-icon').textContent=day?'☀':'🌙';
+    document.getElementById('vis-txt').textContent=day?'Côté jour — illuminé':'Côté nuit — éclipse';
+    document.getElementById('vis-txt').style.color=day?'#ffc107':'#2d7fff';
+    calcSunrise(d.visibility,d.altitude);
+    // update orbit tracks
+    drawWorldMap();
+    drawDetailMap();
+  }catch(e){}
+}
+fetchISS();setInterval(fetchISS,ISS_FETCH_INTERVAL);
+
+/* ══════════════════════════════════════════════════
+   WORLD MAP CANVAS
+══════════════════════════════════════════════════ */
+const LAND=[
+  // North America
+  [[-140,72],[-85,72],[-52,47],[-66,44],[-82,42],[-90,15],[-77,8],[-85,-5],[-80,-35],[-68,-56],[-35,-56],[-50,-30],[-40,-22],[-35,-5],[-52,5],[-58,5],[-62,10],[-65,18],[-60,15],[-52,15],[-55,25],[-65,25],[-80,25],[-80,30],[-75,35],[-80,35],[-70,40],[-65,45],[-53,50],[-60,54],[-75,55],[-80,55],[-84,52],[-88,52],[-90,50],[-88,45],[-83,42],[-70,42],[-56,47],[-60,46],[-53,50],[-60,54],[-70,58],[-80,62],[-88,68],[-88,72],[-120,72],[-140,72]],
+  // Europe
+  [[-12,36],[28,36],[38,42],[38,55],[24,60],[8,58],[-5,55],[-12,50],[-12,36]],
+  // Africa
+  [[-18,37],[52,37],[52,-36],[-18,-36],[-18,37]],
+  // Asia
+  [[26,72],[180,72],[180,10],[100,5],[105,-10],[115,5],[130,30],[145,45],[135,48],[125,38],[120,25],[108,20],[88,22],[80,28],[72,42],[55,25],[45,42],[38,38],[26,38],[26,72]],
+  // Australia
+  [[112,-22],[115,-35],[130,-32],[140,-38],[154,-26],[148,-22],[138,-15],[128,-15],[120,-22],[112,-22]],
+  // Greenland
+  [[-72,76],[-25,76],[-18,72],[-25,68],[-50,68],[-72,72],[-72,76]],
+  // Antarctica
+  [[-180,-68],[180,-68],[180,-90],[-180,-90],[-180,-68]],
+];
+
+const mapCanvas=document.getElementById('map-canvas');
+const mapCtx=mapCanvas.getContext('2d');
+
+function initMapCanvas(){
+  const p=document.getElementById('p-map');
+  mapCanvas.width=p.offsetWidth;
+  mapCanvas.height=p.offsetHeight;
+}
+
+function ll2xy(lat,lon,W,H){
+  return [(lon+180)/360*W,(90-lat)/180*H];
+}
+
+function drawLand(ctx,W,H,fillColor,strokeColor){
+  LAND.forEach(poly=>{
+    ctx.fillStyle=fillColor;ctx.strokeStyle=strokeColor;ctx.lineWidth=.6;
+    ctx.beginPath();
+    poly.forEach(([lo,la],i)=>{const[x,y]=ll2xy(la,lo,W,H);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+    ctx.closePath();ctx.fill();ctx.stroke();
+  });
+}
+
+function generateOrbitTrack(baseLon,W,H,numPts=300){
+  // The ground track shifts west by ~23.2° per orbit
+  // We generate the sinusoidal track given ascending node longitude
+  const pts=[];
+  for(let i=0;i<=numPts;i++){
+    const t=i/numPts; // 0→1 over one orbit
+    const lat=I_DEG*Math.sin(2*Math.PI*t);
+    // longitude advances 337° per orbit (360° orbit − 23° Earth rotation)
+    const lon=baseLon+t*337;
+    const normLon=((lon%360)+360)%360-180;
+    pts.push([lat,normLon,lon]);
+  }
+  return pts;
+}
+
+function currentOrbitPhase(){
+  // Estimate current phase (0-1) in orbit from current latitude
+  const sinPhi=Math.max(-1,Math.min(1,curLat/I_DEG));
+  let t=Math.asin(sinPhi)/(2*Math.PI);
+  if(t<0)t+=1;
+  return t; // 0-1
+}
+
+function drawWorldMap(){
+  const W=mapCanvas.width,H=mapCanvas.height;
+  mapCtx.clearRect(0,0,W,H);
+  // ocean
+  mapCtx.fillStyle='#030c1c';mapCtx.fillRect(0,0,W,H);
+  // grid lines
+  mapCtx.strokeStyle='rgba(40,80,140,.12)';mapCtx.lineWidth=.4;
+  for(let lo=-180;lo<=180;lo+=30){const[x]=ll2xy(0,lo,W,H);mapCtx.beginPath();mapCtx.moveTo(x,0);mapCtx.lineTo(x,H);mapCtx.stroke();}
+  for(let la=-90;la<=90;la+=30){const[,y]=ll2xy(la,0,W,H);mapCtx.beginPath();mapCtx.moveTo(0,y);mapCtx.lineTo(W,y);mapCtx.stroke();}
+  // equator
+  mapCtx.strokeStyle='rgba(40,80,140,.25)';mapCtx.lineWidth=.7;
+  const[,ey]=ll2xy(0,0,W,H);mapCtx.beginPath();mapCtx.moveTo(0,ey);mapCtx.lineTo(W,ey);mapCtx.stroke();
+  // land
+  drawLand(mapCtx,W,H,'#0d2040','rgba(40,120,200,.3)');
+  // orbital tracks: 3 past + current + 3 future
+  const t0=currentOrbitPhase();
+  const ascLon=curLon-t0*337;
+  const DRIFT=-23.2; // °per orbit
+
+  for(let orb=-3;orb<=3;orb++){
+    const pts=generateOrbitTrack(ascLon+orb*DRIFT,W,H);
+    const isCurrent=orb===0;
+    const alpha=isCurrent?0.7:Math.max(0.08,0.3-Math.abs(orb)*0.07);
+    mapCtx.strokeStyle=isCurrent?`rgba(255,200,40,${alpha})`:`rgba(80,160,255,${alpha})`;
+    mapCtx.lineWidth=isCurrent?1.4:0.7;
+    mapCtx.beginPath();
+    let prevLonRaw=-9999;
+    pts.forEach(([lat,normLon,lonRaw],i)=>{
+      const[x,y]=ll2xy(lat,normLon,W,H);
+      const jump=i>0&&Math.abs(lonRaw-prevLonRaw)>180;
+      (i===0||jump)?mapCtx.moveTo(x,y):mapCtx.lineTo(x,y);
+      prevLonRaw=lonRaw;
+    });
+    mapCtx.stroke();
+  }
+  // ISS dot
+  const[ix,iy]=ll2xy(curLat,curLon,W,H);
+  const gr=mapCtx.createRadialGradient(ix,iy,0,ix,iy,12);
+  gr.addColorStop(0,'rgba(255,200,40,.4)');gr.addColorStop(1,'rgba(255,200,40,0)');
+  mapCtx.fillStyle=gr;mapCtx.beginPath();mapCtx.arc(ix,iy,12,0,Math.PI*2);mapCtx.fill();
+  mapCtx.fillStyle='#ffc107';
+  mapCtx.shadowColor='#ffc107';mapCtx.shadowBlur=8;
+  mapCtx.beginPath();mapCtx.arc(ix,iy,4,0,Math.PI*2);mapCtx.fill();
+  mapCtx.shadowBlur=0;
+  // crosshair
+  mapCtx.strokeStyle='rgba(255,200,40,.3)';mapCtx.lineWidth=.7;
+  mapCtx.beginPath();mapCtx.moveTo(ix-10,iy);mapCtx.lineTo(ix+10,iy);mapCtx.stroke();
+  mapCtx.beginPath();mapCtx.moveTo(ix,iy-10);mapCtx.lineTo(ix,iy+10);mapCtx.stroke();
+}
+
+/* ══════════════════════════════════════════════════
+   DETAIL MAP (zoomed regional)
+══════════════════════════════════════════════════ */
+const detCanvas=document.getElementById('detail-canvas');
+const detCtx=detCanvas.getContext('2d');
+
+function initDetailCanvas(){
+  const p=document.getElementById('p-detail');
+  detCanvas.width=p.offsetWidth;
+  detCanvas.height=p.offsetHeight;
+}
+
+function drawDetailMap(){
+  const W=detCanvas.width,H=detCanvas.height;
+  const ZOOM=6; // degrees visible around ISS
+  detCtx.clearRect(0,0,W,H);
+  detCtx.fillStyle='#030e1e';detCtx.fillRect(0,0,W,H);
+
+  // grid
+  detCtx.strokeStyle='rgba(40,80,140,.15)';detCtx.lineWidth=.5;
+  const step=2;
+  const latMin=curLat-ZOOM,latMax=curLat+ZOOM;
+  const lonMin=curLon-ZOOM,lonMax=curLon+ZOOM;
+
+  for(let la=Math.floor(latMin);la<=Math.ceil(latMax);la+=step){
+    const y=(latMax-la)/(latMax-latMin)*H;
+    detCtx.beginPath();detCtx.moveTo(0,y);detCtx.lineTo(W,y);detCtx.stroke();
+  }
+  for(let lo=Math.floor(lonMin);lo<=Math.ceil(lonMax);lo+=step){
+    const x=(lo-lonMin)/(lonMax-lonMin)*W;
+    detCtx.beginPath();detCtx.moveTo(x,0);detCtx.lineTo(x,H);detCtx.stroke();
+  }
+
+  // project land
+  function ll2det(lat,lon){
+    return [(lon-lonMin)/(lonMax-lonMin)*W,(latMax-lat)/(latMax-latMin)*H];
+  }
+  LAND.forEach(poly=>{
+    detCtx.fillStyle='#0d2040';detCtx.strokeStyle='rgba(40,120,200,.35)';detCtx.lineWidth=.8;
+    detCtx.beginPath();
+    poly.forEach(([lo,la],i)=>{
+      const[x,y]=ll2det(la,lo);
+      i?detCtx.lineTo(x,y):detCtx.moveTo(x,y);
+    });
+    detCtx.closePath();detCtx.fill();detCtx.stroke();
+  });
+
+  // ISS at center
+  const[cx,cy]=ll2det(curLat,curLon);
+  // target circle
+  detCtx.strokeStyle='rgba(255,200,40,.6)';detCtx.lineWidth=1;
+  detCtx.beginPath();detCtx.arc(cx,cy,20,0,Math.PI*2);detCtx.stroke();
+  detCtx.beginPath();detCtx.arc(cx,cy,10,0,Math.PI*2);detCtx.stroke();
+  // crosshair
+  detCtx.strokeStyle='rgba(255,200,40,.5)';detCtx.lineWidth=1;
+  detCtx.beginPath();detCtx.moveTo(cx-30,cy);detCtx.lineTo(cx+30,cy);detCtx.stroke();
+  detCtx.beginPath();detCtx.moveTo(cx,cy-30);detCtx.lineTo(cx,cy+30);detCtx.stroke();
+  // dot
+  detCtx.fillStyle='#ffc107';detCtx.shadowColor='#ffc107';detCtx.shadowBlur=8;
+  detCtx.beginPath();detCtx.arc(cx,cy,4,0,Math.PI*2);detCtx.fill();
+  detCtx.shadowBlur=0;
+  // altitude label
+  detCtx.fillStyle='rgba(255,200,40,.7)';
+  detCtx.font='bold 9px "Space Mono",monospace';
+  detCtx.fillText(`${curAlt.toFixed(0)} km`,cx+8,cy-8);
+  // border label
+  detCtx.fillStyle='rgba(255,255,255,.2)';
+  detCtx.font='7px "Space Mono",monospace';
+  detCtx.fillText('VUE RÉGIONALE · ZOOM 6°',4,H-6);
+}
+
+/* ══════════════════════════════════════════════════
+   EARTH VIEW CANVAS (atmospheric glow + globe)
+══════════════════════════════════════════════════ */
+const earthCanvas=document.getElementById('earth-canvas');
+const earthCtx=earthCanvas.getContext('2d');
+
+function initEarthCanvas(){
+  const p=document.getElementById('p-earth');
+  earthCanvas.width=p.offsetWidth;
+  earthCanvas.height=p.offsetHeight;
+  drawEarth();
+}
+
+// Earth rotates at REAL speed: 1 full rotation per 86400 seconds.
+// At 60fps → 2π / (86400 × 60) rad per frame ≈ 0.00000121 rad/frame.
+// Globe starts at current UTC time so the view matches real Earth orientation.
+const EARTH_ROT_PER_FRAME = (2 * Math.PI) / (86400 * 60);
+// Initial angle based on current UTC time so rotation is correct from the start
+let earthRotAngle = ((new Date().getUTCHours()*3600 + new Date().getUTCMinutes()*60 + new Date().getUTCSeconds()) / 86400) * 2 * Math.PI;
+
+// (issLat/issLon declared above near curLat)
+
+function drawEarth(){
+  const W=earthCanvas.width,H=earthCanvas.height;
+  earthCtx.clearRect(0,0,W,H);
+  earthCtx.fillStyle='#020810';earthCtx.fillRect(0,0,W,H);
+
+  // stars (cached)
+  if(!earthCanvas._stars){
+    earthCanvas._stars=Array.from({length:120},()=>({
+      x:Math.random()*W,y:Math.random()*H,
+      r:Math.random()*.7+.2,o:Math.random()*.5+.1
+    }));
+  }
+  earthCanvas._stars.forEach(s=>{
+    earthCtx.fillStyle=`rgba(255,255,255,${s.o})`;
+    earthCtx.beginPath();earthCtx.arc(s.x,s.y,s.r,0,Math.PI*2);earthCtx.fill();
+  });
+
+  const cx=W*.55,cy=H*.5,R=Math.min(W,H)*.38;
+
+  // atmosphere halo
+  const atmo=earthCtx.createRadialGradient(cx,cy,R*.88,cx,cy,R*1.16);
+  atmo.addColorStop(0,'rgba(30,100,255,.22)');
+  atmo.addColorStop(.5,'rgba(15,50,180,.07)');
+  atmo.addColorStop(1,'rgba(0,0,0,0)');
+  earthCtx.fillStyle=atmo;
+  earthCtx.beginPath();earthCtx.arc(cx,cy,R*1.16,0,Math.PI*2);earthCtx.fill();
+
+  // globe base
+  const globe=earthCtx.createRadialGradient(cx-R*.28,cy-R*.22,R*.04,cx,cy,R);
+  globe.addColorStop(0,'#1a4a8a');
+  globe.addColorStop(.35,'#0f2d5a');
+  globe.addColorStop(.7,'#071a36');
+  globe.addColorStop(1,'#020d20');
+  earthCtx.fillStyle=globe;
+  earthCtx.beginPath();earthCtx.arc(cx,cy,R,0,Math.PI*2);earthCtx.fill();
+
+  // continent silhouettes — shift driven by real earthRotAngle
+  earthCtx.save();
+  earthCtx.beginPath();earthCtx.arc(cx,cy,R,0,Math.PI*2);earthCtx.clip();
+  const rotFrac=(earthRotAngle%(Math.PI*2))/(Math.PI*2); // 0→1
+  const shiftX=(rotFrac*2-1)*R; // full -R to +R across one rotation
+  // continent blobs (fixed relative positions, shifted by Earth rotation)
+  [
+    [cx+shiftX,         cy-R*.15, R*.32,R*.24],  // Eurasia/Africa-ish
+    [cx+shiftX-R*.7,    cy-R*.1,  R*.20,R*.28],  // Americas-ish
+    [cx+shiftX+R*.5,    cy+R*.15, R*.14,R*.18],  // SE Asia/Australia
+    [cx+shiftX-R*.15,   cy+R*.25, R*.18,R*.12],  // Africa lower
+    [cx+shiftX+R*.85,   cy-R*.2,  R*.10,R*.08],  // wrap-around
+    [cx+shiftX-R*1.5,   cy-R*.2,  R*.10,R*.08],  // wrap-around
+  ].forEach(([x,y,rx,ry])=>{
+    earthCtx.fillStyle='rgba(18,60,110,.65)';
+    earthCtx.beginPath();earthCtx.ellipse(x,y,rx,ry,0,0,Math.PI*2);earthCtx.fill();
+  });
+  earthCtx.restore();
+
+  // terminator (day/night — fixed position, slow drift)
+  earthCtx.save();
+  earthCtx.beginPath();earthCtx.arc(cx,cy,R,0,Math.PI*2);earthCtx.clip();
+  const termX=cx+R*.25; // fixed terminator ~1/4 from center
+  const termGrad=earthCtx.createLinearGradient(termX-R*.2,cy-R,termX+R*.2,cy+R);
+  termGrad.addColorStop(0,'rgba(0,0,0,0)');
+  termGrad.addColorStop(.45,'rgba(0,0,0,0)');
+  termGrad.addColorStop(.55,'rgba(0,5,20,.55)');
+  termGrad.addColorStop(1,'rgba(0,5,20,.88)');
+  earthCtx.fillStyle=termGrad;
+  earthCtx.fillRect(cx-R,cy-R,R*2,R*2);
+  earthCtx.restore();
+
+  // limb glow
+  const limb=earthCtx.createRadialGradient(cx,cy,R*.93,cx,cy,R*1.02);
+  limb.addColorStop(0,'rgba(0,0,0,0)');
+  limb.addColorStop(.6,'rgba(30,80,200,.12)');
+  limb.addColorStop(1,'rgba(30,80,200,.28)');
+  earthCtx.fillStyle=limb;
+  earthCtx.beginPath();earthCtx.arc(cx,cy,R*1.02,0,Math.PI*2);earthCtx.fill();
+
+  // specular highlight
+  const spec=earthCtx.createRadialGradient(cx-R*.28,cy-R*.28,0,cx-R*.28,cy-R*.28,R*.52);
+  spec.addColorStop(0,'rgba(130,190,255,.10)');spec.addColorStop(1,'rgba(0,0,0,0)');
+  earthCtx.fillStyle=spec;earthCtx.beginPath();earthCtx.arc(cx,cy,R,0,Math.PI*2);earthCtx.fill();
+
+  // ISS smooth interpolated position (lerp between API updates)
+  issLerpT = Math.min(1, issLerpT + (1/60) / (ISS_FETCH_INTERVAL/1000));
+  const smLat = issPrevLat + (issLat - issPrevLat) * issLerpT;
+  const smLon = issPrevLon + (issLon - issPrevLon) * issLerpT;
+  // viewLon: fixed reference longitude (based on Earth rotation angle → 0° lon at center at t=0)
+  const viewLon = (earthRotAngle / (2*Math.PI) * 360) % 360;
+  const latR = smLat * Math.PI/180;
+  const lonDiff = (smLon - viewLon) * Math.PI/180;
+  const issOrthoX = R * Math.cos(latR) * Math.sin(lonDiff);
+  const issOrthoY = -R * Math.sin(latR);
+  const issOnFace = Math.cos(latR) * Math.cos(lonDiff) > 0; // visible side
+
+  // ISS orbit circle (thin ellipse around globe)
+  earthCtx.strokeStyle='rgba(255,200,40,.18)';earthCtx.lineWidth=.8;
+  earthCtx.setLineDash([4,4]);
+  earthCtx.beginPath();earthCtx.ellipse(cx,cy,R*1.05,R*1.05*0.3,I_RAD*.8,0,Math.PI*2);
+  earthCtx.stroke();
+  earthCtx.setLineDash([]);
+
+  if(issOnFace){
+    const issX=cx+issOrthoX,issY=cy+issOrthoY;
+    // line from surface to orbit altitude
+    const altScale=1.05+(curAlt/6371)*.5;
+    const issOX=cx+issOrthoX/R*R*altScale,issOY=cy+issOrthoY/R*R*altScale;
+    earthCtx.strokeStyle='rgba(255,200,40,.4)';earthCtx.lineWidth=.8;
+    earthCtx.beginPath();earthCtx.moveTo(issX,issY);earthCtx.lineTo(issOX,issOY);earthCtx.stroke();
+    earthCtx.fillStyle='#ffc107';earthCtx.shadowColor='#ffc107';earthCtx.shadowBlur=7;
+    earthCtx.beginPath();earthCtx.arc(issOX,issOY,3.5,0,Math.PI*2);earthCtx.fill();
+    earthCtx.shadowBlur=0;
+    earthCtx.fillStyle='rgba(255,200,40,.7)';
+    earthCtx.font='bold 8px "Space Mono",monospace';
+    earthCtx.fillText('ISS',issOX+6,issOY-5);
+  }
+
+  earthRotAngle += EARTH_ROT_PER_FRAME; // real Earth rotation speed
+  requestAnimationFrame(drawEarth);
+}
+
+/* ── Init all canvases ─────────────────────────── */
+window.addEventListener('load',()=>{
+  initMapCanvas();
+  initDetailCanvas();
+  initEarthCanvas();
+  drawWorldMap();
+  drawDetailMap();
+});
+window.addEventListener('resize',()=>{
+  initMapCanvas();initDetailCanvas();initEarthCanvas();
+  drawWorldMap();drawDetailMap();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CounterHUD/3132185978_3274368193_4031336827.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CounterHUD/603911562_378858848_2843081963.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CounterHUD/603911562_2845949076_2181900307.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CounterHUD/603911562_3423429278_3189563252.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CounterHUD/603911562_2848883027_2358810818.mp4'

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Artemis II — Compte à rebours</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #000d1a;
+      --accent: #00cfff;
+      --warn:   #ffb830;
+      --green:  #39ff6e;
+      --dim:    #004466;
+      --text:   #c8e8f8;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Rajdhani', sans-serif;
+    }
+
+    /* ── outer wrapper ── */
+    .widget {
+      position: relative;
+      width: 680px;
+      background: linear-gradient(135deg, rgba(0,13,26,0.97) 0%, rgba(0,28,55,0.97) 100%);
+      border: 1px solid rgba(0,207,255,0.25);
+      border-radius: 6px;
+      overflow: hidden;
+      padding: 22px 28px 18px;
+      box-shadow:
+        0 0 40px rgba(0,207,255,0.12),
+        inset 0 0 60px rgba(0,207,255,0.03);
+    }
+
+    /* scanlines */
+    .widget::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.12) 2px,
+        rgba(0,0,0,0.12) 4px
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* corner brackets */
+    .corner { position: absolute; width: 14px; height: 14px; }
+    .c-tl { top:0; left:0;  border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+    .c-tr { top:0; right:0; border-top: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+    .c-bl { bottom:0; left:0;  border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); }
+    .c-br { bottom:0; right:0; border-bottom: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+
+    /* top line: badge + title */
+    .top-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .live-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ff3030;
+      box-shadow: 0 0 8px #ff3030;
+      animation: blink 1.1s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity:1; } 50% { opacity:0.1; }
+    }
+
+    .mission-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: var(--accent);
+      text-shadow: 0 0 16px rgba(0,207,255,0.6);
+    }
+
+    .sep-v {
+      width: 1px; height: 18px;
+      background: rgba(0,207,255,0.3);
+    }
+
+    .subtitle {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      line-height: 1.5;
+    }
+
+    .nasa-badge {
+      margin-left: auto;
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      font-weight: 900;
+      background: #cc2020;
+      color: #fff;
+      padding: 3px 9px;
+      border-radius: 3px;
+      letter-spacing: 2px;
+      flex-shrink: 0;
+    }
+
+    /* divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,207,255,0.3) 30%, rgba(0,207,255,0.3) 70%, transparent);
+      margin-bottom: 16px;
+    }
+
+    /* event label */
+    .event-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: rgba(0,207,255,0.5);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .event-name {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    .event-name span {
+      color: var(--warn);
+    }
+
+    /* ── main countdown ── */
+    .countdown-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .cd-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 120px;
+    }
+
+    .cd-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 58px;
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 1;
+      letter-spacing: -2px;
+      text-shadow:
+        0 0 20px rgba(0,207,255,0.7),
+        0 0 40px rgba(0,207,255,0.3);
+      transition: color 0.3s;
+      min-width: 120px;
+      text-align: center;
+    }
+
+    .cd-num.flash {
+      animation: numflash 0.3s ease-out;
+    }
+
+    @keyframes numflash {
+      0%   { color: #ffffff; text-shadow: 0 0 30px #fff, 0 0 60px var(--accent); }
+      100% { color: var(--accent); }
+    }
+
+    .cd-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .cd-sep {
+      font-family: 'Orbitron', monospace;
+      font-size: 46px;
+      font-weight: 700;
+      color: rgba(0,207,255,0.3);
+      line-height: 1;
+      padding-top: 6px;
+      user-select: none;
+      animation: sep-blink 1s step-end infinite;
+    }
+
+    @keyframes sep-blink {
+      0%,100% { opacity: 1; } 50% { opacity: 0.2; }
+    }
+
+    /* ── progress bar ── */
+    .progress-wrap {
+      margin-bottom: 10px;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .progress-meta span {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 1px;
+    }
+
+    .progress-meta .pct {
+      color: var(--green);
+    }
+
+    .progress-track {
+      height: 4px;
+      background: rgba(0,207,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      box-shadow: 0 0 8px rgba(57,255,110,0.5);
+      transition: width 1s ease;
+    }
+
+    /* ── bottom info row ── */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid rgba(0,207,255,0.08);
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .info-key {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .info-val {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.5px;
+    }
+
+    .info-val.green { color: var(--green); }
+    .info-val.warn  { color: var(--warn);  }
+
+    .info-sep {
+      width: 1px; height: 28px;
+      background: rgba(0,207,255,0.12);
+    }
+
+    /* landed state */
+    .landed-msg {
+      display: none;
+      font-family: 'Orbitron', monospace;
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--green);
+      text-align: center;
+      letter-spacing: 4px;
+      text-shadow: 0 0 30px rgba(57,255,110,0.8);
+      padding: 20px 0;
+      animation: glow-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+      0%,100% { opacity:1; } 50% { opacity:0.7; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="widget">
+  <!-- corners -->
+  <div class="corner c-tl"></div>
+  <div class="corner c-tr"></div>
+  <div class="corner c-bl"></div>
+  <div class="corner c-br"></div>
+
+  <!-- header -->
+  <div class="top-row">
+    <div class="live-dot"></div>
+    <div class="mission-label">ARTEMIS II</div>
+    <div class="sep-v"></div>
+    <div class="subtitle">
+      Premier vol habité lunaire<br>
+      NASA · Orion · SLS Block 1
+    </div>
+    <div class="nasa-badge">NASA</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- event -->
+  <div class="event-label">Compte à rebours jusqu'à</div>
+  <div class="event-name">
+    Amerrissage · <span>Pacifique</span> — San Diego
+  </div>
+
+  <!-- countdown numbers -->
+  <div class="countdown-row" id="cdRow">
+    <div class="cd-block">
+      <div class="cd-num" id="cdD">00</div>
+      <div class="cd-label">Jours</div>
+    </div>
+    <div class="cd-sep">:</div>
+    <div class="cd-block">
+      <div class="cd-num" id="cdH">00</div>
+      <div class="cd-label">Heures</div>
+    </div>
+    <div class="cd-sep">:</div>
+    <div class="cd-block">
+      <div class="cd-num" id="cdM">00</div>
+      <div class="cd-label">Minutes</div>
+    </div>
+    <div class="cd-sep">:</div>
+    <div class="cd-block">
+      <div class="cd-num" id="cdS">00</div>
+      <div class="cd-label">Secondes</div>
+    </div>
+  </div>
+
+  <div class="landed-msg" id="landedMsg">🌊 AMERRI !</div>
+
+  <!-- mission progress -->
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span>PROGRESSION DE LA MISSION</span>
+      <span class="pct" id="progPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progBar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- info bottom row -->
+  <div class="info-row">
+    <div class="info-item">
+      <span class="info-key">Lancement</span>
+      <span class="info-val">7 avr. · 10:00 UTC</span>
+    </div>
+    <div class="info-sep"></div>
+    <div class="info-item">
+      <span class="info-key">Amerrissage</span>
+      <span class="info-val warn">10 avr. · 20:07 EDT</span>
+    </div>
+    <div class="info-sep"></div>
+    <div class="info-item">
+      <span class="info-key">Durée totale</span>
+      <span class="info-val">10 jours</span>
+    </div>
+    <div class="info-sep"></div>
+    <div class="info-item">
+      <span class="info-key">Équipage</span>
+      <span class="info-val green">4 astronautes</span>
+    </div>
+    <div class="info-sep"></div>
+    <div class="info-item">
+      <span class="info-key">Statut</span>
+      <span class="info-val green" id="missionStatus">NOMINAL</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Artemis II splashdown: April 10, 2026 20:07 EDT = April 11, 00:07 UTC
+  const SPLASHDOWN   = new Date('2026-04-11T00:07:00Z');
+  const LAUNCH       = new Date('2026-04-07T10:00:00Z');
+  const TOTAL_MS     = SPLASHDOWN - LAUNCH;
+
+  const elD = document.getElementById('cdD');
+  const elH = document.getElementById('cdH');
+  const elM = document.getElementById('cdM');
+  const elS = document.getElementById('cdS');
+
+  let prevVals = { d:'', h:'', m:'', s:'' };
+
+  function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+
+  function flashEl(el) {
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+  }
+
+  function update() {
+    const now  = new Date();
+    const diff = SPLASHDOWN - now;
+
+    if (diff <= 0) {
+      // landed
+      document.getElementById('cdRow').style.display = 'none';
+      document.getElementById('landedMsg').style.display = 'block';
+      document.getElementById('missionStatus').textContent = 'AMERRI';
+      document.getElementById('missionStatus').style.color = '#39ff6e';
+      document.getElementById('progBar').style.width = '100%';
+      document.getElementById('progPct').textContent = '100%';
+      return;
+    }
+
+    const totalSec = Math.floor(diff / 1000);
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+
+    const ds = pad(d), hs = pad(h), ms = pad(m), ss = pad(s);
+
+    if (ds !== prevVals.d) { elD.textContent = ds; flashEl(elD); prevVals.d = ds; }
+    if (hs !== prevVals.h) { elH.textContent = hs; flashEl(elH); prevVals.h = hs; }
+    if (ms !== prevVals.m) { elM.textContent = ms; flashEl(elM); prevVals.m = ms; }
+    if (ss !== prevVals.s) { elS.textContent = ss; flashEl(elS); prevVals.s = ss; }
+
+    // progress (clamp 0–100)
+    const elapsed = Math.max(0, now - LAUNCH);
+    const pct = Math.min(100, (elapsed / TOTAL_MS) * 100);
+    document.getElementById('progBar').style.width = pct.toFixed(2) + '%';
+    document.getElementById('progPct').textContent = pct.toFixed(1) + '%';
+  }
+
+  update();
+  setInterval(update, 1000);
+</script>
+
+</body>
+</html>

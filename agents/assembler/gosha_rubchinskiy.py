@@ -576,6 +576,9 @@ def trim_clips(
     return ordered
 
 
+_COSMOS_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr", "channel_004_cosmos_fr"}
+
+
 def build_transition_plan(
     n_clips:          int,
     timings:          list[dict],
@@ -583,45 +586,106 @@ def build_transition_plan(
     zone_b_count:     int,
     clip_trans_name:  str,
     clip_trans_dur:   float,
+    channel_id:       str = "",
 ) -> list[dict]:
     """
-    Зона A: переход на каждом стыке.
-    Зона B: ровно zone_b_count рандомных стыков получают переход, остальные = cut.
+    Зона A: переход на КАЖДОМ стыке.
+      - random-режим: лёгкие переходы + 1-2 тяжёлых (whip/glitch) только в зоне A.
+      - Тяжёлый на стыке интро→клипы: только для cosmos-каналов.
+    Зона B: N рандомных стыков, только лёгкие переходы.
+      - N = 20 при 5 мин зоны B, +4 за каждую минуту свыше 5, макс 40.
 
     Возвращает list[{"type", "dur"}] длиной n_clips-1.
     """
+    from transitions import build_random_trans_seq, _POOL_HEAVY, _POOL_HEAVY_WEIGHTS, _weighted_choice
+
+    _HEAVY_NAMES = {p[0] for p in _POOL_HEAVY}
+    is_cosmos    = channel_id in _COSMOS_CHANNELS
     n_boundaries = max(0, n_clips - 1)
     if n_boundaries == 0:
         return []
 
-    # Определяем какие стыки в зоне B
+    is_random = (clip_trans_name == "random")
+
+    # ── Индексы стыков по зонам ───────────────────────────────────────────────
+    zone_a_indices = [
+        i for i in range(n_boundaries)
+        if i < len(timings) and timings[i].get("zone") == "A"
+    ]
     zone_b_indices = [
         i for i in range(n_boundaries)
         if i < len(timings) and timings[i].get("zone") == "B"
     ]
-    zone_b_trans = set(
+
+    # ── Динамический zone_b_count по длине зоны B ─────────────────────────────
+    zone_b_dur_s = sum(
+        timings[i].get("duration", 0) for i in zone_b_indices if i < len(timings)
+    )
+    if is_random:
+        extra_min    = max(0, (zone_b_dur_s - 300) / 60)
+        zone_b_count = min(40, int(20 + extra_min * 4))
+
+    zone_b_selected = set(
         random.sample(zone_b_indices, min(zone_b_count, len(zone_b_indices)))
     ) if zone_b_indices else set()
 
+    # ── Генерация переходов ───────────────────────────────────────────────────
+    if is_random:
+        # Зона A: все стыки лёгкие по умолчанию
+        zone_a_seq = build_random_trans_seq(len(zone_a_indices), light_only=True)
+        zone_a_map = {idx: t for idx, t in zip(zone_a_indices, zone_a_seq)}
+
+        # Тяжёлые в зоне A — только для cosmos-каналов:
+        #   1. Первый стык (интро→клипы): рандомный тяжёлый
+        #   2. Ещё один тяжёлый рандомно, но не раньше чем через 15 стыков
+        if is_cosmos and zone_a_indices:
+            import random as _rnd
+            _rng = _rnd.Random()
+            _heavy_pool = _POOL_HEAVY  # импортируется выше из transitions
+
+            # Первый стык — рандомный тяжёлый
+            first_a = zone_a_indices[0]
+            h_name, h_dur, _ = _weighted_choice(_heavy_pool, _POOL_HEAVY_WEIGHTS, _rng)
+            zone_a_map[first_a] = {"type": h_name, "dur": h_dur}
+
+            # Второй тяжёлый — рандомно среди стыков с позицией >= first_a + 15
+            eligible = [idx for idx in zone_a_indices if idx >= first_a + 15]
+            if eligible:
+                second_a = _rng.choice(eligible)
+                h_name2, h_dur2, _ = _weighted_choice(_heavy_pool, _POOL_HEAVY_WEIGHTS, _rng)
+                zone_a_map[second_a] = {"type": h_name2, "dur": h_dur2}
+
+        # Зона B: только лёгкие
+        zone_b_seq = build_random_trans_seq(len(zone_b_selected), light_only=True)
+        zone_b_map = {idx: t for idx, t in zip(sorted(zone_b_selected), zone_b_seq)}
+
+    # ── Сборка плана ──────────────────────────────────────────────────────────
     plan = []
     for i in range(n_boundaries):
-        timing = timings[i] if i < len(timings) else {}
-        in_zone_b = timing.get("zone") == "B"
+        in_zone_b = i in set(zone_b_indices)
 
-        if in_zone_b and i not in zone_b_trans:
+        if in_zone_b and i not in zone_b_selected:
             plan.append({"type": "cut", "dur": 0.0})
+        elif is_random:
+            t = zone_b_map.get(i) or zone_a_map.get(i, {"type": "fadeblack", "dur": 0.35})
+            plan.append(t)
         else:
             plan.append({"type": clip_trans_name, "dur": clip_trans_dur})
 
-    zone_a_trans = sum(
-        1 for i, p in enumerate(plan)
-        if p["type"] != "cut" and i < len(timings) and timings[i].get("zone") == "A"
-    )
-    zone_b_actual = sum(
-        1 for i, p in enumerate(plan)
-        if p["type"] != "cut" and i < len(timings) and timings[i].get("zone") == "B"
-    )
-    log(f"Переходы: Зона A={zone_a_trans} | Зона B={zone_b_actual}/{len(zone_b_indices)} стыков")
+    # ── Лог ──────────────────────────────────────────────────────────────────
+    zone_a_trans  = sum(1 for i, p in enumerate(plan)
+                        if p["type"] != "cut" and i in set(zone_a_indices))
+    zone_b_actual = sum(1 for i, p in enumerate(plan)
+                        if p["type"] != "cut" and i in set(zone_b_indices))
+    if is_random:
+        heavy_in_a = [p["type"] for i, p in enumerate(plan)
+                      if p["type"] in _HEAVY_NAMES and i in set(zone_a_indices)]
+        log(f"Переходы: Зона A={zone_a_trans}/{len(zone_a_indices)} "
+            f"(тяжёлые в A: {heavy_in_a or 'нет'}) | "
+            f"Зона B={zone_b_actual}/{len(zone_b_indices)} "
+            f"(лимит={zone_b_count}, {zone_b_dur_s/60:.1f}мин)")
+    else:
+        log(f"Переходы: Зона A={zone_a_trans} | Зона B={zone_b_actual}/{len(zone_b_indices)} стыков")
 
     return plan
 
@@ -1245,12 +1309,13 @@ def main() -> None:
     # План переходов вычисляем ДО trim, чтобы знать какие клипы нуждаются в handle
     # (Зона A = каждый стык, Зона B = N рандомных)
     trans_plan = build_transition_plan(
-        n_clips         = len(timings),   # len(timings) ≈ len(trimmed_clips)
+        n_clips         = len(timings),
         timings         = timings,
         zone_a_end_s    = detected_boundary,
         zone_b_count    = zone_b_count,
         clip_trans_name = trans_name,
         clip_trans_dur  = trans_dur,
+        channel_id      = channel_id,
     )
 
     # Trim клипов (stream copy, параллельно)
