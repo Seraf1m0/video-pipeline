@@ -1,6 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CharacterMotion/3132185978_3174459875_590274307.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CharacterMotion/603911562_826514208_2482869539.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CharacterMotion/603911562_2661037784_191736630.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CharacterMotion/603911562_2164560990_1032886855.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_motion_v3/480p15/partial_movie_files/CharacterMotion/603911562_1710464360_2358810818.mp4'

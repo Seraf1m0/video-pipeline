@@ -1,9 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterV2/3132185978_3676584879_3215570964.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterV2/603911562_2954518444_3454200753.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterV2/603911562_2800458391_2787716782.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterV2/603911562_2609322761_633565177.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterV2/603911562_474693697_447362864.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterV2/603911562_2164560990_1354057078.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterV2/603911562_2515712480_2398940670.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_counter_v2/480p15/partial_movie_files/CounterV2/603911562_3152910415_1980535657.mp4'

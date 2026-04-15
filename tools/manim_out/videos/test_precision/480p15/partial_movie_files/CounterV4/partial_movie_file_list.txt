@@ -1,6 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/480p15/partial_movie_files/CounterV4/3132185978_2948926175_1204017613.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/480p15/partial_movie_files/CounterV4/603911562_4065661261_2545435212.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/480p15/partial_movie_files/CounterV4/603911562_1776392282_2122861252.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/480p15/partial_movie_files/CounterV4/603911562_2164560990_2329116609.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_precision/480p15/partial_movie_files/CounterV4/603911562_1908988006_2358810818.mp4'

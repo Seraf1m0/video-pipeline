@@ -1,7 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/OrbitSpeed/3862454583_1865495473_1860156806.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/OrbitSpeed/3799820123_4024989170_1337736829.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/OrbitSpeed/3799820123_3033536074_166559853.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/OrbitSpeed/3799820123_167828610_153799339.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/OrbitSpeed/3799820123_3963603028_865356688.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/OrbitSpeed/3799820123_382366329_2358810818.mp4'

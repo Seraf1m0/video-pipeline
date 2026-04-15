@@ -1,8 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/FactPlate/3862454583_2369514758_2023860264.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/FactPlate/3799820123_2712002343_2599887957.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/FactPlate/3799820123_673142359_1736632411.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/FactPlate/3799820123_2810163554_259625564.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/FactPlate/3799820123_1178776617_3984308717.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/FactPlate/3799820123_3423429278_1230876219.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/FactPlate/3799820123_468997932_741961011.mp4'

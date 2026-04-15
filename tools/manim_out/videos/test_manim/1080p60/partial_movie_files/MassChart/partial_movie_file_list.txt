@@ -1,6 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/MassChart/3862454583_1406205985_1325634205.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/MassChart/3799820123_3740683079_1930771166.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/MassChart/3799820123_3343014790_2744721058.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/MassChart/3799820123_2241740977_141148581.mp4'
-file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_manim/1080p60/partial_movie_files/MassChart/3799820123_2217825475_3388356852.mp4'
