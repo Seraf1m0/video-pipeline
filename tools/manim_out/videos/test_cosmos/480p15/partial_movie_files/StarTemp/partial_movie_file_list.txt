@@ -1,0 +1,9 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/StarTemp/3132185978_2082505747_1627307415.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/StarTemp/603911562_1999547777_1289179817.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/StarTemp/603911562_3629920757_3407554571.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/StarTemp/603911562_3860063118_2361429702.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/StarTemp/603911562_226277151_776206892.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/StarTemp/603911562_435447160_3189779073.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/StarTemp/603911562_3963603028_1723816352.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/StarTemp/603911562_138029965_2358810818.mp4'

@@ -220,6 +220,9 @@ class CharacterMotion(SmartScene):
 
         disc_dx = FINISH_X - START_X
         TOTAL   = 8.0
+        # Шаги — тик каждые ~0.8s (10 шагов за 8 секунд)
+        for step in range(1, 10):
+            self.sound("tick", at=self._cur + step * (TOTAL / 10))
         self.go(fig_d.animate.shift(RIGHT * disc_dx), lbl_disc.animate.shift(RIGHT * disc_dx),
                 dur=TOTAL, rf=linear)
 

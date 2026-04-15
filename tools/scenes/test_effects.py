@@ -163,12 +163,11 @@ class ScaleCompare(SmartScene):
             mult_lbl.move_to([x, BASE_Y + r*2 + 0.28, 0]).set_opacity(0)
             self.add(circle, name_lbl, mult_lbl)
 
-            # Объекты появляются без звука — картинка сама по себе интересна
-            self.go(circle.animate.scale(100), dur=0.55, rf=smooth)
+            sfx_i = "done" if i == len(OBJECTS) - 1 else "tick"
+            self.go(circle.animate.scale(100), dur=0.55, rf=smooth, sfx=sfx_i)
             self.go(name_lbl.animate.set_opacity(1), mult_lbl.animate.set_opacity(1), dur=0.22)
 
-        # Один done когда все на экране
-        self.hold(0.1, sfx="done")
+        self.hold(0.05)
         self.hold(2.8)
         self.go(Group(*self.mobjects).animate.set_opacity(0).shift(DOWN*0.4),
                 dur=0.45, sfx="whoosh")
@@ -263,7 +262,7 @@ class CosmosTimeline(SmartScene):
         timeline = Line([X_START, LINE_Y, 0], [X_START, LINE_Y, 0], color=DIM, stroke_width=2)
         self.add(timeline)
         self.go(timeline.animate.put_start_and_end_on([X_START, LINE_Y, 0], [X_END, LINE_Y, 0]),
-                dur=1.2, rf=smooth)
+                dur=1.2, rf=smooth, sfx="whoosh_fast")
 
         for i, (frac, name, color, year) in enumerate(EVENTS):
             x     = X_START + frac * (X_END - X_START)

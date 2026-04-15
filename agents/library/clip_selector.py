@@ -193,10 +193,13 @@ def _blip_rerank(candidates: list, visual_query: str,
 # ── Пути через paths.py (поддержка нескольких библиотек по нишам) ─────────────
 _utils_dir  = Path(__file__).resolve().parent.parent / "utils"
 _tools_dir  = Path(__file__).resolve().parent.parent.parent / "tools"
+_lib_dir    = Path(__file__).resolve().parent  # agents/library — для translator.py
 if str(_utils_dir) not in sys.path:
     sys.path.insert(0, str(_utils_dir))
 if str(_tools_dir) not in sys.path:
     sys.path.insert(0, str(_tools_dir))
+if str(_lib_dir) not in sys.path:
+    sys.path.insert(0, str(_lib_dir))
 from paths import (
     get_library_dir,
     get_library_json,
@@ -634,12 +637,12 @@ def match_segment_to_clip(
     emb_index   = {cid: i for i, cid in enumerate(clip_ids_list)}
 
     # ── Visual score (CLIP ViT-B/32 multilingual) ─────────────────────────────
-    # Используем visual_query (от Haiku) если есть, иначе fallback на segment_text
+    # Используем visual_query (от Haiku) если есть, иначе window_text, иначе segment_text
     vis_scores: dict[str, float] = {}
     if visual_embeddings is not None and visual_ids_list:
         try:
             from visual_embedder import encode_text as _clip_encode_text
-            _clip_text = visual_query if visual_query.strip() else segment_text
+            _clip_text = visual_query if visual_query.strip() else (window_text if window_text.strip() else segment_text)
 
             # Multi-query expansion: основной запрос + альтернативы
             _all_queries = [_clip_text]
@@ -671,7 +674,9 @@ def match_segment_to_clip(
         except Exception as _ve:
             pass  # visual недоступно — работаем только на text
 
-    _vw = _dynamic_visual_weight(visual_query)
+    # Когда нет Haiku visual_query — используем фиксированный вес 0.45 (между дефолтом 0.35 и MED 0.50)
+    # window_text/segment_text дают меньше сигнала чем точный Haiku запрос, но CLIP всё равно полезен
+    _vw = _dynamic_visual_weight(visual_query) if visual_query.strip() else 0.45
 
     def _hybrid_score(clip_id: str, t_score: float) -> float:
         if not vis_scores:
@@ -990,6 +995,17 @@ def select_clips_for_video(
     emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
     vis_emb_index = {cid: i for i, cid in enumerate(visual_ids_list)} if visual_ids_list else {}
 
+    # Определяем язык канала для перевода
+    _lang = get_lang(channel_id)
+    _translate_query = _lang != "en"
+    if _translate_query:
+        try:
+            from translator import translate_batch as _translate_batch, translate as _translate
+            print(f"🌍 Перевод запросов: {_lang}->en (Helsinki-NLP)", flush=True)
+        except ImportError:
+            _translate_query = False
+            print("⚠ translator недоступен — матчинг без перевода", flush=True)
+
     for i, seg in enumerate(segments):
         seg_id       = seg.get("id", 0)
         seg_text     = seg.get("text", "")
@@ -997,10 +1013,16 @@ def select_clips_for_video(
         seg_duration = float(seg.get("end", 0)) - seg_start
         is_intro     = int(seg_id) in intro_seg_ids
 
-        # [2] Скользящее окно: prev + current + next
-        prev_text = segments[i - 1].get("text", "") if i > 0 else ""
-        next_text = segments[i + 1].get("text", "") if i < len(segments) - 1 else ""
-        window_text = " ".join(filter(None, [prev_text, seg_text, next_text]))
+        # [2] Скользящее окно: prev + current + next (5 сегментов для контекста)
+        prev2_text = segments[i - 2].get("text", "") if i > 1 else ""
+        prev_text  = segments[i - 1].get("text", "") if i > 0 else ""
+        next_text  = segments[i + 1].get("text", "") if i < len(segments) - 1 else ""
+        next2_text = segments[i + 2].get("text", "") if i < len(segments) - 2 else ""
+        window_text = " ".join(filter(None, [prev2_text, prev_text, seg_text, next_text, next2_text]))
+
+        # Перевод window_text → английский для E5 и CLIP матчинга
+        if _translate_query and not seg.get("visual_query", "").strip():
+            window_text = _translate(window_text, _lang)
 
         # [3] Embedding главы для текущего сегмента
         ch_idx      = get_chapter_idx(seg_start, total_dur, N_CHAPTERS)

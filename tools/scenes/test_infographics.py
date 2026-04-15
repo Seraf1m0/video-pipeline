@@ -135,12 +135,10 @@ class HistogramPanel(SmartScene):
                                  fill_color=color, fill_opacity=0.85, stroke_width=0)
             full_bar.move_to([x, Y_BASE + h/2, 0])
 
-            # Бары растут молча — whoosh на каждый был лишним
-            self.go(Transform(bar, full_bar), name_lbl.animate.set_opacity(1), dur=0.44)
+            sfx_i = "done" if i == len(DATA) - 1 else "tick"
+            self.go(Transform(bar, full_bar), name_lbl.animate.set_opacity(1),
+                    dur=0.44, sfx=sfx_i)
             self.go(val_lbl.animate.set_opacity(1), dur=0.18)
-
-        # done когда все бары на месте
-        self.hold(0.1, sfx="done")
         self.hold(2.8)
         self.go(Group(*self.mobjects).animate.set_opacity(0).shift(DOWN*0.3),
                 dur=0.4, sfx="whoosh")
@@ -236,9 +234,10 @@ class InfographicsDemo(SmartScene):
             full_bar = Rectangle(width=BAR_W, height=h,
                                  fill_color=color, fill_opacity=0.85, stroke_width=0)
             full_bar.move_to([x, Y_BASE + h/2, 0])
-            self.go(Transform(bar, full_bar), name_lbl.animate.set_opacity(1), dur=0.44)
+            sfx_j = "done" if i == n - 1 else "tick"
+            self.go(Transform(bar, full_bar), name_lbl.animate.set_opacity(1),
+                    dur=0.44, sfx=sfx_j)
             self.go(val_lbl.animate.set_opacity(1), dur=0.18)
 
-        self.hold(0.1, sfx="done")
         self.hold(3.0)
         self.go(Group(*self.mobjects).animate.set_opacity(0), dur=0.4, sfx="whoosh")

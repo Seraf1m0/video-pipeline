@@ -337,6 +337,9 @@ def select_and_link_clips(
         with open(cs_path, encoding="utf-8") as f:
             cs = json.load(f)
         log(f"clip_selection.json загружен (пропускаем подбор)")
+        _mg_ov = cs.get("mg_overrides", {})
+        if _mg_ov:
+            log(f"MG overrides: {len(_mg_ov)} сегментов")
         result = {
             "intro_clips":    [tuple(x) for x in cs.get("intro_clips", [])],
             "main_clips":     [tuple(x) for x in cs.get("main_clips",  [])],
@@ -346,6 +349,7 @@ def select_and_link_clips(
             "_history":       None,
             "_channel_id":    channel_id,
             "_session":       session,
+            "_mg_overrides":  {int(k): v for k, v in _mg_ov.items()},
         }
     else:
         result = select_clips_for_video(
@@ -370,8 +374,29 @@ def select_and_link_clips(
     # Пул запасных клипов — для сегментов у которых файл не найден в библиотеке
     _fallback_pool = [p for p in lib_clips_dir.glob("*.mp4") if p.is_file()]
 
+    mg_overrides = result.get("_mg_overrides", {})
+    mg_count     = 0
+
     matched = 0
     for seg_id, clip_id, _ in main_clips:
+        dst = lib_dir / f"clip_{int(seg_id):03d}.mp4"
+        if dst.exists():
+            dst.unlink()
+
+        # MG override: использовать сгенерированный клип вместо библиотечного
+        if int(seg_id) in mg_overrides:
+            mg_src = Path(mg_overrides[int(seg_id)])
+            if mg_src.exists():
+                try:
+                    dst.symlink_to(mg_src)
+                except OSError:
+                    shutil.copy2(mg_src, dst)
+                mg_count += 1
+                matched  += 1
+                continue
+            else:
+                log(f"  [{int(seg_id):03d}] MG файл не найден: {mg_src} → fallback на библиотечный")
+
         if clip_id is None:
             continue
         src = lib_clips_dir / f"{clip_id}.mp4"
@@ -382,15 +407,14 @@ def select_and_link_clips(
             else:
                 log(f"  [{int(seg_id):03d}] файл не найден: {clip_id}.mp4")
                 continue
-        dst = lib_dir / f"clip_{int(seg_id):03d}.mp4"
-        if dst.exists():
-            dst.unlink()
         try:
             dst.symlink_to(src)
         except OSError:
             shutil.copy2(src, dst)
         matched += 1
 
+    if mg_count:
+        log(f"MG-клипы: {mg_count} сегментов заменено")
     log(f"Main-клипы: {matched}/{len(main_clips)} привязано")
 
     # Интро-клипы: trim stream copy (параллельно, без ре-энкода)

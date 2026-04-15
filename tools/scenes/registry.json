@@ -1,0 +1,24 @@
+{
+  "scenes": [
+    {
+      "id": "big_number",
+      "file": "scenes/big_number.py",
+      "class": "BigNumber",
+      "tags": ["число", "статистика", "расстояние", "температура", "возраст", "космос"],
+      "dur_min": 6.0,
+      "dur_max": 14.0,
+      "dur_default": 9.0,
+      "params": ["number", "unit", "tag", "total_dur"]
+    },
+    {
+      "id": "fact_plate",
+      "file": "scenes/fact_plate.py",
+      "class": "FactPlate",
+      "tags": ["факт", "карточка", "число", "статистика", "космос", "инфографика"],
+      "dur_min": 6.0,
+      "dur_max": 14.0,
+      "dur_default": 9.0,
+      "params": ["tag", "headline", "main_value", "main_number", "sub_label", "source", "with_counter", "total_dur"]
+    }
+  ]
+}

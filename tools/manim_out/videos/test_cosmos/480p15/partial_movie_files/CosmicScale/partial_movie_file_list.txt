@@ -1,0 +1,9 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/CosmicScale/3132185978_1292777294_1421043975.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/CosmicScale/603911562_243689468_1092935891.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/CosmicScale/603911562_3628820383_2398397197.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/CosmicScale/603911562_1035066718_839057911.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/CosmicScale/603911562_3508942095_1743475050.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/CosmicScale/603911562_3882934724_1616742430.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/CosmicScale/603911562_3963603028_1718354328.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/480p15/partial_movie_files/CosmicScale/603911562_366352738_2358810818.mp4'

@@ -797,6 +797,74 @@ def _open_decoder(path: Path) -> subprocess.Popen:
     )
 
 
+# Маппинг наших типов переходов → FFmpeg xfade names
+_XFADE_MAP = {
+    "fadeblack":    "fadeblack",  "fadewhite":    "fadewhite",
+    "dissolve":     "dissolve",   "dissolve_fast": "dissolve",
+    "distance":     "distance",
+    "wipe_left":    "wipeleft",   "wipe_right":   "wiperight",
+    "wipe_up":      "wipeup",     "wipe_down":    "wipedown",
+    "wipe_tl":      "wipetl",     "wipe_tr":      "wipetr",
+    "wipe_bl":      "wipebl",     "wipe_br":      "wipebr",
+    "slide_left":   "slideleft",  "slide_right":  "slideright",
+    "slide_up":     "slideup",    "slide_down":   "slidedown",
+    "cover_left":   "coverleft",  "cover_right":  "coverright",
+    "cover_up":     "coverup",    "cover_down":   "coverdown",
+    "reveal_left":  "revealleft", "reveal_right": "revealright",
+    "reveal_up":    "revealup",
+    "radial":       "radial",     "rect_crop":    "rectcrop",
+    "squeeze_h":    "squeezeh",   "squeeze_v":    "squeezev",
+    "diag_tl":      "diagtl",
+    "zoomin":       "zoomin",     "hblur":        "hblur",
+    "pixelize_fast":"pixelize",
+    "hl_slice":     "hlslice",    "hr_slice":     "hrslice",
+    "vu_slice":     "vuslice",    "vd_slice":     "vdslice",
+    "hl_wind":      "hlwind",     "hr_wind":      "hrwind",
+    "vu_wind":      "vuwind",     "vd_wind":      "vdwind",
+    "additive_fast":"fadeblack",  "additive_mid": "fadeblack",
+    "invert_fast":  "fadewhite",
+    "crossfade":    "dissolve",
+    "glitch_rgb":   "fadeblack",
+}
+
+
+def _open_xfade_decoder(path_a: Path, path_b: Path,
+                        trans_type: str, dur: float, fps: float) -> subprocess.Popen:
+    """
+    FFmpeg xfade между хвостом path_a и головой path_b → rawvideo rgb24 stdout.
+    Возвращает ровно round(dur*fps) кадров перехода.
+    """
+    xfade_name = _XFADE_MAP.get(trans_type, "dissolve")
+    dur_a = _get_clip_duration(path_a)
+    offset = max(0.0, dur_a - dur)
+    cmd = [
+        "ffmpeg", "-hide_banner", "-loglevel", "error",
+        "-i", str(path_a),
+        "-i", str(path_b),
+        "-filter_complex",
+        f"[0:v][1:v]xfade=transition={xfade_name}:duration={dur:.4f}:offset={offset:.4f}[v]",
+        "-map", "[v]",
+        "-t", str(dur),
+        "-r", str(fps),
+        "-f", "rawvideo", "-pix_fmt", "rgb24",
+        "-vcodec", "rawvideo", "pipe:1",
+    ]
+    return subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+
+def _get_clip_duration(path: Path) -> float:
+    """Быстрый ffprobe для длительности клипа."""
+    r = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "csv=p=0", str(path)],
+        capture_output=True, text=True,
+    )
+    try:
+        return float(r.stdout.strip())
+    except Exception:
+        return 5.0
+
+
 def _open_encoder(output: Path, fps: float,
                   audio_path: Path | None,
                   intermediate: bool = False) -> subprocess.Popen:
@@ -945,7 +1013,7 @@ def _iter_timeline_frames(tl: dict, skip_intro: bool = False):
             if len(raw) < FRAME_BYTES:
                 break
             last_intro_f = raw
-            yield raw, None, 1.0
+            yield raw, None, 1.0, ""
 
         if intro_trans_frames > 0 and n > 0:
             first_dec = _open_decoder(Path(clips[0]["path"]))
@@ -962,7 +1030,7 @@ def _iter_timeline_frames(tl: dict, skip_intro: bool = False):
                     last_intro_f = ra
                 else:
                     ra = last_intro_f
-                yield ra, rb_frz, (f + 1) / intro_trans_frames
+                yield ra, rb_frz, (f + 1) / intro_trans_frames, "crossfade"
 
             # Вторая половина: intro freeze + real clip_0 head
             rb_cur   = rb_frz
@@ -973,7 +1041,7 @@ def _iter_timeline_frames(tl: dict, skip_intro: bool = False):
                     if len(rb_new) == FRAME_BYTES:
                         rb_cur = rb_new
                         consumed += 1
-                yield last_intro_f, rb_cur, (i_pad_out + f + 1) / intro_trans_frames
+                yield last_intro_f, rb_cur, (i_pad_out + f + 1) / intro_trans_frames, "crossfade"
 
             intro_dec.stdout.close(); intro_dec.wait()
             current_dec   = first_dec
@@ -1016,18 +1084,19 @@ def _iter_timeline_frames(tl: dict, skip_intro: bool = False):
             if len(raw) < FRAME_BYTES:
                 break
             last_frame = raw
-            yield raw, None, 1.0
+            yield raw, None, 1.0, ""
             current_frame += 1
 
         if trans_out_frames > 0 and ci < n - 1:
+            trans_type = trans_out.get("type", "dissolve")
             next_dec = _open_decoder(Path(clips[ci + 1]["path"]))
 
-            # Читаем clips[i+1][0] для freeze
+            # Первый кадр clip[i+1] — freeze для первой половины blend
             rb_frz = next_dec.stdout.read(FRAME_BYTES)
             if len(rb_frz) < FRAME_BYTES:
                 rb_frz = _EMPTY
 
-            # Первая половина blend: real clip_i tail + next clip frozen
+            # Первая половина: real clip_i tail + next clip frozen
             for f in range(pad_out):
                 ra = current_dec.stdout.read(FRAME_BYTES)
                 if len(ra) == FRAME_BYTES:
@@ -1035,29 +1104,29 @@ def _iter_timeline_frames(tl: dict, skip_intro: bool = False):
                 else:
                     ra = last_frame
                 current_frame += 1
-                yield ra, rb_frz, (f + 1) / trans_out_frames
+                yield ra, rb_frz, (f + 1) / trans_out_frames, trans_type
 
-            # Вторая половина blend: clip_i freeze + real next clip head
+            # Вторая половина: clip_i freeze + real next clip head
             rb_cur   = rb_frz
-            consumed = 1                    # rb_frz уже прочитан
+            consumed = 1
             for f in range(pad_in):
                 if f > 0:
                     rb_new = next_dec.stdout.read(FRAME_BYTES)
                     if len(rb_new) == FRAME_BYTES:
                         rb_cur = rb_new
                         consumed += 1
-                yield last_frame, rb_cur, (pad_out + f + 1) / trans_out_frames
+                yield last_frame, rb_cur, (pad_out + f + 1) / trans_out_frames, trans_type
 
             current_dec.stdout.close(); current_dec.wait()
             current_dec   = next_dec
-            current_frame = consumed        # = pad_in кадров прочитано из следующего клипа
+            current_frame = consumed
         else:
             # Cut или последний клип — дочитываем оставшиеся
             while current_frame < clip_frames:
                 raw = current_dec.stdout.read(FRAME_BYTES)
                 if len(raw) < FRAME_BYTES:
                     break
-                yield raw, None, 1.0
+                yield raw, None, 1.0, ""
                 current_frame += 1
             current_dec.stdout.close(); current_dec.wait()
             current_dec   = None
@@ -1297,8 +1366,79 @@ def run(
         # Читаем первый элемент заранее
         item = prefetch_q.get()
 
+        # Precompute coordinate grids для wipe/slide transitions (H, W, 1)
+        _ys = torch.arange(H, device="cuda").float().view(H, 1, 1) / H  # [0..1]
+        _xs = torch.arange(W, device="cuda").float().view(1, W, 1) / W  # [0..1]
+        _ones = torch.ones(H, W, 3, device="cuda")
+
+        def _blend(fa, fb, t, ttype):
+            """Применить переход типа ttype с прогрессом t∈[0,1]."""
+            if ttype in ("", "crossfade", "dissolve", "dissolve_fast", "cross_zoom"):
+                return fa * (1.0 - t) + fb * t
+            elif ttype == "fadeblack":
+                if t < 0.5:
+                    return fa * (1.0 - 2.0 * t)
+                else:
+                    return fb * (2.0 * t - 1.0)
+            elif ttype in ("fadewhite", "invert_fast"):
+                if t < 0.5:
+                    return fa * (1.0 - 2.0 * t) + _ones * (2.0 * t)
+                else:
+                    return fb * (2.0 * t - 1.0) + _ones * (2.0 - 2.0 * t)
+            elif ttype == "wipe_left":    # новый клип заходит слева
+                mask = (_xs < t).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype == "wipe_right":   # новый клип заходит справа
+                mask = (_xs > (1.0 - t)).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype == "wipe_up":
+                mask = (_ys < t).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype == "wipe_down":
+                mask = (_ys > (1.0 - t)).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype in ("wipe_tl", "diag_tl"):
+                mask = ((_xs + _ys) < (2.0 * t)).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype in ("wipe_tr",):
+                mask = ((1.0 - _xs + _ys) < (2.0 * t)).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype in ("wipe_bl",):
+                mask = ((_xs + 1.0 - _ys) < (2.0 * t)).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype in ("wipe_br",):
+                mask = ((2.0 - _xs - _ys) < (2.0 * t)).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype == "slide_left":   # b въезжает слева, a уезжает влево
+                shift = int((1.0 - t) * W)
+                b_s = torch.cat([torch.zeros(H, shift, 3, device="cuda"), fb[:, :W-shift, :]], dim=1) if shift > 0 else fb
+                a_s = torch.cat([fa[:, shift:, :], torch.zeros(H, shift, 3, device="cuda")], dim=1) if shift > 0 else torch.zeros_like(fa)
+                mask = (_xs >= (shift / W)).float()
+                return a_s * (1.0 - mask) + b_s * mask
+            elif ttype == "slide_right":  # b въезжает справа, a уезжает вправо
+                shift = int((1.0 - t) * W)
+                b_s = torch.cat([fb[:, shift:, :], torch.zeros(H, shift, 3, device="cuda")], dim=1) if shift > 0 else fb
+                a_s = torch.cat([torch.zeros(H, shift, 3, device="cuda"), fa[:, :W-shift, :]], dim=1) if shift > 0 else torch.zeros_like(fa)
+                mask = (_xs < (1.0 - shift / W)).float()
+                return a_s * mask + b_s * (1.0 - mask)
+            elif ttype in ("radial",):    # радиальное раскрытие
+                cx, cy = 0.5, 0.5
+                angle = torch.atan2(_ys - cy, _xs - cx)  # [-π, π]
+                norm_angle = (angle + torch.pi) / (2 * torch.pi)  # [0, 1]
+                mask = (norm_angle < t).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype in ("zoomin",):    # zoom-in reveal
+                cx, cy = 0.5, 0.5
+                dist = torch.sqrt((_xs - cx)**2 + (_ys - cy)**2) * 1.414
+                mask = (dist < t).float()
+                return fa * (1.0 - mask) + fb * mask
+            elif ttype in ("hblur",):     # горизонтальный blur crossfade
+                return fa * (1.0 - t) + fb * t  # fallback dissolve
+            else:
+                return fa * (1.0 - t) + fb * t  # default: dissolve
+
         while item is not None:
-            raw_a, raw_b, alpha_blend = item
+            raw_a, raw_b, alpha_blend, trans_type = item
             s = slot
             p = pin_in[s]
             g = gpu_buf[s]
@@ -1319,13 +1459,13 @@ def run(
             with torch.cuda.stream(comp_stream):
                 frame = g.float() / 255.0
 
-                # Blend двух клипов при переходе (single-pass crossfade)
+                # Blend двух клипов при переходе — dispatch по типу перехода
                 if raw_b is not None:
                     _arr_b = np.frombuffer(raw_b, dtype=np.uint8)
                     _pin_b.numpy()[:] = _arr_b
                     _gpu_b.copy_(_pin_b.reshape(H, W, 3), non_blocking=False)
                     fb = _gpu_b.float() / 255.0
-                    frame = frame * (1.0 - alpha_blend) + fb * alpha_blend
+                    frame = _blend(frame, fb, float(alpha_blend), trans_type)
 
                 # intro_frames=0 когда интро обрабатывается отдельно (FFmpeg YUV)
                 if frame_num >= intro_frames:

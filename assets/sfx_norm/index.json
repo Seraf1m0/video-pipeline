@@ -1,0 +1,1916 @@
+{
+  "whoosh": [
+    {
+      "file": "whoosh/1.mp3",
+      "original_peak": -2.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/13.mp3",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/13.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/16.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/2(1).mp3",
+      "original_peak": -2.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/2.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/3.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/4.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/8.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/9.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_01.wav",
+      "original_peak": -3.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_02.wav",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_03.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_04.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_05.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_06.wav",
+      "original_peak": -3.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_07.wav",
+      "original_peak": -4.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_08.wav",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_09.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_10.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/dig_whoosh_11.wav",
+      "original_peak": -3.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/FOLEY_TEXTILE_Whoosh_Soft_01.wav",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/FOLEY_TEXTILE_Whoosh_Soft_02.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/SCH - Whoosh - 1.mp3",
+      "original_peak": -2.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/SCH - Whoosh - 2.mp3",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/SCH - Whoosh - 3.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/SCH - Whoosh - 4.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/SCH - Whoosh - 5.mp3",
+      "original_peak": -2.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/SCH - Whoosh - 6.mp3",
+      "original_peak": -2.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/SCH - Whoosh - 7.mp3",
+      "original_peak": -1.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/SCH - Whoosh - 8.mp3",
+      "original_peak": -2.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/WEAPONS_MEDIEVAL_Whoosh_Throw_01.wav",
+      "original_peak": -5.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/whoosh_paper_01.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 1.wav",
+      "original_peak": -3.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 10.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 11.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 12.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 13.wav",
+      "original_peak": -1.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 14.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 15.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 16.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 17.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 18.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 19.wav",
+      "original_peak": -3.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 20.wav",
+      "original_peak": -4.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 3.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 4.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 5.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 6.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 7.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 8.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Woosh Effect 9.wav",
+      "original_peak": -1.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/ДЛЯ ПЕРЕХОДА.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Лёгкий Длинный2.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Переход.mp3",
+      "original_peak": -5.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Пластинка.mp3",
+      "original_peak": -1.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Разгон+Резкий.mp3",
+      "original_peak": -2.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Резкий+Труба.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Резкий.mp3",
+      "original_peak": -3.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/ТОП 1.mp3",
+      "original_peak": -4.2,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Хоррор2.wav",
+      "original_peak": -3.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh/Хоррор3.mp3",
+      "original_peak": -2.3,
+      "normalized": true
+    }
+  ],
+  "whoosh_fast": [
+    {
+      "file": "whoosh_fast/bloody impact.mp3",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_01.wav",
+      "original_peak": -3.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_02.wav",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_03.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_04.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_05.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_06.wav",
+      "original_peak": -3.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_07.wav",
+      "original_peak": -4.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_08.wav",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_09.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_10.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/dig_whoosh_11.wav",
+      "original_peak": -3.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/fast_whoosh_01.wav",
+      "original_peak": -3.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/fast_whoosh_02.wav",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/fast_whoosh_03.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/fast_whoosh_04.wav",
+      "original_peak": -2.2,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/fast_whoosh_05.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Fisheye_Simple_01.mp3",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Flat_Short_01.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Flat_Zoom_01.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/MINI slide.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/SCH - Whoosh Fast - 1.mp3",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/SCH - Whoosh Fast - 2.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/SCH - Whoosh Fast - 3.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/SCH - Whoosh Fast - 4.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/SCH - Whoosh Fast - 5.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/SCH - Whoosh Fast - 6.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Агрессивный1.mp3",
+      "original_peak": -5.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Агрессивный2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Агрессивный3.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Басс1.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Басс2.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Басс3.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Дерево.mp3",
+      "original_peak": -0.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Лёгкий1.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Лёгкий2.wav",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Лёгкий3.wav",
+      "original_peak": -3.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Лёгкий4.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Лёгкий5.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Лёгкий6.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Лёгкий7.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Лёгкий8.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Металлический.wav",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/С огнём1.mp3",
+      "original_peak": -5.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/С огнём2.wav",
+      "original_peak": -3.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Средний1.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Цифровой1.wav",
+      "original_peak": -3.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Цифровой2.wav",
+      "original_peak": -2.2,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Электрический1.mp3",
+      "original_peak": -2.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_fast/Электрический2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    }
+  ],
+  "whoosh_big": [
+    {
+      "file": "whoosh_big/1.mp3",
+      "original_peak": -2.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/13.mp3",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/13.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/16.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/2(1).mp3",
+      "original_peak": -2.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/2.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/3.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37489 SFX - 0002 LogoRevealer.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37490 SFX - 0010 MotionPlaques.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37491 SFX - 0036 LogoRevealer.mp3",
+      "original_peak": -4.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37492 SFX - 0118 LineItems.mp3",
+      "original_peak": -2.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37493 SFX - 019 JB HD.mp3",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37494 SFX - 0209 MotionGrabBag.mp3",
+      "original_peak": -3.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37495 SFX - 0213 Revealer.mp3",
+      "original_peak": -2.2,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37496 SFX - 044 JB HD.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37497 SFX - 130 JB HD.mp3",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37498 SFX - 403 JB HD.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37499 SFX - Sweeper.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37500 SFX - Sweeper 2.mp3",
+      "original_peak": -1.4,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37501 SFX - Sweeper 3.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37502 SFX - Sweeper 5.mp3",
+      "original_peak": -1.4,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37503 SFX - Sweeper Airy Ascend.mp3",
+      "original_peak": -6.4,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37794 SFX - 0003 LogoRevealer.mp3",
+      "original_peak": -5.2,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37795 SFX - 0007 LogoRevealer.mp3",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37796 SFX - 0016 LogoRevealer.mp3",
+      "original_peak": -4.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37797 SFX - 0016 MotionPlaques.mp3",
+      "original_peak": -2.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37798 SFX - 0033 LogoRevealer.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37799 SFX - 0038 LogoRevealer.mp3",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37800 SFX - 0039 LogoRevealer.mp3",
+      "original_peak": -2.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37801 SFX - 0154 Revealer.mp3",
+      "original_peak": -3.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37802 SFX - Airy Whoosh Warble Reverb.mp3",
+      "original_peak": -3.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37803 SFX - Ascend Airy Metallic Whoosh.mp3",
+      "original_peak": -6.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37804 SFX - Ascend Static Whoosh Descend Reverb.mp3",
+      "original_peak": -7.2,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37805 SFX - Ascend Whoosh Digital Wah.mp3",
+      "original_peak": -5.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37806 SFX - Ascend Whoosh Distortion Reverb.mp3",
+      "original_peak": -5.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37807 SFX - Ascend Whoosh Hit Vibrato.mp3",
+      "original_peak": -4.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37808 SFX - Ascend Windy Whoosh Long.mp3",
+      "original_peak": -3.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37809 SFX - Ascend Whoosh Panning Reverb.mp3",
+      "original_peak": -2.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37810 SFX - Composition Descend Distorted Blast Whoosh.mp3",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37811 SFX - Composition Musical Whoosh Metallic.mp3",
+      "original_peak": -2.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37812 SFX - Composition Sci - fi Whoosh.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/37813 SFX - Dark Distortion Whoosh.mp3",
+      "original_peak": -7.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/4.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/8.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/9.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/big_whoosh_01.wav",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/big_whoosh_02.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/big_whoosh_03.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/big_whoosh_04.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/big_whoosh_05.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/big_whoosh_06.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/big_whoosh_07.wav",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/MINI slide.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/NGTVST - Whoosh 1.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/NGTVST - Whoosh 2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/NGTVST - Whoosh 3.wav",
+      "original_peak": -2.6,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/Tr30.mp3",
+      "original_peak": -2.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/Zoom Whoosh1.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/Zoom Whosh2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/вуш с камерой 2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/вуш с камерой.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/вуш с щелчком.wav",
+      "original_peak": -3.0,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/вуш.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/диджитал вуш.wav",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/ДЛЯ ВСТАВОК.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/ДЛЯ ПЕРЕХОДА.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/затяжной вуш.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/короткий вуш 2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/короткий вуш 3.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/короткий вуш.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/Переход.mp3",
+      "original_peak": -5.3,
+      "normalized": true
+    },
+    {
+      "file": "whoosh_big/ТОП 1.mp3",
+      "original_peak": -4.2,
+      "normalized": true
+    }
+  ],
+  "infographic_tick": [
+    {
+      "file": "infographic_tick/34546 SFX - 0005 LogoRevealer.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34547 SFX - 0006 LogoRevealer.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34548 SFX - 0110 Revealer.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34549 SFX - 0134 Revealer.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34550 SFX - 0137 LineItems.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34551 SFX - 0147 Revealer.mp3",
+      "original_peak": -2.7,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34552 SFX - 0158 LineItems.mp3",
+      "original_peak": -3.3,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34553 SFX - 0163 Revealer.mp3",
+      "original_peak": -3.7,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34554 SFX - 0176 Revealer.mp3",
+      "original_peak": -4.2,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34555 SFX - 0185 Revealer.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34556 SFX - 0190 Revealer.mp3",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34557 SFX - 0238 MotionGrabBag.mp3",
+      "original_peak": -3.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34558 SFX - 043 JB HD.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34559 SFX - 087 JB HD.mp3",
+      "original_peak": -2.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34560 SFX - 090 JB HD.mp3",
+      "original_peak": -1.3,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34561 SFX - 129 JB HD.mp3",
+      "original_peak": -2.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34562 SFX - 210 JB HD.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34563 SFX - Ascend Gargle Beep.mp3",
+      "original_peak": -3.8,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34564 SFX - Ascend Static Warble Beeps.mp3",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34565 SFX - Beep Fuzzy Overdriven.mp3",
+      "original_peak": -11.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34566 SFX - Beep Fuzzy Overdriven Short.mp3",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34567 SFX - Beep Fuzzy Warble.mp3",
+      "original_peak": -7.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34569 SFX - Beep Resonant.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/34570 SFX - Beep Sonar Tension Eerie Multiple.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35307 SFX - 0014 LogoRevealer.mp3",
+      "original_peak": -2.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35308 SFX - 008 JB HD.mp3",
+      "original_peak": -4.4,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35309 SFX - 0102 Revealer.mp3",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35310 SFX - 0114 LineItems.mp3",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35311 SFX - 0115 Revealer.mp3",
+      "original_peak": -4.0,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35312 SFX - 0124 LineItems.mp3",
+      "original_peak": -3.2,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35313 SFX - 0159 LineItems.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35314 SFX - 0193 Revealer.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35315 SFX - 070 JB HD.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35316 SFX - 092 JB HD.mp3",
+      "original_peak": -3.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35317 SFX - 100 JB HD.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35318 SFX - 127 JB HD.mp3",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35319 SFX - 135 JB HD.mp3",
+      "original_peak": -3.3,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35320 SFX - 207 JB HD.mp3",
+      "original_peak": -2.4,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35321 SFX - 354 JB HD.mp3",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35322 SFX - 356 JB HD.mp3",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35323 SFX - 358 JB HD.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35324 SFX - 364 JB HD.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35325 SFX - 370 JB HD.mp3",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/35326 SFX - 384 JB HD.mp3",
+      "original_peak": -3.3,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/bb_click_01.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/bb_click_02.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/bb_click_03.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/bb_click_04.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/bb_click_05.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/bb_click_06.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/bb_click_07.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/bb_click_08.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/clock sound.mp3",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_01.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_02.wav",
+      "original_peak": -2.4,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_03.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_04.wav",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_05.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_06.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_07.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_08.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_09.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_10.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_11.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_12.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_13.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_14.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_15.wav",
+      "original_peak": -4.4,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_16.wav",
+      "original_peak": -2.1,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/dig_click_17.wav",
+      "original_peak": -2.6,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/NGTVST - Clock 1.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/NGTVST - Clock 2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "infographic_tick/звук часов.mp3",
+      "original_peak": -4.8,
+      "normalized": true
+    }
+  ],
+  "notification": [
+    {
+      "file": "notification/clop.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/coin_01.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/coin_02.wav",
+      "original_peak": -1.4,
+      "normalized": true
+    },
+    {
+      "file": "notification/coin_03.wav",
+      "original_peak": -2.2,
+      "normalized": true
+    },
+    {
+      "file": "notification/coin_04.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/coins_drops_01.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/coins_drops_02.wav",
+      "original_peak": -1.4,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_01.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_02.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_03.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_04.wav",
+      "original_peak": -3.1,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_05.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_06.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_07.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_08.wav",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_09.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_10.wav",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_11.wav",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_13.wav",
+      "original_peak": -3.0,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_14.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/icon_15.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "notification/NGTVST - Ping 1.wav",
+      "original_peak": -6.7,
+      "normalized": true
+    },
+    {
+      "file": "notification/NGTVST - Ping 2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/NGTVST - Ping 3.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/NGTVST - Pulse.wav",
+      "original_peak": -4.1,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_01.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_02.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_03.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_04.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_05.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_06.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_07.wav",
+      "original_peak": -3.9,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_08.wav",
+      "original_peak": -7.2,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_09.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_10.wav",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t1_11.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_01.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_02.wav",
+      "original_peak": -2.7,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_03.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_04.wav",
+      "original_peak": -3.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_05.wav",
+      "original_peak": -3.1,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_06.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_07.wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_08.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_09.wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "notification/Notification t2_10.wav",
+      "original_peak": -4.0,
+      "normalized": true
+    },
+    {
+      "file": "notification/pop.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Выполнено.mp3",
+      "original_peak": -8.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Нажатие на иконку (2).wav",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "notification/Нажатие на иконку (3).wav",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "notification/Нажатие на иконку (5).wav",
+      "original_peak": -3.1,
+      "normalized": true
+    },
+    {
+      "file": "notification/Нажатие на иконку (6).wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Нажатие на иконку (7).wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/Нажатие на иконку (8).wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "notification/ПИП.mp3",
+      "original_peak": -14.4,
+      "normalized": true
+    }
+  ],
+  "riser": [
+    {
+      "file": "riser/!SPEED UP.mp3",
+      "original_peak": -5.0,
+      "normalized": true
+    },
+    {
+      "file": "riser/34242 SFX - 0108 Revealer.mp3",
+      "original_peak": -2.4,
+      "normalized": true
+    },
+    {
+      "file": "riser/34243 SFX - 0118 Revealer.mp3",
+      "original_peak": -2.8,
+      "normalized": true
+    },
+    {
+      "file": "riser/34244 SFX - 0143 Revealer.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/34245 SFX - 0171 Revealer.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "riser/34246 SFX - 0197 Revealer.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/34247 SFX - 0201 Revealer.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "riser/34248 SFX - 0242 MotionGrabBag.mp3",
+      "original_peak": -3.7,
+      "normalized": true
+    },
+    {
+      "file": "riser/34249 SFX - 099 JB HD.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/34250 SFX - 163 JB HD.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/34251 SFX - 80s Ascend.mp3",
+      "original_peak": -1.2,
+      "normalized": true
+    },
+    {
+      "file": "riser/34252 SFX - Arcade Ascend.mp3",
+      "original_peak": -2.5,
+      "normalized": true
+    },
+    {
+      "file": "riser/34253 SFX - Ascend Alien Take Off.mp3",
+      "original_peak": -3.0,
+      "normalized": true
+    },
+    {
+      "file": "riser/34254 SFX - Ascend Bounce Lo Fi.mp3",
+      "original_peak": -2.0,
+      "normalized": true
+    },
+    {
+      "file": "riser/34255 SFX - Ascend Chirp Reverb.mp3",
+      "original_peak": -0.3,
+      "normalized": true
+    },
+    {
+      "file": "riser/34256 SFX - Ascend Choppy Distortion.mp3",
+      "original_peak": -5.1,
+      "normalized": true
+    },
+    {
+      "file": "riser/34257 SFX - Ascend Click Swell.mp3",
+      "original_peak": -2.5,
+      "normalized": true
+    },
+    {
+      "file": "riser/34258 SFX - Ascend Data Screech Echo.mp3",
+      "original_peak": -5.1,
+      "normalized": true
+    },
+    {
+      "file": "riser/34259 SFX - Ascend Digital Approach Steps.mp3",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "riser/34260 SFX - Ascend Digital Laser Hits.mp3",
+      "original_peak": -5.2,
+      "normalized": true
+    },
+    {
+      "file": "riser/34261 SFX - Ascend Digital Light Static.mp3",
+      "original_peak": -7.3,
+      "normalized": true
+    },
+    {
+      "file": "riser/34326 SFX - 0135 Revealer.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/34327 SFX - 0137 Revealer.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "riser/34328 SFX - 0187 Revealer.mp3",
+      "original_peak": -3.2,
+      "normalized": true
+    },
+    {
+      "file": "riser/34329 SFX - 098 JB HD.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/34330 SFX - 136 JB HD.mp3",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "riser/34331 SFX - 390 JB HD.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/34332 SFX - Ascend Descend.mp3",
+      "original_peak": -5.2,
+      "normalized": true
+    },
+    {
+      "file": "riser/34333 SFX - Ascend Descend Chopper Static Flange.mp3",
+      "original_peak": -4.7,
+      "normalized": true
+    },
+    {
+      "file": "riser/34334 SFX - Ascend Descend Delay Reverb.mp3",
+      "original_peak": -6.6,
+      "normalized": true
+    },
+    {
+      "file": "riser/34335 SFX - Ascend Descend Digital Laser Static.mp3",
+      "original_peak": -4.1,
+      "normalized": true
+    },
+    {
+      "file": "riser/alexis_gaming_cam-360-riser-impact-370401.mp3",
+      "original_peak": -1.4,
+      "normalized": true
+    },
+    {
+      "file": "riser/audiopapkin-riser-hit-sfx-124-500123.mp3",
+      "original_peak": -1.0,
+      "normalized": true
+    },
+    {
+      "file": "riser/Chopper Build Up.mp3",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "riser/delon_boomkin-riser-cinematic-454364.mp3",
+      "original_peak": -2.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/dragon-studio-riser-swoosh-reverb-390311.mp3",
+      "original_peak": -1.2,
+      "normalized": true
+    },
+    {
+      "file": "riser/dragon-studio-riser-swoosh-sfx-390307.mp3",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "riser/ES_Riser Suction 4 - SFX Producer.mp3",
+      "original_peak": -1.6,
+      "normalized": true
+    },
+    {
+      "file": "riser/ksjsbwuil-riser-4-481223.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/Long, Build Up, Screech, Eerie, Suspense.mp3",
+      "original_peak": -1.7,
+      "normalized": true
+    },
+    {
+      "file": "riser/NGTVST - Riser 1.wav",
+      "original_peak": -3.4,
+      "normalized": true
+    },
+    {
+      "file": "riser/NGTVST - Riser 2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "riser/NGTVST - Riser 3.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "riser/NGTVST - Riser 4.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "riser/Riser2.wav",
+      "original_peak": -2.2,
+      "normalized": true
+    },
+    {
+      "file": "riser/rising build up - rise sound 2.wav",
+      "original_peak": -4.7,
+      "normalized": true
+    },
+    {
+      "file": "riser/Short, Build Up, Horror, Mysterious, Suspense.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "riser/Transition, Build Up, Intense, Tremolo 01.mp3",
+      "original_peak": -1.2,
+      "normalized": true
+    },
+    {
+      "file": "riser/ускорение моментальное.mp3",
+      "original_peak": -5.9,
+      "normalized": true
+    }
+  ],
+  "boom": [
+    {
+      "file": "boom/808.mp3",
+      "original_peak": -1.9,
+      "normalized": true
+    },
+    {
+      "file": "boom/BASS DROP2.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Boom 2.wav",
+      "original_peak": -2.2,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Boom 4.wav",
+      "original_peak": -1.5,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Braam 1.wav",
+      "original_peak": -6.5,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Braam 2.wav",
+      "original_peak": -8.3,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Braam 3.wav",
+      "original_peak": -2.7,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Braam 4.wav",
+      "original_peak": -2.8,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Neuro Bass 1.wav",
+      "original_peak": -4.7,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Neuro Bass 2.wav",
+      "original_peak": -1.8,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Warhorn 1.wav",
+      "original_peak": -6.2,
+      "normalized": true
+    },
+    {
+      "file": "boom/NGTVST - Warhorn 2.wav",
+      "original_peak": -7.8,
+      "normalized": true
+    },
+    {
+      "file": "boom/Басс дроп (12).wav",
+      "original_peak": -4.0,
+      "normalized": true
+    },
+    {
+      "file": "boom/Басс дроп (3).wav",
+      "original_peak": -2.8,
+      "normalized": true
+    },
+    {
+      "file": "boom/Басс дроп1.mp3",
+      "original_peak": -9.1,
+      "normalized": true
+    },
+    {
+      "file": "boom/Басс дроп2.wav",
+      "original_peak": -4.0,
+      "normalized": true
+    },
+    {
+      "file": "boom/Басс дроп3.wav",
+      "original_peak": -5.5,
+      "normalized": true
+    },
+    {
+      "file": "boom/Басс дроп4.wav",
+      "original_peak": -3.7,
+      "normalized": true
+    }
+  ]
+}

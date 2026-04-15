@@ -1,0 +1,10 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3862454583_1650101165_3729419417.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3799820123_326946936_443659737.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3799820123_3730821473_2616597108.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3799820123_3604206946_2462984734.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3799820123_1875673460_1781782519.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3799820123_2274799025_2969800879.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3799820123_1421071810_1581147632.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3799820123_3963603028_4132727563.mp4'
+file 'file:C:/Projects/Video-pipeline/tools/manim_out/videos/test_cosmos/1080p60/partial_movie_files/UniverseAge/3799820123_2089352811_2358810818.mp4'

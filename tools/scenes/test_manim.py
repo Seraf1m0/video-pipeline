@@ -165,17 +165,15 @@ class SizeComparison(SmartScene):
             rt = Text(ratio, font=FONT, font_size=13, color=color)
             rt.next_to(circle, UP, buff=0.22)
 
-            # Планеты появляются молча — звук не нужен на каждой
+            is_last = (name == data[-1][0])
+            sfx_p = "done" if is_last else "tick"
             self.go(
                 GrowFromCenter(circle),
                 Create(line),
                 FadeIn(nm, shift=UP * 0.08),
                 FadeIn(rt),
-                dur=0.55,
+                dur=0.55, sfx=sfx_p,
             )
-
-        # done на финальный момент когда всё на экране
-        self.hold(0.1, sfx="done")
         self.hold(2.1)
 
 

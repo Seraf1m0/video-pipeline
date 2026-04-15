@@ -819,6 +819,11 @@ _XFADE_MAP = {
     "hr_wind":       "hrwind",
     "vu_wind":       "vuwind",
     "vd_wind":       "vdwind",
+    # ── additive / invert → mapped to xfade equivalents ─────────────────────
+    "additive_fast": "fadefast",
+    "additive_mid":  "fadeslow",
+    "invert_fast":   "fadewhite",
+    "invert_mid":    "fadewhite",
 }
 
 # ── Пул переходов для random-режима ──────────────────────────────────────────
@@ -1747,13 +1752,14 @@ def _concat_with_mixed_trans(clip_paths, durations, output_path, trans_seq) -> b
             if len(sc) == 1:
                 seg_out = sc[0]
             else:
-                # Все xfade в одном filter_complex через concat_clips_xfade
-                # Используем преобладающий тип (можно улучшить до per-boundary)
-                xf_types = [_XFADE_MAP.get(n, "dissolve") for n, _ in st]
-                xf_durs  = [d for _, d in st]
-                dominant_xf = max(set(xf_types), key=xf_types.count)
-                dominant_dur = sum(xf_durs) / len(xf_durs)
-                concat_clips_xfade(sc, sd, seg_out, dominant_dur, fps=25)
+                # Per-boundary xfade — передаём trans_seq напрямую в _concat_chunk
+                # чтобы каждая граница использовала свой тип и длительность
+                per_bound_seq = [{"type": n, "dur": d} for n, d in st]
+                avg_dur = sum(d for _, d in st) / len(st) if st else 0.35
+                _concat_chunk(sc, sd, seg_out,
+                              transition="dissolve",
+                              duration=avg_dur,
+                              trans_seq=per_bound_seq)
 
         elif seg[0] == "pass":
             seg_out = seg[1]
