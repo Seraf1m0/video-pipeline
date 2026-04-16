@@ -46,37 +46,97 @@ NARRATOR TEXT: "{segment}"
 
 PREVIOUS CLIP: {prev_clip}
 
+{negative_hint}\
 CANDIDATES (clip_id: description):
 {candidates}
 
 Rules:
 - Pick the clip that best matches the narrator's topic visually
-- Prefer visual continuity with the previous clip (avoid jarring jumps)
+- Prefer visual continuity with the previous clip (avoid jarring jumps) UNLESS the topic has clearly changed
 - Prefer clips showing the actual subject mentioned (rocket = rocket, not a person talking)
+- If narrator mentions an interview or scientist speaking, prefer a "talking head" / person clip
+- If narrator mentions something old/historical/vintage, avoid modern CGI or futuristic clips
+{avoid_rule}\
 - Output ONLY the clip_id number, nothing else
 
 Best clip_id:"""
 
 
+# Признаки смены топика — prev_clip_desc нужно игнорировать
+_TOPIC_SHIFT_PHRASES = [
+    "aber", "doch", "however", "meanwhile", "meanwhile", "now", "switch",
+    "другой", "между тем", "тем временем", "однако", "но", "переключимся",
+]
+
+# Признаки "vintage/historical" в тексте
+_VINTAGE_HINTS = [
+    "alt", "früher", "historically", "vintage", "старый", "история", "раньше",
+    "ancient", "early", "first", "began", "beginning", "started", "original",
+    "начинали", "история", "ранние",
+]
+
+# Признаки "talking head" / интервью
+_INTERVIEW_HINTS = [
+    "scientist", "expert", "researcher", "professor", "говорит", "учёный",
+    "interview", "интервью", "эксперт", "исследователь", "учёные говорят",
+    "сказал", "заявил", "считает", "мнение", "по словам",
+]
+
+
+def _build_negative_hint(segment_text: str) -> tuple[str, str]:
+    """
+    Возвращает (negative_hint_block, avoid_rule_line) для промпта.
+    negative_hint_block — блок с предупреждением (пустая строка если не нужен)
+    avoid_rule_line — дополнительное правило (пустая строка если не нужно)
+    """
+    text_lower = segment_text.lower()
+
+    hints = []
+    avoid_rules = []
+
+    if any(w in text_lower for w in _VINTAGE_HINTS):
+        hints.append("CONTEXT: Narrator is describing something OLD or HISTORICAL.")
+        avoid_rules.append("- AVOID modern CGI, futuristic tech, JWST, SpaceX — use vintage/archival imagery")
+
+    if any(w in text_lower for w in _INTERVIEW_HINTS):
+        hints.append("CONTEXT: Narrator references a scientist or expert speaking.")
+        avoid_rules.append("- STRONGLY PREFER a clip showing a person talking, scientist, interview, press conference")
+
+    hint_block = ("\n".join(hints) + "\n\n") if hints else ""
+    avoid_line = ("\n".join(avoid_rules) + "\n") if avoid_rules else ""
+    return hint_block, avoid_line
+
+
 def rerank_one(segment_text: str,
                candidates: list[tuple[str, str]],
-               prev_clip_desc: str = "") -> str | None:
+               prev_clip_desc: str = "",
+               topic_changed: bool = False) -> str | None:
     """
     Реранк одного сегмента через Gemini Flash.
 
     candidates: [(clip_id, description), ...]
+    prev_clip_desc: описание предыдущего выбранного клипа (для контекста)
+    topic_changed: если True — prev_clip_desc игнорируется (смена темы)
     Возвращает clip_id победителя или None если не распарсилось.
     """
     if not candidates:
         return None
 
-    prev_str = f'"{prev_clip_desc}"' if prev_clip_desc else "none (first clip)"
+    # Topic Change Detection: если тема поменялась — обнуляем prev контекст
+    effective_prev = "" if topic_changed else prev_clip_desc
+    prev_str = f'"{effective_prev}"' if effective_prev else "none (first clip or topic changed)"
+
     cands_str = "\n".join(f'{cid}: {desc[:120]}' for cid, desc in candidates)
+
+    # Hard Negative Filtering
+    neg_hint, avoid_rule = _build_negative_hint(segment_text)
 
     prompt = _RERANK_PROMPT.format(
         segment=segment_text[:200],
         prev_clip=prev_str,
         candidates=cands_str,
+        negative_hint=neg_hint,
+        avoid_rule=avoid_rule,
     )
 
     client = _get_client()
@@ -109,7 +169,13 @@ def rerank_batch(tasks: list[dict]) -> dict[int, str]:
     """
     Параллельный реранк нескольких сегментов.
 
-    tasks: [{"seg_idx": int, "segment_text": str, "candidates": [...], "prev_clip_desc": str}, ...]
+    tasks: [{
+        "seg_idx": int,
+        "segment_text": str,
+        "candidates": [(clip_id, desc), ...],
+        "prev_clip_desc": str,
+        "topic_changed": bool,   # опционально — смена темы → сброс контекста
+    }, ...]
     Возвращает {seg_idx: clip_id}
     """
     results = {}
@@ -119,6 +185,7 @@ def rerank_batch(tasks: list[dict]) -> dict[int, str]:
             task["segment_text"],
             task["candidates"],
             task.get("prev_clip_desc", ""),
+            task.get("topic_changed", False),
         )
         return task["seg_idx"], clip_id
 

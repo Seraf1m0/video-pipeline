@@ -1099,6 +1099,17 @@ def select_clips_for_video(
         except ImportError:
             _qtags = []
 
+        # ── Talking Head Detection ────────────────────────────────────────────
+        # Если сегмент намекает на интервью/учёного — запоминаем для буста talking_head
+        _INTERVIEW_KEYWORDS = {
+            "interview", "scientist", "expert", "researcher", "professor",
+            "говорит", "учёный", "интервью", "эксперт", "исследователь",
+            "sagt", "forscher", "wissenschaftler", "experte", "interview",
+            "says", "according to", "told", "explains", "stated",
+        }
+        _seg_text_lower = seg_text.lower()
+        _is_interview_seg = any(kw in _seg_text_lower for kw in _INTERVIEW_KEYWORDS)
+
         # ── Stage 1: Recall ───────────────────────────────────────────────────
         # Если есть Gemini embeddings — используем их для recall (мультиязычно, 3072-dim)
         # Иначе fallback на E5 через match_segment_to_clip
@@ -1137,6 +1148,11 @@ def select_clips_for_video(
                 # Штраф за prev_clips
                 if _gcid in prev_clips:
                     _gscore *= 0.8
+                # Talking Head Boost: если сегмент — интервью, буст для human/talking_head клипов
+                if _is_interview_seg:
+                    _clip_cat = library["clips"].get(_gcid, {}).get("category", "")
+                    if _clip_cat in ("human", "talking_head", "interview", "real"):
+                        _gscore *= 1.35   # +35% для реальных людей в кадре
                 _g_raw200.append((_gcid, _graw, _gscore))
                 if len(_g_raw200) >= 200:
                     break
@@ -1144,6 +1160,18 @@ def select_clips_for_video(
             # Сортируем по финальному (штрафному) скору
             _g_raw200.sort(key=lambda x: x[2], reverse=True)
             _g_cands: list[tuple[str, float]] = [(cid, sc) for cid, _, sc in _g_raw200[:50]]
+
+            # Предупреждение если интервью-сегмент не нашёл talking_head в топ-10
+            if _is_interview_seg:
+                _top10_cats = [
+                    library["clips"].get(cid, {}).get("category", "")
+                    for cid, _ in _g_cands[:10]
+                ]
+                _has_human = any(c in ("human", "talking_head", "interview", "real")
+                                 for c in _top10_cats)
+                if not _has_human:
+                    print(f"  [WARN] Interview seg but no human/real clip in top-10 "
+                          f"— library may lack talking-head footage", flush=True)
 
             # Margin = разница между 1-м и 2-м кандидатом (по штрафному скору)
             if len(_g_cands) >= 2:
@@ -1240,15 +1268,28 @@ def select_clips_for_video(
                             print(f"  ⚠ pHash-duplicate → {clip_id}", flush=True)
                         break
 
+        # ── Topic Change Detection ─────────────────────────────────────────────
+        # Сравниваем embedding текущего сегмента с предыдущим.
+        # Если косинусное сходство < порога → тема сменилась → обнуляем prev_clip_desc для Flash.
+        TOPIC_SHIFT_THRESHOLD = 0.72   # ниже этого = смена темы
+        _topic_changed = False
+        if _gemini_seg_embs is not None and i > 0:
+            _sim_to_prev = float(_gemini_seg_embs[i] @ _gemini_seg_embs[i - 1])
+            if _sim_to_prev < TOPIC_SHIFT_THRESHOLD:
+                _topic_changed = True
+                print(f"  [TopicShift] sim_to_prev={_sim_to_prev:.3f} < {TOPIC_SHIFT_THRESHOLD} "
+                      f"-> prev_clip reset", flush=True)
+
         # ── Stage 2: Margin Sampling → собрать задачи для Flash rerank ──────────
         if _flash_available and _gemini_seg_embs is not None and clip_id:
             _cands_for_flash = _gemini_cands_map.get(i, [])
             if _gemini_margin_val < MARGIN_THRESHOLD and len(_cands_for_flash) >= 2:
                 _flash_tasks.append({
-                    "seg_idx":       i,
-                    "segment_text":  seg_text,
-                    "candidates":    [(cid, _clip_desc_map.get(cid, "")) for cid in _cands_for_flash],
-                    "prev_clip_desc": _prev_clip_desc,
+                    "seg_idx":        i,
+                    "segment_text":   seg_text,
+                    "candidates":     [(cid, _clip_desc_map.get(cid, "")) for cid in _cands_for_flash],
+                    "prev_clip_desc": "" if _topic_changed else _prev_clip_desc,
+                    "topic_changed":  _topic_changed,
                 })
                 print(f"  [Flash] queued: margin={_gemini_margin_val:.4f} "
                       f"(threshold {MARGIN_THRESHOLD})", flush=True)
