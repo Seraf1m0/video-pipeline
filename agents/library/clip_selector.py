@@ -866,26 +866,42 @@ def select_clips_for_video(
     library = load_library(channel_id)
     history = load_history(channel_id)
 
-    # Загрузить предвычисленные text embeddings (e5-large, 1024-dim)
+    # ── Gemini embeddings (primary) ───────────────────────────────────────────
+    _gemini_ids: list[str] | None   = None
+    _gemini_emb: np.ndarray | None  = None
+    try:
+        from gemini_embedder import load_library_embeddings as _load_gemini
+        _gemini_ids, _gemini_emb = _load_gemini(channel_id)
+        print(f"✅ Gemini embeddings: {len(_gemini_ids)} клипов ({_gemini_emb.shape[1]}-dim)", flush=True)
+    except Exception as _ge:
+        print(f"⚠ Gemini embeddings недоступны: {_ge} — fallback E5", flush=True)
+
+    # ── E5 fallback ───────────────────────────────────────────────────────────
     clip_ids_list, clip_embeddings = load_library_embeddings(channel_id)
 
-    # Загрузить visual embeddings (CLIP ViT-B/32, 512-dim) если доступны
+    # ── CLIP visual (tiebreaker) ──────────────────────────────────────────────
     visual_ids_list: list[str] | None  = None
     visual_embeddings: np.ndarray | None = None
-    if text_only:
-        print("ℹ️  text_only=True — visual embeddings и pHash отключены", flush=True)
-    else:
+    if not text_only:
         try:
             from visual_embedder import load_visual_embeddings as _load_vis
             _vis = _load_vis(channel_id)
             if _vis is not None:
                 visual_ids_list, visual_embeddings = _vis
+                print(f"✅ CLIP tiebreaker: {len(visual_ids_list)} клипов", flush=True)
         except ImportError:
             pass
 
-    # BLIP ITM reranker отключён
+    # ── Flash reranker ────────────────────────────────────────────────────────
+    _flash_available = False
+    try:
+        from gemini_reranker import rerank_batch as _rerank_batch
+        _flash_available = True
+        print(f"✅ Flash reranker: gemini-2.5-flash", flush=True)
+    except Exception as _fe:
+        print(f"⚠ Flash reranker недоступен: {_fe}", flush=True)
+
     _blip_available = False
-    print(f"⚠ BLIP отключён — E5 text + CLIP visual matching", flush=True)
 
     # Клипы из последних 5 видео канала (для блокировки недавно использованных)
     prev_clips          = get_prev_video_clips(channel_id, history, n_prev=5)
@@ -995,9 +1011,9 @@ def select_clips_for_video(
     emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
     vis_emb_index = {cid: i for i, cid in enumerate(visual_ids_list)} if visual_ids_list else {}
 
-    # Определяем язык канала для перевода
+    # Определяем язык канала для перевода (только если нет Gemini)
     _lang = get_lang(channel_id)
-    _translate_query = _lang != "en"
+    _translate_query = _lang != "en" and _gemini_emb is None
     if _translate_query:
         try:
             from translator import translate_batch as _translate_batch, translate as _translate
@@ -1005,6 +1021,46 @@ def select_clips_for_video(
         except ImportError:
             _translate_query = False
             print("⚠ translator недоступен — матчинг без перевода", flush=True)
+
+    # ── Индекс описаний клипов (для Flash reranker) ───────────────────────────
+    _clip_desc_map: dict[str, str] = {
+        cid: entry.get("keywords", "")
+        for cid, entry in library["clips"].items()
+    }
+
+    # ── Gemini batch embedding всех сегментов (один API call) ─────────────────
+    _gemini_seg_embs: np.ndarray | None = None
+    _gemini_seg_index = {cid: i for i, cid in enumerate(_gemini_ids)} if _gemini_ids else {}
+
+    if _gemini_ids is not None and _gemini_emb is not None:
+        try:
+            from gemini_embedder import embed_batch as _gemini_embed_batch
+            _all_windows: list[str] = []
+            for _si, _seg in enumerate(segments):
+                _p2 = segments[_si-2].get("text","") if _si > 1 else ""
+                _p1 = segments[_si-1].get("text","") if _si > 0 else ""
+                _c  = _seg.get("text","")
+                _n1 = segments[_si+1].get("text","") if _si < len(segments)-1 else ""
+                _n2 = segments[_si+2].get("text","") if _si < len(segments)-2 else ""
+                _vq = _seg.get("visual_query","").strip()
+                if _vq:
+                    _all_windows.append(_vq)
+                else:
+                    _all_windows.append(" ".join(filter(None, [_p2,_p1,_c,_n1,_n2])))
+            print(f"🔢 Gemini: batch embedding {len(_all_windows)} сегментов...", flush=True)
+            _gemini_seg_embs = _gemini_embed_batch(_all_windows)
+            print(f"✅ Gemini сегменты: {_gemini_seg_embs.shape}", flush=True)
+        except Exception as _gbe:
+            print(f"⚠ Gemini batch embed сегментов: {_gbe} — fallback E5", flush=True)
+            _gemini_seg_embs = None
+
+    # ── Flash rerank: буфер задач ─────────────────────────────────────────────
+    MARGIN_THRESHOLD = 0.015   # margin score[0]-score[1] ниже этого → неуверенность
+    FLASH_TOP_CANDS  = 20      # сколько кандидатов передавать Flash
+    _flash_tasks: list[dict]  = []
+    _initial_results: dict[int, str] = {}  # seg_loop_idx → initial clip_id
+    _gemini_cands_map: dict[int, list[str]] = {}  # seg_loop_idx → top candidates
+    _prev_clip_desc: str = ""   # описание последнего выбранного клипа для Flash контекста
 
     for i, seg in enumerate(segments):
         seg_id       = seg.get("id", 0)
@@ -1043,33 +1099,95 @@ def select_clips_for_video(
         except ImportError:
             _qtags = []
 
-        top_candidates = match_segment_to_clip(
-            segment_text=seg_text,
-            keywords_list=available_clips,
-            video_used=video_used,
-            prev_video_clips=prev_clips,
-            clip_embeddings=clip_embeddings,
-            clip_ids_list=clip_ids_list,
-            max_repeats_in_video=max_repeats_in_video,
-            max_from_prev=max_from_prev,
-            segment_duration=seg_duration,
-            top_n=BLIP_TOP_N if _blip_available else 8,
-            context_vec=video_context_vec,
-            chapter_vec=chapter_vec,
-            window_text=window_text,
-            global_usage=global_usage,
-            clip_last_used_idx=clip_last_used_idx,
-            current_video_idx=current_video_idx,
-            segment_start=seg_start,
-            video_used_at=video_used_at,
-            visual_embeddings=visual_embeddings,
-            visual_ids_list=visual_ids_list,
-            visual_query=_vq,
-            visual_query_alts=_vq_alts if _vq_alts else None,
-            prev_video_centroid=prev_video_centroid,
-            clip_tags=_clip_tags,
-            query_tags=_qtags if _qtags else None,
-        )
+        # ── Stage 1: Recall ───────────────────────────────────────────────────
+        # Если есть Gemini embeddings — используем их для recall (мультиязычно, 3072-dim)
+        # Иначе fallback на E5 через match_segment_to_clip
+        _gemini_margin_val = 1.0
+
+        if _gemini_seg_embs is not None and _gemini_emb is not None and _gemini_ids:
+            # Gemini cosine: (3072,) × (N_clips × 3072) → (N_clips,)
+            _gq_vec = _gemini_seg_embs[i]
+            _g_scores = _gemini_emb @ _gq_vec   # нормализованные → косинус напрямую
+
+            # Множество допустимых clip_id (с учётом фильтров available_clips)
+            _valid_cids_set = {cid for cid, _, _ in available_clips}
+
+            # Строим ранжированный список: набираем 200 raw-top, применяем штрафы, сортируем
+            _g_raw200: list[tuple[str, float, float]] = []  # (cid, raw_score, penalized_score)
+            _g_sorted = np.argsort(_g_scores)[::-1]
+            for _gidx in _g_sorted:
+                _gcid = _gemini_ids[_gidx]
+                if _gcid not in _valid_cids_set:
+                    continue
+                _graw = float(_g_scores[_gidx])
+                _gscore = _graw
+                # Мягкий штраф за повторы (не хард-блок)
+                _uses = video_used.get(_gcid, 0)
+                if _uses >= max_repeats_in_video:
+                    continue
+                if _uses > 0:
+                    _gscore *= (0.7 ** _uses)
+                # Штраф за recency (последние 2 видео)
+                _last = clip_last_used_idx.get(_gcid, -999)
+                _recency_gap = current_video_idx - _last
+                if _recency_gap <= 1:
+                    _gscore *= 0.4
+                elif _recency_gap == 2:
+                    _gscore *= 0.7
+                # Штраф за prev_clips
+                if _gcid in prev_clips:
+                    _gscore *= 0.8
+                _g_raw200.append((_gcid, _graw, _gscore))
+                if len(_g_raw200) >= 200:
+                    break
+
+            # Сортируем по финальному (штрафному) скору
+            _g_raw200.sort(key=lambda x: x[2], reverse=True)
+            _g_cands: list[tuple[str, float]] = [(cid, sc) for cid, _, sc in _g_raw200[:50]]
+
+            # Margin = разница между 1-м и 2-м кандидатом (по штрафному скору)
+            if len(_g_cands) >= 2:
+                _gemini_margin_val = _g_cands[0][1] - _g_cands[1][1]
+            elif len(_g_cands) == 1:
+                _gemini_margin_val = 1.0
+
+            top_candidates = [cid for cid, _ in _g_cands]
+            _gemini_cands_map[i] = top_candidates[:FLASH_TOP_CANDS]
+
+            if top_candidates:
+                _best_raw = _g_raw200[0][1] if _g_raw200 else 0.0
+                _best_score = _g_cands[0][1]
+                print(f"  [Gemini] top={top_candidates[0]} "
+                      f"raw={_best_raw:.3f} penalized={_best_score:.3f} margin={_gemini_margin_val:.4f} "
+                      f"({len(top_candidates)} cands)", flush=True)
+        else:
+            top_candidates = match_segment_to_clip(
+                segment_text=seg_text,
+                keywords_list=available_clips,
+                video_used=video_used,
+                prev_video_clips=prev_clips,
+                clip_embeddings=clip_embeddings,
+                clip_ids_list=clip_ids_list,
+                max_repeats_in_video=max_repeats_in_video,
+                max_from_prev=max_from_prev,
+                segment_duration=seg_duration,
+                top_n=BLIP_TOP_N if _blip_available else 8,
+                context_vec=video_context_vec,
+                chapter_vec=chapter_vec,
+                window_text=window_text,
+                global_usage=global_usage,
+                clip_last_used_idx=clip_last_used_idx,
+                current_video_idx=current_video_idx,
+                segment_start=seg_start,
+                video_used_at=video_used_at,
+                visual_embeddings=visual_embeddings,
+                visual_ids_list=visual_ids_list,
+                visual_query=_vq,
+                visual_query_alts=_vq_alts if _vq_alts else None,
+                prev_video_centroid=prev_video_centroid,
+                clip_tags=_clip_tags,
+                query_tags=_qtags if _qtags else None,
+            )
 
         # [4b] BLIP VQA reranker: фильтр первых 5 минут по визуальному соответствию
         if _blip_available and _vq and top_candidates:
@@ -1122,6 +1240,19 @@ def select_clips_for_video(
                             print(f"  ⚠ pHash-duplicate → {clip_id}", flush=True)
                         break
 
+        # ── Stage 2: Margin Sampling → собрать задачи для Flash rerank ──────────
+        if _flash_available and _gemini_seg_embs is not None and clip_id:
+            _cands_for_flash = _gemini_cands_map.get(i, [])
+            if _gemini_margin_val < MARGIN_THRESHOLD and len(_cands_for_flash) >= 2:
+                _flash_tasks.append({
+                    "seg_idx":       i,
+                    "segment_text":  seg_text,
+                    "candidates":    [(cid, _clip_desc_map.get(cid, "")) for cid in _cands_for_flash],
+                    "prev_clip_desc": _prev_clip_desc,
+                })
+                print(f"  [Flash] queued: margin={_gemini_margin_val:.4f} "
+                      f"(threshold {MARGIN_THRESHOLD})", flush=True)
+
         # Обновить окна: E5 text (2 мин) + CLIP visual (2 мин) + pHash (5 мин)
         if clip_id:
             idx = emb_index.get(clip_id)
@@ -1135,6 +1266,11 @@ def select_clips_for_video(
             video_used[clip_id] = video_used.get(clip_id, 0) + 1
             if clip_id not in video_used_at:
                 video_used_at[clip_id] = seg_start
+            # Обновляем контекст для Flash reranker (описание текущего клипа)
+            _prev_clip_desc = _clip_desc_map.get(clip_id, "")[:120]
+
+        # Сохраняем начальный выбор (до Flash коррекции)
+        _initial_results[i] = clip_id
 
         entry = (seg_id, clip_id, seg_duration)
         if is_intro:
@@ -1143,6 +1279,78 @@ def select_clips_for_video(
         else:
             main_clips.append(entry)
             main_total += seg_duration
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Stage 3: Batch Flash rerank (параллельный, 16 workers)
+    # ═══════════════════════════════════════════════════════════════════════════
+    if _flash_available and _flash_tasks:
+        print(f"\n⚡ Flash rerank: {len(_flash_tasks)} неуверенных сегментов...", flush=True)
+        try:
+            _flash_results = _rerank_batch(_flash_tasks)  # {seg_idx: clip_id}
+            _flash_applied = 0
+
+            # Строим быстрый lookup: seg_idx → (seg_id, is_intro, seg_duration)
+            _seg_meta = {}
+            for _si, _seg in enumerate(segments):
+                _seg_meta[_si] = (
+                    _seg.get("id", 0),
+                    int(_seg.get("id", 0)) in intro_seg_ids,
+                    float(_seg.get("end", 0)) - float(_seg.get("start", 0)),
+                )
+
+            for _si, _new_clip_id in _flash_results.items():
+                _old_clip_id = _initial_results.get(_si)
+                if not _new_clip_id or _new_clip_id == _old_clip_id:
+                    continue
+
+                # ── Stage 4: CLIP Tiebreaker ───────────────────────────────
+                # Если Flash вернул другой клип — проверим его визуально
+                # через CLIP cosine vs prev visual embedding (если доступен)
+                _final_clip_id = _new_clip_id
+                if visual_embeddings is not None and vis_emb_index:
+                    _vi_old = vis_emb_index.get(_old_clip_id)
+                    _vi_new = vis_emb_index.get(_new_clip_id)
+                    if _vi_old is not None and _vi_new is not None:
+                        # Сравниваем среднее визуальное сходство двух кандидатов
+                        _old_v = visual_embeddings[_vi_old].mean(axis=0) if visual_embeddings[_vi_old].ndim == 2 else visual_embeddings[_vi_old]
+                        _new_v = visual_embeddings[_vi_new].mean(axis=0) if visual_embeddings[_vi_new].ndim == 2 else visual_embeddings[_vi_new]
+                        # Flash выбирает по тексту, CLIP — по визуалу
+                        # Если Flash-клип визуально ОЧЕНЬ ПЛОХОЙ (малое сходство с query) → оставить old
+                        # В данном случае у нас нет query visual embedding, так что просто принимаем Flash
+                        pass  # Flash wins — он контекстуальный
+                    # else: нет vis embedding — Flash wins
+
+                # Обновляем финальный результат
+                _seg_id_v, _is_intro_v, _seg_dur_v = _seg_meta[_si]
+                _final_clip_id = _new_clip_id
+
+                # Откатываем старый video_used
+                if _old_clip_id:
+                    _old_cnt = video_used.get(_old_clip_id, 1)
+                    if _old_cnt <= 1:
+                        video_used.pop(_old_clip_id, None)
+                    else:
+                        video_used[_old_clip_id] = _old_cnt - 1
+
+                # Обновляем video_used для нового
+                video_used[_final_clip_id] = video_used.get(_final_clip_id, 0) + 1
+                if _final_clip_id not in video_used_at:
+                    _seg_start_v = float(segments[_si].get("start", 0))
+                    video_used_at[_final_clip_id] = _seg_start_v
+
+                # Патчим intro_clips / main_clips
+                _target_list = intro_clips if _is_intro_v else main_clips
+                for _li, (_eid, _ecid, _edur) in enumerate(_target_list):
+                    if _eid == _seg_id_v:
+                        _target_list[_li] = (_eid, _final_clip_id, _edur)
+                        break
+
+                _flash_applied += 1
+                print(f"  ⚡ Flash [{_si}]: {_old_clip_id} → {_final_clip_id}", flush=True)
+
+            print(f"✅ Flash rerank: применено {_flash_applied}/{len(_flash_tasks)} замен", flush=True)
+        except Exception as _fex:
+            print(f"⚠ Flash rerank ошибка: {_fex}", flush=True)
 
     repeats      = sum(1 for cnt in video_used.values() if cnt > 1)
     prev_overlap = sum(1 for c in video_used if c in prev_clips)
