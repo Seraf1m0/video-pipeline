@@ -309,7 +309,7 @@ VIDEO TOPIC: {script_topic}
 Score 1-10 on EACH criterion. Be BRUTAL — most thumbnails deserve 5-6:
 
 TEXT QUALITY:
-1. text_correctness: Is the exact text "{text1}" and "{text2}" actually visible and correctly spelled?
+1. text_correctness: Is the exact text "{text_line1}" and "{text_line2}" actually visible and correctly spelled?
    Score 1 if text is missing, distorted, misspelled, or merged into the background.
 2. text_readability: Instantly readable on a 120px mobile thumbnail? Bold enough? High contrast?
 3. text_font_style: Does the font look ULTRA BOLD HEAVY CONDENSED (YouTube/tabloid style)?
