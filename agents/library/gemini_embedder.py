@@ -26,7 +26,7 @@ GEMINI_EMBED_FILE   = "gemini_embeddings.npz"
 BATCH_SIZE          = 50    # Уменьшен: меньше риск 429 за один запрос
 RETRY_DELAY         = 5.0   # секунд между ретраями (базовый)
 MAX_RETRIES         = 8     # больше попыток для rate limit
-INTER_BATCH_DELAY   = 0.3   # задержка между батчами (QPM rate limit)
+INTER_BATCH_DELAY   = 1.0   # задержка между батчами (QPM rate limit)
 
 _client = None
 
@@ -70,8 +70,8 @@ def embed_batch(texts: list[str]) -> np.ndarray:
             except Exception as e:
                 err_str = str(e)
                 is_rate_limit = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
+                print(f"  [ERROR] batch {i} attempt {attempt+1}: {err_str[:300]}", flush=True)
                 if attempt < MAX_RETRIES - 1:
-                    # Экспоненциальный backoff: 5s, 15s, 30s, 60s, 120s, 240s, 300s
                     if is_rate_limit:
                         delay = min(RETRY_DELAY * (3 ** attempt), 300.0)
                         print(f"  [WARN] Rate limit batch {i}: waiting {delay:.0f}s "
@@ -90,6 +90,25 @@ def embed_batch(texts: list[str]) -> np.ndarray:
     return np.vstack(all_vecs)
 
 
+def _clip_embed_text(entry: dict) -> str:
+    """Собрать богатый текст клипа для RETRIEVAL_DOCUMENT embedding.
+
+    Объединяет все языковые keywords + category + tags для максимального покрытия.
+    """
+    parts = []
+    for field in ("keywords", "keywords_de", "keywords_fr", "keywords_es"):
+        v = entry.get(field, "").strip()
+        if v:
+            parts.append(v)
+    cat = entry.get("category", "").strip()
+    if cat and cat not in ("other",):
+        parts.append(cat)
+    tags = entry.get("tags", [])
+    if isinstance(tags, list) and tags:
+        parts.append(", ".join(tags))
+    return "; ".join(parts)
+
+
 def build_library_embeddings(channel_id: str, resume: bool = False) -> tuple[list[str], np.ndarray]:
     """Построить gemini_embeddings.npz для канала. Возвращает (clip_ids, embeddings).
 
@@ -101,14 +120,15 @@ def build_library_embeddings(channel_id: str, resume: bool = False) -> tuple[lis
     lib = json.loads(lib_path.read_text(encoding="utf-8"))
     clips = lib["clips"]
 
-    # Собираем (clip_id, keywords) только для indexed + not rejected
+    # Собираем (clip_id, text) только для indexed + not rejected
+    # Используем _clip_embed_text: keywords всех языков + category + tags (caption augmentation)
     valid = [
-        (cid, entry["keywords"])
+        (cid, entry)
         for cid, entry in clips.items()
         if entry.get("indexed") and not entry.get("rejected") and entry.get("keywords")
     ]
-    clip_ids = [cid for cid, _ in valid]
-    texts    = [kw  for _, kw in valid]
+    clip_ids = [cid   for cid, _     in valid]
+    texts    = [_clip_embed_text(entry) for _, entry in valid]
 
     out_path = get_library_dir(channel_id) / GEMINI_EMBED_FILE
 
@@ -127,7 +147,7 @@ def build_library_embeddings(channel_id: str, resume: bool = False) -> tuple[lis
 
     # Пропускаем уже обработанные
     done_set = set(done_ids)
-    remaining = [(cid, kw) for cid, kw in zip(clip_ids, texts) if cid not in done_set]
+    remaining = [(cid, txt) for cid, txt in zip(clip_ids, texts) if cid not in done_set]
 
     if not remaining:
         print(f"[GeminiEmbed] Все клипы уже обработаны ({len(done_ids)})", flush=True)
@@ -154,6 +174,7 @@ def build_library_embeddings(channel_id: str, resume: bool = False) -> tuple[lis
                 resp = client.models.embed_content(
                     model=GEMINI_EMBED_MODEL,
                     contents=batch_texts,
+                    config={"task_type": "RETRIEVAL_DOCUMENT"},
                 )
                 vecs = np.array([e.values for e in resp.embeddings], dtype=np.float32)
                 norms = np.linalg.norm(vecs, axis=1, keepdims=True) + 1e-9

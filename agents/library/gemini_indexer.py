@@ -109,60 +109,46 @@ VALID: yes | TYPE: real | MOTION: static
 """
 
 GEMINI_PROMPT = """\
-You are cataloging space footage for a searchable library. Use your full knowledge of space history, missions, spacecraft, and astronomy to produce the most precise tags possible.
+ROLE: You are a senior space imagery archivist. Your goal is to transform visual clip content into hyper-dense, technical metadata optimized for high-dimensional vector search (Gemini Embedding 2).
 
-Analyze 3 frames (start, middle, end of a ~5s clip).
+You are given 3 labeled keyframes: START, MIDDLE, END of a ~5s clip. Analyze ALL THREE frames equally — identify what changes between them and what stays constant. If the clip transitions between subjects, describe the PRIMARY subject (dominant across most frames). Never describe only the last frame.
 
-IDENTIFICATION RULES:
-- If you recognize something with high confidence → name it directly: "Hubble Space Telescope", "JWST", "ISS", "Saturn rings", "Crab Nebula"
-- If it strongly resembles something but you're not 100% sure → name it with qualifier: "Hubble-like telescope", "appears to be Cassini spacecraft", "likely Orion capsule"
-- If completely unidentifiable → describe visual features: "cylindrical silver telescope, two solar wings"
-- Read all visible text, logos, flags, patches — include them verbatim
+Generate a description using this exact formula:
+[ENTITY/SUBJECT]: [TECHNICAL DESCRIPTION]. [ENVIRONMENT & LIGHTING]. [CAMERA & AESTHETIC].
 
-USE YOUR KNOWLEDGE: You know what Hubble looks like (silver cylinder, two rectangular solar wings, gold aperture door). You know JWST (18 gold hexagons, 5-layer diamond sunshield). You know ISS modules, Soyuz, Dragon capsule, Curiosity rover, Voyager dish. If you see them — say so.
+EXPANSION GUIDELINES:
+- Light Physics: Use terms like "specular highlights," "collimated light," "subsurface scattering," "Rayleigh scattering," "high dynamic range (HDR)."
+- Materials & Textures: Describe surfaces precisely: "anodized aluminum," "multi-layer insulation (MLI) gold foil," "porous regolith," "viscous fluid dynamics."
+- Astronomical Accuracy: Identify features like "accretion disks," "oblate spheroids," "plasma filaments," "coronal mass ejections," "terminator lines."
+- Cinematography: Describe the lens and sensor: "wide-angle distortion-free," "telephoto compression," "sensor noise/grain for archival look," "60fps fluid motion."
 
-FORMAT (nothing else):
-KEYWORDS: <10-15 words, comma-separated>
+SPACECRAFT IDENTIFICATION (mandatory — use your full visual knowledge):
+- JWST: 18 gold hexagonal beryllium mirror segments in honeycomb pattern, 5-layer kapton diamond-shaped sunshield → always name "James Webb Space Telescope JWST"
+- Hubble: large silver cylinder, two rectangular blue silicon solar wings, gold aperture door → "Hubble Space Telescope HST"
+- Euclid: compact white/silver rectangular body, flat rectangular sunshield panels, small telescope tube → "Euclid Space Telescope ESA"
+- ISS: massive truss with 8 photovoltaic solar array wings, multiple cylindrical pressurized modules → "International Space Station ISS"
+- If image was TAKEN BY a telescope: identify by color palette/watermark and add "imaged by JWST NIRCam", "Hubble ACS image", etc.
+- Read all visible text, logos, watermarks verbatim and include them.
+
+OUTPUT FORMAT (one line per field, nothing else):
+DESCRIPTION: <[ENTITY]: [technical]. [environment]. [camera].>
+TYPE: <Real | CGI | Photorealistic Simulation | Archival | Illustration | Mixed>
+MOTION: <static | pan-left | pan-right | zoom-in | zoom-out | orbit | tracking | timelapse | rotation>
 VALID: <yes | no>
-TYPE: <real | CGI | illustration | archival | mixed>
-MOTION: <static | pan-left | pan-right | zoom-in | zoom-out | orbit | tracking | timelapse>
 
-VALID rules — say "no" ONLY for:
-- Completely black or white frames (no content)
-- Human faces, people in everyday settings (not astronauts)
-- Random objects with zero connection to space (cars, food, buildings)
-- TV studio sets, news chroma-key backgrounds, countdown timers
-- Everything else = VALID: yes (blurry, dark, abstract, CGI, nebulas, planets — all yes)
+VALID is "no" ONLY for: completely black/white frames, human faces in non-space everyday settings, objects with zero connection to space or science.
 
-Rules:
-- Same object multiple angles = "Hubble three views" not "three telescopes"
-- Skip generic filler: "space", "stars", beauty words
-- Include distinctive colors when they help ID the object
+EXAMPLE OUTPUT:
 
-EXAMPLES:
-KEYWORDS: Hubble Space Telescope, silver cylindrical body, two solar wings, gold aperture
-VALID: yes | TYPE: CGI | MOTION: orbit
+DESCRIPTION: Saturnian Ring System: Detailed view of the A and B rings showing individual orbital ice particle density gradients across a 270,000 km span. Sharp, high-contrast collimated solar illumination casting distinct shadows across the Cassini Division; specular highlights on icy ring particles create a crystalline texture. Photorealistic CGI with telephoto compression emphasizing the oblate spheroid geometry of Saturn against pitch-black vacuum.
+TYPE: CGI
+MOTION: static
+VALID: yes
 
-KEYWORDS: JWST gold hexagonal mirror array, five-layer sunshield, deployed solar panel
-VALID: yes | TYPE: CGI | MOTION: static
-
-KEYWORDS: Euclid telescope three views, rectangular sunshield, solar array
-VALID: yes | TYPE: CGI | MOTION: static
-
-KEYWORDS: blurry gas giant planet, swirling clouds, atmospheric bands
-VALID: yes | TYPE: CGI | MOTION: static
-
-KEYWORDS: deep space nebula, purple cosmic dust cloud, distant stars
-VALID: yes | TYPE: CGI | MOTION: static
-
-KEYWORDS: astronaut white NASA EMU spacesuit, lunar surface EVA, lunar module descent stage
-VALID: yes | TYPE: archival | MOTION: static
-
-KEYWORDS: Sun solar flare, coronal loop, orange plasma eruption, chromosphere
-VALID: yes | TYPE: CGI | MOTION: zoom-in
-
-KEYWORDS: stellar size comparison diagram, Sun Aldebaran Betelgeuse labeled scale
-VALID: yes | TYPE: illustration | MOTION: static
+DESCRIPTION: James Webb Space Telescope JWST primary mirror: All 18 gold-coated beryllium hexagonal segments visible in fully deployed honeycomb configuration, actuator mechanisms at each segment junction catching specular highlights from collimated studio lighting. Five-layer kapton sunshield unfurled below, with MLI gold foil visible on spacecraft bus; pitch-black vacuum background. Wide-angle distortion-free lens, photorealistic CGI render with high dynamic range emphasizing the 6.5m aperture scale.
+TYPE: CGI
+MOTION: rotation
+VALID: yes
 """
 
 # ── Gemini client ─────────────────────────────────────────────────────────────
@@ -335,34 +321,40 @@ def _is_frozen_bytes(frames: list[bytes]) -> bool:
 
 def _parse_gemini_response(text: str) -> tuple[str, bool]:
     """
-    Парсит ответ Gemini.
+    Парсит ответ Gemini нового формата (PRIMARY_SUBJECT / DETAILED_DESCRIPTION / KEYWORDS / ...).
     Возвращает (keywords_str, valid_bool).
-    keywords включает TYPE и MOTION через pipe: "keywords | TYPE:CGI | MOTION:static"
+
+    keywords_str формат для library.json:
+      "<KEYWORDS> | <PRIMARY_SUBJECT> | <DETAILED_DESCRIPTION> | TYPE:<type> | MOTION:<motion>"
+    Это позволяет _clip_embed_text() использовать весь текст для эмбеддинга.
     """
-    keywords = ""
-    valid    = True
-    clip_type = ""
-    motion    = ""
+    description = ""
+    clip_type   = ""
+    motion      = ""
+    valid       = True
 
     for line in text.strip().splitlines():
-        # Поддержка inline формата: "VALID: yes | TYPE: CGI | MOTION: static"
-        for part in line.split("|"):
-            part = part.strip()
-            if part.startswith("KEYWORDS:"):
-                keywords = part[len("KEYWORDS:"):].strip()
-            elif part.startswith("VALID:"):
-                valid = part[len("VALID:"):].strip().lower().startswith("y")
-            elif part.startswith("TYPE:"):
-                clip_type = part[len("TYPE:"):].strip()
-            elif part.startswith("MOTION:"):
-                motion = part[len("MOTION:"):].strip()
+        line = line.strip()
+        if line.startswith("DESCRIPTION:"):
+            description = line[len("DESCRIPTION:"):].strip()
+        elif line.startswith("TYPE:"):
+            clip_type = line[len("TYPE:"):].strip()
+        elif line.startswith("MOTION:"):
+            motion = line[len("MOTION:"):].strip()
+        elif line.startswith("VALID:"):
+            valid = line[len("VALID:"):].strip().lower().startswith("y")
 
-    # Добавить TYPE и MOTION в keywords для поиска
-    extras = " | ".join(x for x in [clip_type, motion] if x)
-    if extras:
-        keywords = f"{keywords} | {extras}"
+    # Богатая строка для embedding: description уже содержит entity + technical + environment + camera
+    parts = []
+    if description:
+        parts.append(description)
+    if clip_type:
+        parts.append(f"TYPE:{clip_type}")
+    if motion:
+        parts.append(f"MOTION:{motion}")
 
-    return keywords, valid
+    combined = " | ".join(parts)
+    return combined, valid and bool(description)
 
 
 async def _analyze_clip_async(
@@ -378,8 +370,11 @@ async def _analyze_clip_async(
 
     client = _get_client()
 
+    # Отправляем кадры с явными метками позиции — Gemini видит все три и знает порядок
+    labels = ["[FRAME 1 — clip START (0.5s)]", "[FRAME 2 — clip MIDDLE (2.5s)]", "[FRAME 3 — clip END (4.5s)]"]
     parts = []
-    for jpeg in frames:
+    for label, jpeg in zip(labels, frames):
+        parts.append(gtypes.Part.from_text(text=label))
         parts.append(gtypes.Part.from_bytes(data=jpeg, mime_type="image/jpeg"))
     parts.append(gtypes.Part.from_text(text=GEMINI_PROMPT))
 
