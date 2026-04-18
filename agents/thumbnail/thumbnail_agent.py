@@ -98,8 +98,8 @@ def _parse_json(raw: str) -> dict | list:
 
 # ── Stage 1: Creative TZ ──────────────────────────────────────────────────────
 
-def write_tz(segments: list[dict], text1: str, text2: str) -> dict:
-    """Flash пишет визуальное ТЗ под заданный текст + скрипт."""
+def write_tz(segments: list[dict], thumbnail_text: str) -> dict:
+    """Flash пишет визуальное ТЗ — сам решает иерархию и расположение текста."""
     print("\n[1/3] Writing creative brief (TZ)...", flush=True)
     script = " ".join(
         s.get("text", "") for s in segments if "[" not in s.get("text", "")
@@ -108,31 +108,40 @@ def write_tz(segments: list[dict], text1: str, text2: str) -> dict:
     prompt = f"""\
 You are a YouTube thumbnail art director for a German space documentary channel.
 
-The thumbnail MUST show these exact German words:
-- Small text (top): "{text1}"
-- Large bold text (below it): "{text2}"
+The user wants this text on the thumbnail: "{thumbnail_text}"
 
-Analyze the script and create a VISUAL BRIEF for the thumbnail designer.
-The brief must describe a concept that makes "{text2}" feel POWERFUL, EMOTIONAL, URGENT.
+Your job:
+1. Analyze the script to understand the video topic and emotional hook
+2. Decide HOW to use this text for maximum CTR impact:
+   - Split it into lines if needed (e.g. "DIE SONNE IST WACH" → "DIE SONNE IST" + "WACH")
+   - OR keep as one dominant line
+   - Decide which part is the MAIN bold word and which is supporting context
+   - Decide the text hierarchy, size ratio, and placement
+3. Create a complete visual brief for the image generator
 
 Return ONLY valid JSON:
 {{
-  "main_object": "<the ONE dominant visual object that fills 60-80% of the frame>",
+  "text_line1": "<smaller supporting text — context/setup, or empty string if single line>",
+  "text_line2": "<MAIN bold word(s) — the emotional hook, LARGEST on screen>",
+  "text_hierarchy": "<describe: which is bigger, size ratio, e.g. 'line2 is 3x larger than line1'>",
+  "text_placement": "<upper-left | lower-left | upper-right — where text block sits>",
+  "main_object": "<the ONE dominant visual object that fills 60-80% of frame>",
   "emotional_tone": "<fear | awe | shock | urgency | mystery | revelation>",
-  "color_palette": "<vivid palette, e.g. 'electric red + deep black' | 'glowing cyan + void black'>",
-  "text_placement": "<where to put the text block: upper-left | lower-left | upper-right>",
-  "text_style": "<describe desired text appearance: e.g. 'white ultra-bold condensed, glowing edge, massive size'>",
-  "graphic_elements": "<unique design elements to add: e.g. 'red warning arrows pointing at object, scanline overlay, bright energy burst behind text' — be SPECIFIC and CREATIVE>",
-  "atmosphere": "<1 sentence: overall mood and visual feel>",
-  "why_people_click": "<1 sentence: psychological hook — WHY does this make someone stop scrolling>"
+  "color_palette": "<vivid palette, e.g. 'electric red + deep black'>",
+  "text_style": "<font weight, glow, shadow, color — be specific>",
+  "graphic_elements": "<arrows, stripes, glows, overlays — be SPECIFIC and CREATIVE>",
+  "atmosphere": "<1 sentence: overall mood>",
+  "why_people_click": "<psychological hook — why someone stops scrolling>"
 }}
 
 SCRIPT:
 {script}
 """
-    result = _parse_json(_flash(prompt, max_tokens=600))
+    result = _parse_json(_flash(prompt, max_tokens=700))
+    print(f"  Line1:    '{result.get('text_line1','')}'", flush=True)
+    print(f"  Line2:    '{result.get('text_line2','')}'", flush=True)
+    print(f"  Hierarch: {result.get('text_hierarchy','')}", flush=True)
     print(f"  Object:   {result.get('main_object','')}", flush=True)
-    print(f"  Colors:   {result.get('color_palette','')}", flush=True)
     print(f"  Elements: {result.get('graphic_elements','')}", flush=True)
     print(f"  Hook:     {result.get('why_people_click','')}", flush=True)
     return result
@@ -148,8 +157,6 @@ IMAGE_STYLE_SUFFIX = (
 
 def generate_prompts(
     tz: dict,
-    text1: str,
-    text2: str,
     round_num: int = 1,
     prev_critiques: list[str] | None = None,
 ) -> list[dict]:
@@ -175,6 +182,10 @@ Each prompt must be COMPLETELY DIFFERENT from previous attempts.
     elif round_num == 4:
         round_escalation = "FINAL ATTEMPT. Completely rethink the concept. Break all rules. Make it IMPOSSIBLE to ignore."
 
+    line1 = tz.get("text_line1", "")
+    line2 = tz.get("text_line2", "")
+    hierarchy = tz.get("text_hierarchy", "line2 is larger")
+
     prompt = f"""\
 You are a master prompt engineer for AI image generation (YouTube thumbnails for space channel).
 
@@ -187,14 +198,15 @@ CREATIVE BRIEF (TZ):
 - Atmosphere: {tz.get('atmosphere','')}
 
 TEXT TO INCLUDE (mandatory, exact):
-- Small text above: "{text1}"
-- Large bold text below: "{text2}"
+{f'- Smaller supporting text: "{line1}"' if line1 else '- No small text — single dominant line only'}
+- MAIN bold text: "{line2}" — this is the HERO text
+- Text hierarchy: {hierarchy}
 
 TEXT RENDERING RULES (critical):
-- "{text2}" must be MASSIVE — taking 25-35% of frame width
+- "{line2}" must be MASSIVE — taking 25-35% of frame width
 - Font: ultra-bold heavy condensed, white, no thin strokes
 - Strong dark glow/drop shadow behind text for readability
-- Text in the designated placement area: {tz.get('text_placement','')}
+- Text block in: {tz.get('text_placement','')}
 - NO other text, logos, watermarks
 
 {critique_block}{round_escalation}
@@ -280,7 +292,8 @@ def generate_images(prompts: list[dict], out_dir: Path, round_num: int) -> list[
 
 # ── Stage 4: Flash Evaluation ─────────────────────────────────────────────────
 
-def _build_eval_prompt(text1: str, text2: str, script_topic: str) -> str:
+def _build_eval_prompt(thumbnail_text: str, text_line1: str, text_line2: str, script_topic: str) -> str:
+    expected = f'"{text_line2}"' if not text_line1 else f'"{text_line1}" (small) + "{text_line2}" (large bold)'
     return f"""\
 You are a YouTube thumbnail analyst with deep expertise in the space/cosmos niche.
 You are integrated into YouTube and understand exactly what drives CTR in this category.
@@ -288,9 +301,8 @@ You have analyzed millions of thumbnails across German, Russian, English space c
 
 Evaluate this thumbnail across ALL dimensions — visual, textual, semantic, and SEO.
 
-EXPECTED TEXT ON THIS THUMBNAIL:
-- Small text (top): "{text1}"
-- Large bold text (main): "{text2}"
+EXPECTED TEXT ON THIS THUMBNAIL: {expected}
+(Original user text: "{thumbnail_text}")
 
 VIDEO TOPIC: {script_topic}
 
@@ -356,8 +368,8 @@ Return ONLY valid JSON:
 def evaluate_images(
     images: list[dict],
     round_num: int,
-    text1: str,
-    text2: str,
+    thumbnail_text: str,
+    tz: dict,
     script_topic: str,
 ) -> list[dict]:
     valid = [img for img in images if img["path"] and Path(img["path"]).exists()]
@@ -366,7 +378,12 @@ def evaluate_images(
         return []
 
     print(f"\n[Eval] Evaluating {len(valid)} thumbnails (round {round_num})...", flush=True)
-    eval_prompt = _build_eval_prompt(text1, text2, script_topic)
+    eval_prompt = _build_eval_prompt(
+        thumbnail_text,
+        tz.get("text_line1", ""),
+        tz.get("text_line2", thumbnail_text),
+        script_topic,
+    )
 
     results = []
     for img in valid:
@@ -452,8 +469,7 @@ def _collect_critiques(evaluated: list[dict]) -> list[str]:
 def _write_seo_report(
     out_dir: Path,
     session: str,
-    text1: str,
-    text2: str,
+    thumbnail_text: str,
     tz: dict,
     winner: dict,
     best_overall: int,
@@ -465,7 +481,9 @@ def _write_seo_report(
     lines.append("  THUMBNAIL SEO REPORT")
     lines.append("=" * 60)
     lines.append(f"Session:  {session}")
-    lines.append(f"Text:     '{text1}' / '{text2}'")
+    lines.append(f"Text:     '{thumbnail_text}'")
+    lines.append(f"Line1:    '{tz.get('text_line1','')}'")
+    lines.append(f"Line2:    '{tz.get('text_line2','')}'  ← main bold")
     lines.append("")
 
     lines.append("── CREATIVE BRIEF (TZ) ─────────────────────────────────")
@@ -528,21 +546,21 @@ def _write_seo_report(
 
 # ── Main Pipeline ─────────────────────────────────────────────────────────────
 
-def run_pipeline(channel_id: str, session: str, text1: str, text2: str, out_dir: Path) -> Path:
+def run_pipeline(channel_id: str, session: str, thumbnail_text: str, out_dir: Path) -> Path:
     result_json = get_result_json(channel_id, session)
     with open(result_json, encoding="utf-8") as f:
         data = json.load(f)
     segments = data if isinstance(data, list) else data.get("segments", [])
     print(f"Loaded {len(segments)} segments", flush=True)
-    print(f"Text: '{text1}' / '{text2}'", flush=True)
+    print(f"Text: '{thumbnail_text}'", flush=True)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     variants_dir = out_dir / "variants"
     variants_dir.mkdir(exist_ok=True)
 
     # Stage 1 — TZ (once, not per round)
-    tz = write_tz(segments, text1, text2)
-    script_topic = tz.get("atmosphere", f"{text1} {text2}")
+    tz = write_tz(segments, thumbnail_text)
+    script_topic = tz.get("atmosphere", thumbnail_text)
 
     best_overall  = 0
     best_image    = None
@@ -556,7 +574,7 @@ def run_pipeline(channel_id: str, session: str, text1: str, text2: str, out_dir:
 
         # Stage 2 — промпты (с критикой из предыдущих раундов)
         prompts = generate_prompts(
-            tz, text1, text2,
+            tz,
             round_num=round_num,
             prev_critiques=all_critiques if round_num > 1 else None,
         )
@@ -565,7 +583,7 @@ def run_pipeline(channel_id: str, session: str, text1: str, text2: str, out_dir:
         images = generate_images(prompts, variants_dir, round_num)
 
         # Stage 4 — оценка
-        evaluated = evaluate_images(images, round_num, text1, text2, script_topic)
+        evaluated = evaluate_images(images, round_num, thumbnail_text, tz, script_topic)
         all_results.extend(evaluated)
 
         # Лучший в этом раунде
@@ -608,11 +626,10 @@ def run_pipeline(channel_id: str, session: str, text1: str, text2: str, out_dir:
 
     # JSON report
     report = {
-        "session":    session,
-        "channel_id": channel_id,
-        "text1":      text1,
-        "text2":      text2,
-        "tz":         tz,
+        "session":        session,
+        "channel_id":     channel_id,
+        "thumbnail_text": thumbnail_text,
+        "tz":             tz,
         "winner": {
             "path":       str(best_image["path"]),
             "overall":    best_overall,
@@ -629,7 +646,7 @@ def run_pipeline(channel_id: str, session: str, text1: str, text2: str, out_dir:
     )
 
     # SEO TXT report
-    _write_seo_report(out_dir, session, text1, text2, tz, best_image, best_overall, all_results)
+    _write_seo_report(out_dir, session, thumbnail_text, tz, best_image, best_overall, all_results)
 
     return final_path
 
@@ -640,8 +657,7 @@ def main():
     parser = argparse.ArgumentParser(description="YouTube Thumbnail Generator")
     parser.add_argument("--channel", default="channel_001_cosmos_de")
     parser.add_argument("--session", default=None)
-    parser.add_argument("--text1",   required=True, help='Small text (top), e.g. "TESS-DATEN"')
-    parser.add_argument("--text2",   required=True, help='Large bold text (main), e.g. "LÜGE"')
+    parser.add_argument("--text",    required=True, help='Thumbnail text, e.g. "DIE SONNE IST WACH"')
     args = parser.parse_args()
 
     channel_id = args.channel
@@ -654,14 +670,14 @@ def main():
     print(f"  THUMBNAIL AGENT", flush=True)
     print(f"  Channel: {channel_id}", flush=True)
     print(f"  Session: {session}", flush=True)
-    print(f"  Text:    '{args.text1}' / '{args.text2}'", flush=True)
+    print(f"  Text:    '{args.text}'", flush=True)
     print(f"{'='*60}", flush=True)
 
     session_dir = get_session_dir(channel_id, session)
     out_dir     = session_dir / "thumbnail"
 
     t0 = time.time()
-    final = run_pipeline(channel_id, session, args.text1, args.text2, out_dir)
+    final = run_pipeline(channel_id, session, args.text, out_dir)
     print(f"\n⏱ Total: {round(time.time()-t0, 1)}s", flush=True)
     print(f"{'='*60}\n", flush=True)
 

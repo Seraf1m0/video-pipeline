@@ -36,8 +36,10 @@ Motion Graphics (mg) внутри себя:
 """
 
 import argparse
+import atexit
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -47,6 +49,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 BASE_DIR = Path(__file__).resolve().parent
+PID_FILE = BASE_DIR / "pipeline.pid"
 
 # ── Пути ─────────────────────────────────────────────────────────────────────
 _UTILS_DIR = BASE_DIR / "agents" / "utils"
@@ -57,6 +60,62 @@ from paths import (
     get_channel_dir, get_last_session,
     get_result_json, get_final_video, get_session_dir,
 )
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Управление PID — защита от зомби-процессов
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _stop_pipeline(pid: int) -> None:
+    """Убить процесс + всё дерево дочерних (taskkill /T)."""
+    print(f"  Останавливаем pipeline PID={pid} и всё дерево процессов...")
+    subprocess.run(
+        ["taskkill", "/F", "/T", "/PID", str(pid)],
+        capture_output=True,
+    )
+
+
+def _pid_is_running(pid: int) -> bool:
+    """True если процесс с данным PID ещё жив."""
+    result = subprocess.run(
+        ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+        capture_output=True, text=True,
+    )
+    return str(pid) in result.stdout
+
+
+def _write_pid() -> None:
+    PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
+
+
+def _remove_pid() -> None:
+    try:
+        PID_FILE.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def _check_existing_pipeline() -> None:
+    """Если pipeline.pid существует — убить старый инстанс."""
+    if not PID_FILE.exists():
+        return
+    try:
+        old_pid = int(PID_FILE.read_text(encoding="utf-8").strip())
+    except Exception:
+        PID_FILE.unlink(missing_ok=True)
+        return
+
+    if old_pid == os.getpid():
+        return  # это мы сами
+
+    if _pid_is_running(old_pid):
+        print(f"\n⚠  Найден живой pipeline PID={old_pid} — завершаем его...")
+        _stop_pipeline(old_pid)
+        time.sleep(1.5)
+    else:
+        print(f"\n  (Удалён устаревший PID-файл от PID={old_pid})")
+
+    PID_FILE.unlink(missing_ok=True)
+
 
 # ── Маппинг alias ->channel_id ───────────────────────────────────────────────
 _CH_ALIAS = {
@@ -92,6 +151,10 @@ def _run(cmd: list[str], label: str) -> bool:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(BASE_DIR) + os.pathsep + env.get("PYTHONPATH", "")
 
+    # CREATE_NEW_PROCESS_GROUP — дочерний процесс получает свою группу,
+    # что позволяет taskkill /T корректно убивать всё дерево при --stop
+    _flags = subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
+
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -101,6 +164,7 @@ def _run(cmd: list[str], label: str) -> bool:
         errors="replace",
         cwd=str(BASE_DIR),
         env=env,
+        creationflags=_flags,
     )
     for line in proc.stdout:
         sys.stdout.write(f"  | {line}")
@@ -187,29 +251,28 @@ def stage_assemble(channel_id: str, channel_alias: str, session: str) -> bool:
     return _run(cmd, "ASSEMBLE — Gosha ->clip selection + render ->final.mp4")
 
 
-def _read_thumbnail_text(channel_id: str) -> tuple[str, str] | None:
-    """Читает thumbnail_text.txt из папки канала. Формат: line1\\nline2"""
-    txt_path = get_channel_dir(channel_id) / THUMBNAIL_TEXT_FILE
+def _read_thumbnail_text(channel_id: str, session: str) -> str | None:
+    """Читает thumbnail_text.txt из папки сессии. Возвращает сырой текст."""
+    txt_path = get_session_dir(channel_id, session) / THUMBNAIL_TEXT_FILE
     if not txt_path.exists():
         return None
-    lines = [l.strip() for l in txt_path.read_text(encoding="utf-8").splitlines() if l.strip()]
-    if len(lines) < 2:
-        print(f"⚠ {THUMBNAIL_TEXT_FILE}: нужно минимум 2 строки (text1 и text2)", flush=True)
+    lines = [l.strip() for l in txt_path.read_text(encoding="utf-8").splitlines()
+             if l.strip() and not l.strip().startswith("#")]
+    if not lines:
         return None
-    return lines[0], lines[1]
+    return " ".join(lines)
 
 
-def stage_thumbnail(channel_id: str, session: str, text1: str, text2: str) -> bool:
+def stage_thumbnail(channel_id: str, session: str, thumbnail_text: str) -> bool:
     """Генерация превью через thumbnail_agent."""
     cmd = [
         _PYTHON,
         "agents/thumbnail/thumbnail_agent.py",
         "--channel", channel_id,
         "--session", session,
-        "--text1", text1,
-        "--text2", text2,
+        "--text", thumbnail_text,
     ]
-    return _run(cmd, f"THUMBNAIL — '{text1}' / '{text2}' -> thumbnail_final.png")
+    return _run(cmd, f"THUMBNAIL — '{thumbnail_text}' -> thumbnail_final.png")
 
 
 def stage_motion_graphics(channel_id: str, channel_alias: str, session: str) -> bool:
@@ -322,6 +385,12 @@ def run_pipeline(
 
     print(f"\n  Сессия: {session}")
 
+    # Создаём thumbnail_text.txt в папке сессии если его ещё нет
+    _thumb_txt = get_session_dir(channel_id, session) / THUMBNAIL_TEXT_FILE
+    if not _thumb_txt.exists():
+        _thumb_txt.write_text("# Строка 1: маленький текст сверху (напр. SOLAR-DATEN)\n# Строка 2: большой жирный текст (напр. VERNICHTET)\n", encoding="utf-8")
+        print(f"\n  📝 Создан {_thumb_txt} — заполни текст для превью")
+
     # ══════════════════════════════════════════════════════════════════════════
     # 2. ASSEMBLE
     # ══════════════════════════════════════════════════════════════════════════
@@ -351,16 +420,14 @@ def run_pipeline(
         if (thumb_dir / "thumbnail_final.png").exists():
             print(f"\n⏭ THUMBNAIL: thumbnail_final.png уже есть")
         else:
-            thumb_text = _read_thumbnail_text(channel_id)
+            thumb_text = _read_thumbnail_text(channel_id, session)
             if thumb_text is None:
                 print(
-                    f"\n⏭ THUMBNAIL: файл не найден или неполный — "
-                    f"создай {get_channel_dir(channel_id) / THUMBNAIL_TEXT_FILE}\n"
-                    f"  Формат: строка 1 = маленький текст, строка 2 = большой текст"
+                    f"\n⏭ THUMBNAIL: заполни {get_session_dir(channel_id, session) / THUMBNAIL_TEXT_FILE}\n"
+                    f"  Строка 1 = маленький текст сверху, строка 2 = большой жирный"
                 )
             else:
-                text1, text2 = thumb_text
-                ok = stage_thumbnail(channel_id, session, text1, text2)
+                ok = stage_thumbnail(channel_id, session, thumb_text)
                 if not ok:
                     print("⚠ Thumbnail не удался — продолжаем без превью.")
 
@@ -419,9 +486,10 @@ def main():
   py pipeline.py --channel de --from assemble                    # пропустить транскрипцию
   py pipeline.py --channel de --from thumbnail                   # только превью + вставки
   py pipeline.py --channel de --from motion_graphics             # только вставки (если final.mp4 есть)
+  py pipeline.py --stop                                          # остановить текущий пайплайн
 """,
     )
-    parser.add_argument("--channel", required=True,
+    parser.add_argument("--channel",
                         help="Канал: de | fr | es")
     parser.add_argument("--session",
                         help="Имя сессии (по умолчанию: последняя или новая из MP3)")
@@ -429,14 +497,56 @@ def main():
                         help="Запустить только одну стадию")
     parser.add_argument("--from", dest="start_from", choices=STAGES,
                         help="Начать с указанной стадии")
+    parser.add_argument("--stop", action="store_true",
+                        help="Остановить текущий запущенный пайплайн")
     args = parser.parse_args()
 
-    run_pipeline(
-        channel_alias=args.channel,
-        session=args.session,
-        only=args.only,
-        start_from=args.start_from,
-    )
+    # ── --stop: убить текущий пайплайн ────────────────────────────────────────
+    if args.stop:
+        if not PID_FILE.exists():
+            print("pipeline.pid не найден — пайплайн не запущен.")
+            return
+        try:
+            pid = int(PID_FILE.read_text(encoding="utf-8").strip())
+        except Exception:
+            print("Не удалось прочитать pipeline.pid.")
+            return
+        if _pid_is_running(pid):
+            _stop_pipeline(pid)
+            print(f"  Pipeline PID={pid} остановлен.")
+        else:
+            print(f"  Pipeline PID={pid} уже не запущен.")
+        PID_FILE.unlink(missing_ok=True)
+        return
+
+    if not args.channel:
+        parser.error("--channel обязателен (если не используется --stop)")
+
+    # ── Защита от зомби: убить старый инстанс, записать свой PID ─────────────
+    _check_existing_pipeline()
+    _write_pid()
+    atexit.register(_remove_pid)
+
+    def _handle_signal(sig, frame):
+        _remove_pid()
+        sys.exit(1)
+
+    signal.signal(signal.SIGTERM, _handle_signal)
+    try:
+        signal.signal(signal.SIGBREAK, _handle_signal)   # Windows Ctrl+Break
+    except (AttributeError, OSError):
+        pass
+
+    # ── Запуск пайплайна ──────────────────────────────────────────────────────
+    try:
+        run_pipeline(
+            channel_alias=args.channel,
+            session=args.session,
+            only=args.only,
+            start_from=args.start_from,
+        )
+    finally:
+        _remove_pid()
 
 
 if __name__ == "__main__":
