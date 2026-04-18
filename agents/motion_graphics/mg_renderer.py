@@ -23,6 +23,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from agents.utils.paths import get_session_dir, TEMP_ROOT
@@ -71,7 +74,12 @@ def render_zone(zone: dict, out_dir: Path) -> Path | None:
         print(f"  [zone {zone_id}] already rendered, skipping")
         return out_path
 
-    props_json = json.dumps(props, ensure_ascii=False)
+    # Props записываем в temp-файл — избегаем интерпретации < > | в cmd.exe
+    # (npx.cmd на Windows запускается через cmd.exe, где < = stdin redirection)
+    import tempfile
+    props_file = Path(tempfile.mktemp(suffix=".json"))
+    props_file.write_text(json.dumps(props, ensure_ascii=False), encoding="utf-8")
+
     # npx может не быть в PATH при запуске через subprocess на Windows
     npx = shutil.which("npx") or r"C:\Program Files\nodejs\npx.cmd"
     cmd = [
@@ -79,7 +87,7 @@ def render_zone(zone: dict, out_dir: Path) -> Path | None:
         str(REMOTION_DIR / "src" / "index.ts"),
         composition,
         str(out_path),
-        "--props", props_json,
+        "--props", str(props_file),
         "--log", "error",
     ]
 
@@ -88,6 +96,7 @@ def render_zone(zone: dict, out_dir: Path) -> Path | None:
         cmd, cwd=str(REMOTION_DIR),
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
+    props_file.unlink(missing_ok=True)
 
     if result.returncode == 0 and out_path.exists():
         print(f"  [zone {zone_id}] OK -> {out_path.name}")
