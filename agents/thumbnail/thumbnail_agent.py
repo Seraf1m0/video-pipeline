@@ -133,7 +133,8 @@ Your job:
    - Main text must be MASSIVE — the kind a 65-year-old can read on a phone without glasses
    - Decide text hierarchy, size ratio, and placement
 3. Choose a PHOTOREALISTIC main object that directly represents the video topic
-   - Real spacecraft, real planets, real scientists — not fantasy/sci-fi designs
+   - Use the EXACT real object — if it's Hubble, describe Hubble's actual shape precisely
+   - Describe its real visual appearance (shape, color, size, markings) so the image generator renders it accurately
    - The image must tell the story BEFORE the viewer reads the text
    - Add a DRAMATIC MOMENT: something is happening, being revealed, or confronted — not static
 4. Add INTRIGUE and BAIT — details that make the viewer lean in:
@@ -149,7 +150,7 @@ Return ONLY valid JSON:
   "text_line2": "<MAIN bold word(s) — the emotional hook, LARGEST on screen>",
   "text_hierarchy": "<BOTH lines must be large. Max ratio 1.5x. E.g. 'line2 is 1.3x larger than line1 — both are big bold headlines'>",
   "text_placement": "<upper-left | lower-left | upper-right — where text block sits>",
-  "main_object": "<ONE dominant photorealistic object filling 60-80% of frame — dramatic moment, not static pose>",
+  "main_object": "<ONE dominant object — use EXACT real name + precise visual description (shape, color, size, markings). E.g. NOT 'space telescope' but 'Hubble Space Telescope — silver cylindrical body, gold thermal blanket, two rectangular blue solar panels, large aperture end facing viewer'. Dramatic moment, not static>",
   "emotional_tone": "<shock | revelation | urgency | awe | confrontation — strong and specific>",
   "color_palette": "<vivid, high contrast, e.g. 'deep space black + dramatic orange glow + sharp white highlights'>",
   "text_style": "<ultra-bold, clean white sans-serif — NO decorative fonts. Strong dark shadow or semi-transparent backing>",
@@ -245,12 +246,23 @@ IMAGE RULES:
 - MANDATORY dramatic lighting: strong contrast, rim light, spotlight, or atmospheric glow
 - Add SMALL DETAILS that reward attention: a subtle flag, a half-hidden object, a glowing trail, dramatic exhaust/atmosphere — things that make the viewer look closer
 - Sense of SCALE and TENSION — something is at stake, something is happening RIGHT NOW
-- If TZ specifies graphic elements — implement them PRECISELY:
-  * PNG cutout: person/object rendered WITHOUT background, sharp edges, slightly oversized, placed in foreground
-  * Circle highlight: thick-border red or yellow circle drawn around a specific detail in the image
-  * Arrow: bold thick arrow (white or red, solid fill) pointing at the key element
-  * Split composition: left half vs right half with clear visual divide
-  * Zoom inset: circular magnified detail with thick border in a corner
+
+REAL OBJECT ACCURACY (critical):
+- If the topic involves a SPECIFIC real object (spacecraft, telescope, rocket, planet, person),
+  describe its EXACT real-world appearance in precise visual detail:
+  * Hubble Space Telescope → "cylindrical silver body ~13m long, gold mylar thermal blanket, two rectangular blue solar panels extending sideways, large primary mirror aperture at one end"
+  * ISS → "large modular structure, multiple cylindrical modules, large solar panel arrays in an X pattern"
+  * James Webb → "hexagonal gold mirror segments, tennis-court-sized 5-layer sunshield, silver struts"
+  * Chinese Long March rocket → "white cylindrical body, red Chinese flag markings, four strap-on boosters"
+  * Use the EXACT official name + precise description — NEVER substitute with a generic "space telescope" or "rocket"
+  * Add: "accurate to real photographs, not artistic interpretation, matches NASA/ESA imagery"
+
+GRAPHIC ELEMENTS:
+- Circle highlight: thick-border red or yellow circle (3-4px border) around a specific detail
+- Arrow: SKIP arrows in AI generation — they come out wrong direction. Use circles or glows instead.
+- PNG cutout: person/object rendered WITHOUT background, sharp edges, slightly oversized, placed in foreground
+- Split composition: left half vs right half with clear visual divide
+- Zoom inset: circular magnified detail with thick border in a corner
 - NO neon grid overlays, NO generic stock space photos, NO flat/static compositions
 
 {critique_block}{round_escalation}
