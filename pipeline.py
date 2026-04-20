@@ -122,7 +122,6 @@ _CH_ALIAS = {
     "de":  "channel_001_cosmos_de",
     "fr":  "channel_002_cosmos_fr",
     "es":  "channel_003_religion_es",
-    "fr2": "channel_004_cosmos_fr",
 }
 
 STAGES = ["transcribe", "assemble", "thumbnail", "motion_graphics"]

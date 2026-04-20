@@ -71,11 +71,6 @@ except ImportError:
     _GPU_COMPOSITOR_AVAILABLE = False
 from ass_generator import generate_ass, generate_karaoke_ass, generate_scripture_ass
 from subtitle_burner import burn_ass, generate_drawtext_filter
-from sfx_mixer import (
-    inject_sfx, compute_transition_times, build_haiku_sfx_events,
-    _build_sfx_events, _enforce_sfx_sync, _prune_sfx_by_ratio,
-    _sfx_gain,
-)
 
 try:
     from clip_selector import select_clips_for_video, commit_clip_history
@@ -111,7 +106,6 @@ _CH_ALIAS = {
     "de":  "channel_001_cosmos_de",
     "fr":  "channel_002_cosmos_fr",
     "es":  "channel_003_religion_es",
-    "fr2": "channel_004_cosmos_fr",
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -794,7 +788,6 @@ def build_audio_track(
     total_dur:    float,
     style:        dict,
     output:       Path,
-    sfx_events:   list,
     no_music:     bool,
 ) -> bool:
     """
@@ -811,7 +804,7 @@ def build_audio_track(
     build_final_audio(
         voice_path       = voiceover,
         output_path      = output,
-        sfx_events       = sfx_events,
+        sfx_events       = [],
         music_start_sec  = music_start,
         music_vol_db     = music_vol if not no_music else -100.0,
         intro_audio_path = str(intro_path) if has_intro else None,
@@ -823,96 +816,6 @@ def build_audio_track(
     return output.exists()
 
 
-_RISER_FILES = [
-    Path("assets/sfx/riser/NGTVST - Riser 2.wav"),
-    Path("assets/sfx/riser/NGTVST - Riser 3.wav"),
-]
-
-def _build_sfx_riser_events(
-    trans_plan:    list[dict],
-    trans_times:   list[float],
-    timings:       list[dict],
-    intro_dur:     float,
-    xf_dur:        float = 1.0,
-    zone_a_chance: float = 0.75,   # 75% переходов в Zone A получают riser
-    zone_b_chance: float = 0.25,   # 25% переходов в Zone B получают riser
-    vol_db:        float = -30.0,  # тихий, нейтральный фон
-) -> list[dict]:
-    """
-    Умное размещение riser SFX на переходах:
-      Zone A: ~75% transition-стыков получают riser
-      Zone B: ~25% transition-стыков получают riser (не перегружать)
-      Hard cut стыки: никогда
-
-    Riser стартует за riser_dur секунд до стыка, пик = момент смены клипа.
-    Объём -30dB — едва слышимый нейтральный подъём.
-    """
-    import random
-    if not trans_times or not trans_plan:
-        return []
-
-    riser_files = [f for f in _RISER_FILES if f.exists()]
-    if not riser_files:
-        return []
-
-    riser_dur = 4.5   # NGTVST Riser 2/3 длятся 4.5s → стартуем за 4.5s до стыка
-    vol_lin   = 10 ** (vol_db / 20.0)
-    events    = []
-
-    for i, (t_cut, plan) in enumerate(zip(trans_times, trans_plan)):
-        if plan.get("type") == "cut":
-            continue  # hard cut — без SFX
-
-        # Определяем зону по таймингу
-        zone = timings[i].get("zone", "B") if i < len(timings) else "B"
-        chance = zone_a_chance if zone == "A" else zone_b_chance
-
-        if random.random() > chance:
-            continue  # пропускаем по вероятности
-
-        t_start = max(0.0, t_cut - riser_dur)
-        riser_file = random.choice(riser_files)
-
-        events.append({
-            "time":   t_start,
-            "time_s": t_start,
-            "file":   str(riser_file),
-            "vol":    vol_lin,
-            "gain":   vol_lin,
-        })
-
-    log(f"[SFX] Riser события: {len(events)} (Zone A ~{zone_a_chance*100:.0f}%, Zone B ~{zone_b_chance*100:.0f}%)")
-    return events
-
-
-def _build_sfx_events_for_render(
-    trans_plan:    list[dict],
-    trans_times:   list[float],
-    timings:       list[dict],
-    intro_dur:     float,
-    channel_id:    str,
-    sfx_enabled:   bool,
-    sfx_vol_scale: float,
-    xf_dur:        float = 1.0,
-) -> list[dict]:
-    """Собрать SFX riser события для переходов."""
-    if not sfx_enabled:
-        return []
-    try:
-        events = _build_sfx_riser_events(
-            trans_plan  = trans_plan,
-            trans_times = trans_times,
-            timings     = timings,
-            intro_dur   = intro_dur,
-            xf_dur      = xf_dur,
-        )
-        if sfx_vol_scale != 1.0:
-            events = [{**e, "vol": e.get("vol", 1.0) * sfx_vol_scale,
-                             "gain": e.get("gain", 1.0) * sfx_vol_scale} for e in events]
-        return events
-    except Exception as e:
-        log(f"[SFX] ошибка: {e}")
-        return []
 
 
 def generate_subtitles(
@@ -1549,12 +1452,9 @@ def main() -> None:
     zone_b_count  = int(style.get("zone_b_transitions", 35))
     trans_name    = style.get("clip_transition",          "crossfade")
     trans_dur     = float(style.get("clip_transition_duration", 0.5))
-    sfx_enabled   = style.get("sfx_enabled", False)
-    sfx_vol_scale = 10 ** (float(style.get("sfx_vol_scale_db", 0.0)) / 20)
-
     log(f"Канал:   {channel_id}")
     log(f"Сессия:  {session}")
-    log(f"Стиль:   trans={trans_name}({trans_dur}s)  zone_a={zone_a_end_s}s  zone_b={zone_b_count}  sfx={'✓' if sfx_enabled else '✗'}")
+    log(f"Стиль:   trans={trans_name}({trans_dur}s)  zone_a={zone_a_end_s}s  zone_b={zone_b_count}")
 
     output_dir = get_output_dir(channel_id, session)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1725,19 +1625,6 @@ def main() -> None:
 
     log(f"[⏱] Timeline+Trim: {time.time()-t_timeline:.1f}s")
 
-    # Времена переходов (нужны для prune/sync, но transition-based SFX отключены)
-    trans_times = compute_transition_times(segments_main, intro_dur, trans_dur) if sfx_enabled else []
-
-    # SFX только от Haiku — точные нарративные метки, без transition-based risers
-    sfx_events = []
-    if sfx_enabled and any(s.get("sfx_cue") for s in segments):
-        sfx_events = build_haiku_sfx_events(
-            segments       = segments,
-            intro_duration = intro_dur,
-        )
-        log(f"SFX: {len(sfx_events)} событий (Haiku only)")
-        log(f"SFX после бюджета: {len(sfx_events)} событий")
-
     # ── 4. RENDER ─────────────────────────────────────────────────────────────
     t_render = time.time()
     log("\n--- RENDER ---")
@@ -1765,7 +1652,7 @@ def main() -> None:
         fut_audio = None if _au_ok else ex.submit(
             build_audio_track,
             voiceover, intro_path, intro_dur, total_dur,
-            style, mixed_audio_path, sfx_events, args.no_music,
+            style, mixed_audio_path, args.no_music,
         )
         fut_subs = ex.submit(
             generate_subtitles,

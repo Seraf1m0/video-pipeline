@@ -41,24 +41,6 @@
     "cta_min_gap_s": 90,
     "cta_max_gap_s": 120
   },
-  "channel_004_cosmos_fr": {
-    "name": "Cosmos FR (no intro)",
-    "intro_transition": "none",
-    "clip_transition": "fadeblack",
-    "clip_transition_duration": 1.0,
-    "zone_a_end_s": 300,
-    "zone_b_transitions": 35,
-    "sfx_enabled": true,
-    "music_vol_db": -32.0,
-    "intro_audio_vol_db": -34.0,
-    "subtitle_style": "karaoke",
-    "subtitle_font": "Montserrat ExtraBold",
-    "subtitle_max_words": 3,
-    "subtitle_size_offset": 24,
-    "color_grade": "cool_cinematic",
-    "subtitle_anim": "word_highlight",
-    "lufs_target": -16.0
-  },
   "channel_003_religion_es": {
     "name": "Religion ES",
     "intro_transition": "none",
