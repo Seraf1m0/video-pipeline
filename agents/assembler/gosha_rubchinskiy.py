@@ -523,6 +523,7 @@ def trim_clips(
     timings:    list[dict],
     lib_dir:    Path,
     temp_dir:   Path,
+    trans_dur:  float = 0.5,
 ) -> list[Path]:
     """
     Обрезать клипы до нужной длины через stream copy (мгновенно).
@@ -1322,9 +1323,25 @@ def _slice_mg_into_segs(
     slice_dir.mkdir(parents=True, exist_ok=True)
     ok = 0
 
+    # Длина анимации — защита от нарезки за конец файла (плановый dur < zone span)
+    _anim_dur_r = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "csv=p=0", str(anim_mp4)],
+        capture_output=True, text=True,
+    )
+    _anim_file_dur = float(_anim_dur_r.stdout.strip() or "0") if _anim_dur_r.returncode == 0 else 0.0
+
     for seg_start, seg_end, seg_id in covered:
         anim_offset = seg_start - zone_start   # позиция в MG-клипе
         seg_dur     = seg_end - seg_start
+
+        # Сегмент начинается за концом анимации → пропустить (план vs рендер расходятся)
+        if _anim_file_dur > 0 and anim_offset >= _anim_file_dur - 0.05:
+            log(f"  [MG] Slice seg {seg_id:03d}: offset={anim_offset:.2f}s >= anim_dur={_anim_file_dur:.2f}s → skip")
+            continue
+        # Усечь сегмент если выходит за конец анимации
+        if _anim_file_dur > 0:
+            seg_dur = min(seg_dur, _anim_file_dur - anim_offset)
 
         sliced = slice_dir / f"slice_{seg_id:03d}.mp4"
         if not sliced.exists():

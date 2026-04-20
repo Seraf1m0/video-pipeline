@@ -558,7 +558,7 @@ def plan_zones(segments: list[dict], lang: str = "German") -> list[dict]:
         final.append({
             "zone_id":     idx,
             "start_time":  round(z["start_time"], 2),
-            "end_time":    round(z["end_time"],   2),
+            "end_time":    round(z["start_time"] + dur, 2),  # end_time всегда = start + dur
             "duration":    dur,
             "composition": comp,
             "semantic":    z.get("semantic", "data_statistics"),
