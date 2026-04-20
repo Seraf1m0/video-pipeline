@@ -186,7 +186,8 @@ const Item: React.FC<{
   frame: number;
   exitStart: number;
   dotColor: string;
-}> = ({ item, index, enterFrame, frame, exitStart, dotColor }) => {
+  fontSize: number;
+}> = ({ item, index, enterFrame, frame, exitStart, dotColor, fontSize }) => {
   const { fps } = useVideoConfig();
 
   // entrance: slides in from left
@@ -239,7 +240,7 @@ const Item: React.FC<{
       {/* Text */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{
-          fontFamily: SYNE, fontSize: 26, fontWeight: "700",
+          fontFamily: SYNE, fontSize, fontWeight: "700",
           color: "#FFFFFF", letterSpacing: "-0.01em", lineHeight: 1.2,
         }}>
           {item.text}
@@ -270,6 +271,13 @@ export const List: React.FC<ListProps> = ({
   const { fps } = useVideoConfig();
   const DOT_COLORS_S = seededShuffle(DOT_COLORS, seed);
   const totalFrames = Math.round(duration_s * fps);
+
+  const maxTextLen = Math.max(...items.map(it => it.text.length));
+  const n = items.length;
+  const itemFontSize =
+    n >= 5 ? (maxTextLen > 35 ? 18 : maxTextLen > 20 ? 20 : 22) :
+    n >= 4 ? (maxTextLen > 35 ? 20 : maxTextLen > 20 ? 22 : 24) :
+             (maxTextLen > 35 ? 22 : maxTextLen > 20 ? 24 : 26);
   const exitStart   = totalFrames - EXIT_DUR;
 
   const fadeIn    = interpolate(frame, [0, 12], [0, 1], {
@@ -325,6 +333,7 @@ export const List: React.FC<ListProps> = ({
                 frame={frame}
                 exitStart={exitStart}
                 dotColor={DOT_COLORS_S[i % DOT_COLORS_S.length]}
+                fontSize={itemFontSize}
               />
             ))}
           </div>

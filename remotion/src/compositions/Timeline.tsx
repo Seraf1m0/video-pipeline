@@ -88,7 +88,8 @@ const Circle: React.FC<{
 const StepText: React.FC<{
   label: string; desc?: string; colorA: string;
   frame: number; enterFrame: number;
-}> = ({ label, desc, colorA, frame, enterFrame }) => {
+  labelFontSize: number; descFontSize: number;
+}> = ({ label, desc, colorA, frame, enterFrame, labelFontSize, descFontSize }) => {
   const { fps } = useVideoConfig();
   const labelEnter = enterFrame + 8;
   const descEnter  = enterFrame + 18;
@@ -106,7 +107,7 @@ const StepText: React.FC<{
     <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{
         opacity: labelOp, transform: `translateY(${labelY}px)`,
-        fontFamily: SYNE, fontSize: 14, fontWeight: "700",
+        fontFamily: SYNE, fontSize: labelFontSize, fontWeight: "700",
         letterSpacing: "0.18em", textTransform: "uppercase",
         color: colorA,
       }}>
@@ -115,7 +116,7 @@ const StepText: React.FC<{
       {desc && (
         <div style={{
           opacity: descOp, transform: `translateY(${descY}px)`,
-          fontFamily: MANROPE, fontSize: 13, fontWeight: "400",
+          fontFamily: MANROPE, fontSize: descFontSize, fontWeight: "400",
           color: "#FFFFFF66", letterSpacing: "0.04em", lineHeight: 1.4,
           maxWidth: 160,
         }}>
@@ -130,7 +131,8 @@ const StepText: React.FC<{
 const Step: React.FC<{
   step: TimelineStep; index: number;
   frame: number; total: number; stepColor?: string;
-}> = ({ step, index, frame, total, stepColor }) => {
+  labelFontSize: number; descFontSize: number;
+}> = ({ step, index, frame, total, stepColor, labelFontSize, descFontSize }) => {
   const [palA, palB] = PALETTE[index % PALETTE.length];
   const colorA = step.color || stepColor || palA;
   const colorB = palB;
@@ -143,7 +145,7 @@ const Step: React.FC<{
       flex: 1, minWidth: 0,
     }}>
       <Circle num={index + 1} colorA={colorA} colorB={colorB} frame={frame} enterFrame={enterFrame} />
-      <StepText label={step.label} desc={step.desc} colorA={colorA} frame={frame} enterFrame={enterFrame} />
+      <StepText label={step.label} desc={step.desc} colorA={colorA} frame={frame} enterFrame={enterFrame} labelFontSize={labelFontSize} descFontSize={descFontSize} />
     </div>
   );
 };
@@ -196,6 +198,13 @@ export const Timeline: React.FC<TimelineProps> = ({ title, steps, duration_s = 1
   const STEP_COLORS_S = seededShuffle(STEP_COLORS, seed);
   const totalFrames = Math.round(duration_s * fps);
 
+  const maxLabelLen = Math.max(...steps.map(s => s.label.length));
+  const n = steps.length;
+  const labelFontSize =
+    n >= 5 ? (maxLabelLen > 20 ? 11 : 13) :
+    n >= 4 ? (maxLabelLen > 20 ? 12 : 14) : 14;
+  const descFontSize = Math.max(11, labelFontSize - 1);
+
   const fadeIn  = interpolate(frame, [0, 8],  [0, 1], { extrapolateRight: "clamp" });
   const fadeOut = interpolate(frame, [totalFrames - 10, totalFrames], [1, 0], {
     extrapolateLeft: "clamp", extrapolateRight: "clamp",
@@ -240,7 +249,7 @@ export const Timeline: React.FC<TimelineProps> = ({ title, steps, duration_s = 1
                     color={PALETTE[(i - 1) % PALETTE.length][0]}
                   />
                 )}
-                <Step step={step} index={i} frame={frame} total={steps.length} stepColor={STEP_COLORS_S[i % STEP_COLORS_S.length]} />
+                <Step step={step} index={i} frame={frame} total={steps.length} stepColor={STEP_COLORS_S[i % STEP_COLORS_S.length]} labelFontSize={labelFontSize} descFontSize={descFontSize} />
               </React.Fragment>
             ))}
           </div>

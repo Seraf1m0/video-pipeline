@@ -97,7 +97,8 @@ const Bar: React.FC<{
   bar:BarItem; index:number; enterFrame:number; frame:number;
   exitStart:number; maxVal:number; accent:string; unit:string;
   barW:number; barLeft:number; colors:string[];
-}> = ({bar,index,enterFrame,frame,exitStart,maxVal,accent,unit,barW,barLeft,colors}) => {
+  valueFontSize:number; labelFontSize:number;
+}> = ({bar,index,enterFrame,frame,exitStart,maxVal,accent,unit,barW,barLeft,colors,valueFontSize,labelFontSize}) => {
   const color   = bar.color || colors[index % colors.length];
   const targetH = (bar.value / maxVal) * MAX_BAR_H;
 
@@ -134,7 +135,7 @@ const Bar: React.FC<{
         width:barW,
         textAlign:"center",
         opacity:valueOp,
-        fontFamily:SYNE,fontSize:24,fontWeight:"700",
+        fontFamily:SYNE,fontSize:valueFontSize,fontWeight:"700",
         color:"#FFFFFF",letterSpacing:"-0.02em",
       }}>
         {bar.value}{unit}
@@ -147,7 +148,7 @@ const Bar: React.FC<{
         width:barW,
         textAlign:"center",
         opacity:labelOp,
-        fontFamily:MANROPE,fontSize:13,fontWeight:"500",
+        fontFamily:MANROPE,fontSize:labelFontSize,fontWeight:"500",
         color:"#FFFFFF55",letterSpacing:"0.02em",lineHeight:1.3,
       }}>
         {bar.label}
@@ -177,6 +178,13 @@ export const BarChart: React.FC<BarChartProps> = ({
   const maxVal = Math.max(...bars.map(b => b.value));
   const barW   = (CHART_R - CHART_L) / bars.length;
   const enterBase = 16;
+
+  const maxLabelLen = Math.max(...bars.map(b => b.label.length));
+  const nb = bars.length;
+  const labelFontSize =
+    nb >= 7 ? (maxLabelLen > 7 ? 9  : 11) :
+    nb >= 5 ? (maxLabelLen > 7 ? 10 : 12) : 13;
+  const valueFontSize = nb >= 7 ? 18 : nb >= 5 ? 21 : 24;
 
   // Title
   const spr     = spring({frame, fps, config:{damping:28,stiffness:220}});
@@ -215,6 +223,7 @@ export const BarChart: React.FC<BarChartProps> = ({
             maxVal={maxVal} accent={accent_color} unit={unit}
             barW={barW} barLeft={CHART_L + i*barW}
             colors={COLORS_S}
+            valueFontSize={valueFontSize} labelFontSize={labelFontSize}
           />
         ))}
 
