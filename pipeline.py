@@ -9,10 +9,9 @@ Video Pipeline — полный оркестратор.
   py pipeline.py --channel de --from thumbnail
 
 Основной пайплайн:
-  1. ASSEMBLE         — MP3/result.json + библиотека клипов -> final.mp4 (Gosha)
-                        Whisper запускается внутри gosha если result.json отсутствует
-  2. THUMBNAIL        — script + thumbnail_text.txt -> thumbnail_final.png + seo_report.txt
-  3. MOTION GRAPHICS  — final.mp4 + Remotion -> final.mp4 с анимированными вставками
+  1. ASSEMBLE   — MP3/result.json + библиотека клипов -> final.mp4 (Gosha)
+                  Whisper + Remotion MG запускаются внутри gosha автоматически
+  2. THUMBNAIL  — thumbnail_text.txt -> thumbnail_final.png
 
 Для превью положи текст в: data/channels/<lang>/thumbnail_text.txt
   Строка 1 = маленький текст сверху (например: TESS-DATEN)
@@ -35,7 +34,6 @@ Motion Graphics (mg) внутри себя:
 
 import argparse
 import atexit
-import json
 import os
 import signal
 import subprocess
@@ -122,7 +120,7 @@ _CH_ALIAS = {
     "es":  "channel_003_religion_es",
 }
 
-STAGES = ["assemble", "thumbnail", "motion_graphics"]
+STAGES = ["assemble", "thumbnail"]
 
 THUMBNAIL_TEXT_FILE = "thumbnail_text.txt"   # канал/de/thumbnail_text.txt
 
@@ -180,18 +178,6 @@ def _run(cmd: list[str], label: str) -> bool:
 # Проверки артефактов
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _check_mg_injected(channel_id: str, session: str) -> bool:
-    """clip_selection.json содержит mg_overrides (вставки уже инжектированы)."""
-    cs = get_session_dir(channel_id, session) / "clip_selection.json"
-    if not cs.exists():
-        return False
-    try:
-        data = json.loads(cs.read_text(encoding="utf-8"))
-        return bool(data.get("mg_overrides"))
-    except Exception:
-        return False
-
-
 def _check_final(channel_id: str, session: str) -> bool:
     """final.mp4 существует и > 10MB."""
     final = get_final_video(channel_id, session)
@@ -235,57 +221,6 @@ def stage_thumbnail(channel_id: str, session: str, thumbnail_text: str) -> bool:
     ]
     return _run(cmd, f"THUMBNAIL — '{thumbnail_text}' -> thumbnail_final.png")
 
-
-def stage_motion_graphics(channel_id: str, channel_alias: str, session: str) -> bool:
-    """
-    Стадия вставок (motion graphics):
-      1. mg_planner_gemini.py  — планирует зоны -> motion_graphics_plan.json
-      2. mg_renderer.py        — рендерит Remotion-композиции -> zone_XX.mp4
-      3. mg_injector.py        — патчит clip_selection.json с mg_overrides
-      4. удаляем final.mp4     — gosha перерендерит с вставками
-      5. stage_assemble        — повторный монтаж (clip selection пропускается)
-    """
-    # 1. Планировщик
-    ok = _run([
-        _PYTHON,
-        "agents/motion_graphics/mg_planner_gemini.py",
-        "--channel", channel_alias,
-        "--session", session,
-    ], "MG PLAN — Gemini ->motion_graphics_plan.json")
-    if not ok:
-        print("⚠ MG planner не удался — вставки пропущены.")
-        return False
-
-    # 2. Рендер Remotion-зон
-    ok = _run([
-        _PYTHON,
-        "agents/motion_graphics/mg_renderer.py",
-        "--channel", channel_alias,
-        "--session", session,
-    ], "MG RENDER — Remotion ->zone_XX.mp4")
-    if not ok:
-        print("⚠ MG renderer не удался — вставки пропущены.")
-        return False
-
-    # 3. Патч clip_selection.json
-    ok = _run([
-        _PYTHON,
-        "agents/motion_graphics/mg_injector.py",
-        "--channel", channel_alias,
-        "--session", session,
-    ], "MG INJECT — патч clip_selection.json с mg_overrides")
-    if not ok:
-        print("⚠ MG injector не удался — вставки пропущены.")
-        return False
-
-    # 4. Удаляем final.mp4 чтобы gosha перерендерил
-    final = get_final_video(channel_id, session)
-    if final.exists():
-        final.unlink()
-        print(f"  🗑 Удалён {final.name} — gosha перерендерит с вставками")
-
-    # 5. Повторный монтаж (gosha использует готовый clip_selection.json + mg_overrides)
-    return stage_assemble(channel_id, channel_alias, session)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -378,21 +313,6 @@ def run_pipeline(
                     print("⚠ Thumbnail не удался — продолжаем без превью.")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 3. MOTION GRAPHICS
-    # ══════════════════════════════════════════════════════════════════════════
-    if "motion_graphics" in active_stages:
-        if not _check_final(channel_id, session):
-            print("✗ Нет final.mp4 — нужен assemble сначала.")
-            return
-        _injected  = _check_mg_injected(channel_id, session)
-        if _injected and _check_final(channel_id, session):
-            print(f"\n⏭ MOTION GRAPHICS: вставки уже применены")
-        else:
-            ok = stage_motion_graphics(channel_id, channel_alias, session)
-            if not ok:
-                print("⚠ Motion graphics не удались (финальное видео без вставок).")
-
-    # ══════════════════════════════════════════════════════════════════════════
     # Итог
     # ══════════════════════════════════════════════════════════════════════════
     elapsed = time.time() - t_total
@@ -423,14 +343,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Примеры:
-  py pipeline.py --channel de                                    # полный пайплайн
-  py pipeline.py --channel fr --session Video_xxx                # конкретная сессия
-  py pipeline.py --channel de --only assemble                    # только монтаж
-  py pipeline.py --channel de --only thumbnail                   # только превью
-  py pipeline.py --channel de --only motion_graphics             # только вставки
-  py pipeline.py --channel de --from thumbnail                   # только превью + вставки
-  py pipeline.py --channel de --from motion_graphics             # только вставки (если final.mp4 есть)
-  py pipeline.py --stop                                          # остановить текущий пайплайн
+  py pipeline.py --channel de                      # полный пайплайн
+  py pipeline.py --channel fr --session Video_xxx  # конкретная сессия
+  py pipeline.py --channel de --only assemble      # только монтаж (+ Whisper + MG внутри)
+  py pipeline.py --channel de --only thumbnail     # только превью
+  py pipeline.py --stop                            # остановить текущий пайплайн
 """,
     )
     parser.add_argument("--channel",
