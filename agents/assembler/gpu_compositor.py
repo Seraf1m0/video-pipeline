@@ -1082,6 +1082,10 @@ def _iter_timeline_frames(tl: dict, skip_intro: bool = False):
         while current_frame < pure_end:
             raw = current_dec.stdout.read(FRAME_BYTES)
             if len(raw) < FRAME_BYTES:
+                # EOF раньше ожидаемого (trim rounding / MG slice) — заполняем последним кадром
+                while current_frame < pure_end:
+                    yield last_frame, None, 1.0, ""
+                    current_frame += 1
                 break
             last_frame = raw
             yield raw, None, 1.0, ""
@@ -1432,8 +1436,30 @@ def run(
                 dist = torch.sqrt((_xs - cx)**2 + (_ys - cy)**2) * 1.414
                 mask = (dist < t).float()
                 return fa * (1.0 - mask) + fb * mask
-            elif ttype in ("hblur",):     # горизонтальный blur crossfade
-                return fa * (1.0 - t) + fb * t  # fallback dissolve
+            elif ttype in ("hblur", "motion_blur"):
+                return fa * (1.0 - t) + fb * t
+            elif ttype in ("whip_h",):   # горизонтальный whip: A уезжает влево, B въезжает справа
+                shift = int((1.0 - t) * W)
+                if shift > 0:
+                    a_s = torch.cat([fa[:, shift:, :], fa[:, -1:, :].expand(H, shift, 3)], dim=1)
+                    b_s = torch.cat([fb[:, :1, :].expand(H, W - (W - shift), 3) if W - shift > 0 else fb[:, :0, :],
+                                     fb[:, :W - shift, :]], dim=1) if W - shift > 0 else fb
+                    b_s = torch.cat([torch.zeros(H, shift, 3, device="cuda"), fb[:, :W - shift, :]], dim=1)
+                else:
+                    a_s = torch.zeros_like(fa)
+                    b_s = fb
+                mask = (_xs >= (shift / W)).float()
+                return a_s * (1.0 - mask) + b_s * mask
+            elif ttype in ("whip_v",):   # вертикальный whip: A уезжает вверх, B въезжает снизу
+                shift = int((1.0 - t) * H)
+                if shift > 0:
+                    a_s = torch.cat([fa[shift:, :, :], fa[-1:, :, :].expand(shift, W, 3)], dim=0)
+                    b_s = torch.cat([torch.zeros(shift, W, 3, device="cuda"), fb[:H - shift, :, :]], dim=0)
+                else:
+                    a_s = torch.zeros_like(fa)
+                    b_s = fb
+                mask = (_ys >= (shift / H)).float()
+                return a_s * (1.0 - mask) + b_s * mask
             else:
                 return fa * (1.0 - t) + fb * t  # default: dissolve
 
