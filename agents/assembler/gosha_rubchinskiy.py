@@ -1422,6 +1422,8 @@ def main() -> None:
                         help="Не генерировать intro_clips/ (только main-клипы)")
     parser.add_argument("--skip-mg", action="store_true",
                         help="Пропустить планирование и рендер Remotion motion graphics")
+    parser.add_argument("--skip-thumbnail", action="store_true",
+                        help="Пропустить генерацию превью (DE/FR cosmos)")
     parser.add_argument("--intro-duration", type=float, default=90.0,
                         help="Длительность интро в секундах (default: 90)")
     args = parser.parse_args()
@@ -1516,6 +1518,47 @@ def main() -> None:
             _mg_render_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             _fut_mg_render = _mg_render_executor.submit(_render_mg_zones, _mg_zones, _mg_dir)
             log("MG: Remotion рендер запущен в фон...")
+
+    # ── 1c. THUMBNAIL (фоновый агент) ─────────────────────────────────────────
+    # Стартует параллельно с clip selection и рендером — нужен только result.json.
+    # Только для cosmos DE/FR; ES — отдельный агент по желанию.
+    _THUMBNAIL_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr"}
+    _fut_thumb: "concurrent.futures.Future | None" = None
+    _thumb_executor: "concurrent.futures.ThreadPoolExecutor | None" = None
+
+    if not getattr(args, "skip_thumbnail", False) and channel_id in _THUMBNAIL_CHANNELS:
+        _thumb_txt = get_session_dir(channel_id, session) / "thumbnail_text.txt"
+        if not _thumb_txt.exists():
+            _thumb_txt.write_text(
+                "# Строка 1: маленький текст сверху (напр. SOLAR-DATEN)\n"
+                "# Строка 2: большой жирный текст (напр. VERNICHTET)\n",
+                encoding="utf-8",
+            )
+            log(f"THUMBNAIL: создан {_thumb_txt.name} — заполни текст, превью будет при следующем запуске")
+        else:
+            _thumb_lines = [
+                l.strip() for l in _thumb_txt.read_text(encoding="utf-8").splitlines()
+                if l.strip() and not l.strip().startswith("#")
+            ]
+            _thumb_text = " ".join(_thumb_lines) if _thumb_lines else None
+            if _thumb_text:
+                _thumb_agent = BASE_DIR / "agents" / "thumbnail" / "thumbnail_agent.py"
+                def _run_thumbnail(_channel=channel_id, _session=session, _text=_thumb_text):
+                    _env = os.environ.copy()
+                    _env["PYTHONPATH"] = str(BASE_DIR) + os.pathsep + _env.get("PYTHONPATH", "")
+                    r = subprocess.run(
+                        [sys.executable, str(_thumb_agent),
+                         "--channel", _channel, "--session", _session, "--text", _text],
+                        capture_output=True, text=True,
+                        encoding="utf-8", errors="replace",
+                        cwd=str(BASE_DIR), env=_env,
+                    )
+                    return r.returncode == 0, r.stderr
+                _thumb_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                _fut_thumb = _thumb_executor.submit(_run_thumbnail)
+                log(f"THUMBNAIL: запущен в фоне ('{_thumb_text[:50]}')")
+            else:
+                log("THUMBNAIL: thumbnail_text.txt пустой — заполни текст и перезапусти")
 
     # ── 2. CLIPS ──────────────────────────────────────────────────────────────
     t_clips = time.time()
@@ -1841,6 +1884,27 @@ def main() -> None:
 
     # ── 5. COMMIT & CLEANUP ───────────────────────────────────────────────────
     do_commit_history(selection_result, channel_id, session, final_output)
+
+    # Ждём фоновый thumbnail (обычно уже готов к этому моменту)
+    if _fut_thumb is not None:
+        _thumb_final = get_session_dir(channel_id, session) / "thumbnail" / "thumbnail_final.png"
+        if _thumb_final.exists():
+            log(f"THUMBNAIL: ✅ уже готово → {_thumb_final.name}")
+        else:
+            log("THUMBNAIL: ожидание завершения...")
+            t_thumb_wait = time.time()
+            try:
+                _ok, _err = _fut_thumb.result(timeout=600)
+                waited = time.time() - t_thumb_wait
+                if _ok:
+                    log(f"THUMBNAIL: ✅ готово (+{waited:.0f}s) → {_thumb_final.name}")
+                else:
+                    log(f"THUMBNAIL: ⚠️ не удалось{(': ' + _err[:200]) if _err else ''}")
+            except Exception as _te:
+                log(f"THUMBNAIL: ⚠️ {_te}")
+            finally:
+                if _thumb_executor:
+                    _thumb_executor.shutdown(wait=False)
 
     shutil.rmtree(temp_dir, ignore_errors=True)
     log("Временные файлы удалены")
