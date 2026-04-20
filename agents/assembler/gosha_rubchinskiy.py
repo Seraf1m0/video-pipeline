@@ -1424,6 +1424,8 @@ def main() -> None:
                         help="Пропустить планирование и рендер Remotion motion graphics")
     parser.add_argument("--skip-thumbnail", action="store_true",
                         help="Пропустить генерацию превью (DE/FR cosmos)")
+    parser.add_argument("--skip-meta", action="store_true",
+                        help="Пропустить мета-агент (ES religion: titles + tags + thumbnail)")
     parser.add_argument("--intro-duration", type=float, default=90.0,
                         help="Длительность интро в секундах (default: 90)")
     args = parser.parse_args()
@@ -1579,6 +1581,29 @@ def main() -> None:
         _thumb_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         _fut_thumb = _thumb_executor.submit(_poll_and_run_thumbnail)
         log("THUMBNAIL: наблюдатель запущен в фоне")
+
+    # ── 1d. META AGENT (ES religion only) ────────────────────────────────────
+    # Titles + descriptions + tags + thumbnail — всё параллельно с рендером.
+    _META_CHANNELS = {"channel_003_religion_es"}
+    _fut_meta: "concurrent.futures.Future | None" = None
+    _meta_executor: "concurrent.futures.ThreadPoolExecutor | None" = None
+
+    if not getattr(args, "skip_meta", False) and channel_id in _META_CHANNELS:
+        _meta_agent = BASE_DIR / "agents" / "meta_agent" / "meta_generator.py"
+        def _run_meta(_channel=channel_id, _session=session, _agent=_meta_agent):
+            _env = os.environ.copy()
+            _env["PYTHONPATH"] = str(BASE_DIR) + os.pathsep + _env.get("PYTHONPATH", "")
+            r = subprocess.run(
+                [sys.executable, str(_agent),
+                 "--channel", _channel, "--session", _session],
+                capture_output=True, text=True,
+                encoding="utf-8", errors="replace",
+                cwd=str(BASE_DIR), env=_env,
+            )
+            return r.returncode == 0, r.stderr
+        _meta_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        _fut_meta = _meta_executor.submit(_run_meta)
+        log("META: агент запущен в фоне (titles + tags + thumbnail)...")
 
     # ── 2. CLIPS ──────────────────────────────────────────────────────────────
     t_clips = time.time()
@@ -1905,7 +1930,7 @@ def main() -> None:
     # ── 5. COMMIT & CLEANUP ───────────────────────────────────────────────────
     do_commit_history(selection_result, channel_id, session, final_output)
 
-    # Ждём фоновый thumbnail (обычно уже готов к этому моменту)
+    # Ждём фоновые агенты (обычно уже готовы к этому моменту)
     if _fut_thumb is not None:
         _thumb_final = get_session_dir(channel_id, session) / "thumbnail" / "thumbnail_final.png"
         if _thumb_final.exists():
@@ -1925,6 +1950,26 @@ def main() -> None:
             finally:
                 if _thumb_executor:
                     _thumb_executor.shutdown(wait=False)
+
+    if _fut_meta is not None:
+        _meta_final = get_session_dir(channel_id, session) / "meta" / "final.txt"
+        if _meta_final.exists():
+            log(f"META: ✅ уже готово → {_meta_final.name}")
+        else:
+            log("META: ожидание завершения...")
+            t_meta_wait = time.time()
+            try:
+                _ok, _err = _fut_meta.result(timeout=900)
+                waited = time.time() - t_meta_wait
+                if _ok:
+                    log(f"META: ✅ готово (+{waited:.0f}s) → {_meta_final.name}")
+                else:
+                    log(f"META: ⚠️ не удалось{(': ' + _err[:200]) if _err else ''}")
+            except Exception as _me:
+                log(f"META: ⚠️ {_me}")
+            finally:
+                if _meta_executor:
+                    _meta_executor.shutdown(wait=False)
 
     shutil.rmtree(temp_dir, ignore_errors=True)
     log("Временные файлы удалены")
