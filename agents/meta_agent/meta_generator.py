@@ -75,6 +75,43 @@ except ImportError:
     _REQUESTS_AVAILABLE = False
     print("[META] WARNING: requests not installed — image generation will be skipped", flush=True)
 
+# ── Gemini Flash (image prompt generation with baked-in text) ─────────────────
+_FLASH_MODEL    = "gemini-2.5-flash"
+_NO_THINKING    = {"thinking_config": {"thinking_budget": 0}}
+_gemini_client  = None
+
+def _get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None:
+        from google import genai
+        env = load_env()
+        api_key = env.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
+        if not api_key:
+            raise RuntimeError("GEMINI_API_KEY not found in config/.env")
+        _gemini_client = genai.Client(api_key=api_key)
+    return _gemini_client
+
+
+def _flash(prompt: str, max_tokens: int = 2000) -> str:
+    from google.genai import types as gtypes
+    parts = [gtypes.Part.from_text(text=prompt)]
+    for attempt in range(5):
+        try:
+            resp = _get_gemini_client().models.generate_content(
+                model=_FLASH_MODEL,
+                contents=parts,
+                config={"temperature": 0.7, "max_output_tokens": max_tokens, **_NO_THINKING},
+            )
+            return resp.text.strip()
+        except Exception as e:
+            if "503" in str(e) or "UNAVAILABLE" in str(e):
+                wait = 15 * (attempt + 1)
+                log(f"[Flash] 503 overloaded, retry {attempt+1}/5 in {wait}s...")
+                time.sleep(wait)
+            else:
+                raise
+    raise RuntimeError("Flash API unavailable after 5 retries")
+
 # ── Claude CLI setup (same pattern as visual_query_generator.py) ──────────────
 _CLAUDE_DIR = Path(os.environ.get("APPDATA", "")) / "Claude/claude-code"
 if _CLAUDE_DIR.exists():
@@ -1016,28 +1053,28 @@ def compose_thumbnail(img_bytes: bytes, overlay_text: str, out_path: Path) -> bo
 
         # ── Layout mode: OpenCV face detection ────────────────────────────────
         face_bbox = _detect_face_bbox(img)
-            layout_mode = "standard"
-            if face_bbox is not None and n_lines >= 2:
-                fcx, fcy, fw_f, fh_f = face_bbox
-                left_space  = fcx - fw_f / 2
-                right_space = 1.0 - fcx - fw_f / 2
-                if fh_f > 0.58:
-                    layout_mode = "standard"
-                elif fcx < 0.40:
-                    layout_mode = "right_col"
-                elif fcx > 0.60:
-                    layout_mode = "left_col"
-                elif fw_f < 0.16 and fh_f < 0.30 and left_space > 0.30 and right_space > 0.30:
-                    layout_mode = "split"
-                else:
-                    layout_mode = "standard"
-            log(f"  [OpenCV] layout={layout_mode}" + (
-                f" (face cx={face_bbox[0]:.2f} fw={face_bbox[2]:.2f} fh={face_bbox[3]:.2f})"
-                if face_bbox is not None else " (no face detected)"
-            ))
-            COL_MAX_W    = int(w * 0.46)
-            col_cx_left  = int(w * 0.24)
-            col_cx_right = int(w * 0.76)
+        layout_mode = "standard"
+        if face_bbox is not None and n_lines >= 2:
+            fcx, fcy, fw_f, fh_f = face_bbox
+            left_space  = fcx - fw_f / 2
+            right_space = 1.0 - fcx - fw_f / 2
+            if fh_f > 0.58:
+                layout_mode = "standard"
+            elif fcx < 0.40:
+                layout_mode = "right_col"
+            elif fcx > 0.60:
+                layout_mode = "left_col"
+            elif fw_f < 0.16 and fh_f < 0.30 and left_space > 0.30 and right_space > 0.30:
+                layout_mode = "split"
+            else:
+                layout_mode = "standard"
+        log(f"  [OpenCV] layout={layout_mode}" + (
+            f" (face cx={face_bbox[0]:.2f} fw={face_bbox[2]:.2f} fh={face_bbox[3]:.2f})"
+            if face_bbox is not None else " (no face detected)"
+        ))
+        COL_MAX_W    = int(w * 0.46)
+        col_cx_left  = int(w * 0.24)
+        col_cx_right = int(w * 0.76)
 
         # Font sizing: use column width for split/side layouts, full width for standard
         fit_width = COL_MAX_W if layout_mode != "standard" else MAX_TEXT_W
@@ -1597,6 +1634,88 @@ def thread_a_image_prompts(script: str) -> dict:
         return {"image_prompts": [], "raw": "", "error": str(e)}
 
 
+# ── Gemini Flash: image prompts with baked-in text (religion style) ───────────
+
+_RELIGION_STYLE = """Oil painting style with fine brushstrokes in the manner of Old Masters (Rembrandt, Raphael, Caravaggio).
+Photorealistic human anatomy and proportions. Skin texture realistic, facial features anatomically correct.
+BRIGHT LUMINOUS palette: brilliant whites, warm golds, soft sky blues, radiant ambers. Light and heavenly, NOT dark.
+Atmosphere: celestial, divine, glowing with heavenly light. Background: bright heavenly sky, soft glowing clouds, golden light rays, ethereal mist.
+Jesus Christ appearance: long brown wavy hair, short trimmed beard, deep kind eyes, white or light blue flowing robes.
+Recognizable as Jesus Christ from classical Renaissance religious paintings. NOT a generic man.
+Composition: waist-up or full body. Jesus's face and body in the TOP 60% of the image."""
+
+_TEXT_STYLE = """The overlay text must appear in the LOWER 30% of the image.
+Text style: ultra-bold condensed white letters, slightly golden or warm tint, massive (25-35% of frame width).
+Add subtle dark atmospheric haze behind text zone (soft vignette at bottom, NOT a hard rectangle).
+Text must appear as if PAINTED or ENGRAVED into the scene — part of the composition, not a sticker.
+The text itself should have a subtle warm golden glow/aura around the letters."""
+
+
+def build_image_prompts_with_text(preview_texts: list[str], script: str) -> list[str]:
+    """
+    Uses Gemini Flash to generate 5 image prompts — one per preview text —
+    with the Spanish text visually baked into the composition (religion style).
+    Returns list of 5 prompt strings.
+    """
+    log("Gemini Flash: generating 5 image prompts with baked-in text...")
+    t0 = time.time()
+    excerpt = script[:400]
+
+    prompts_block = "\n".join(
+        f'{i+1}. Text for image: "{txt}"'
+        for i, txt in enumerate(preview_texts[:5])
+    )
+
+    system = f"""You are an expert image prompt writer for PixelAgent (an AI image generator).
+You create photorealistic image prompts for a warm Christian spiritual YouTube channel in Spanish.
+
+VISUAL STYLE (always follow):
+{_RELIGION_STYLE}
+
+TEXT INTEGRATION (always follow):
+{_TEXT_STYLE}
+
+SCRIPT EXCERPT (for thematic context):
+{excerpt}"""
+
+    user = f"""Create exactly 5 image prompts. Each prompt corresponds to one preview text that must appear in the image.
+
+{prompts_block}
+
+RULES:
+- Each prompt must be a single dense paragraph (no newlines inside), 80-120 words
+- Include the EXACT Spanish text from each entry — spelled out verbatim — as it should appear in the image (lower portion, large baked-in text)
+- Vary the composition: waist-up, full body, side-lit, arms open, looking at viewer, etc.
+- All prompts must include: Jesus Christ traditional appearance, oil painting Old Masters style, bright heavenly light, celestial atmosphere
+- Output exactly 5 prompts, one per line, no numbering, no labels, no extra text"""
+
+    try:
+        raw = _flash(f"{system}\n\n{user}", max_tokens=2000)
+        prompts = [line.strip() for line in raw.splitlines() if line.strip()]
+        prompts = [p for p in prompts if len(p) > 30][:5]
+        # Pad if fewer than 5
+        while len(prompts) < 5:
+            txt = preview_texts[len(prompts) % len(preview_texts)] if preview_texts else "DIOS TE VE"
+            prompts.append(
+                f'Jesus Christ waist-up traditional appearance long brown hair beard white robes, '
+                f'oil painting Old Masters style, bright heavenly golden light, celestial clouds, '
+                f'warm divine atmosphere, large bold text "{txt}" in lower portion of image, '
+                f'baked into scene with warm golden glow around letters'
+            )
+        log(f"Gemini Flash prompts done in {time.time()-t0:.1f}s — {len(prompts)} prompts")
+        return prompts
+    except Exception as e:
+        log(f"Gemini Flash prompt ERROR: {e} — using fallback prompts")
+        fallbacks = []
+        for txt in (preview_texts[:5] or ["DIOS TE VE"] * 5):
+            fallbacks.append(
+                f'Jesus Christ waist-up traditional appearance long brown hair beard white robes, '
+                f'oil painting Old Masters style, bright heavenly golden light, celestial atmosphere, '
+                f'large ultra-bold white text "{txt}" baked into lower portion of image with warm glow'
+            )
+        return fallbacks
+
+
 # ── Thread B: titles + descriptions + tags ────────────────────────────────────
 
 def thread_b_meta(script: str, competitors_data: dict | None = None) -> dict:
@@ -1902,6 +2021,164 @@ def analyze_thumbnails_for_ctr(compositions: list[dict], script: str) -> tuple[l
         return list(range(min(3, len(compositions)))), ""
 
 
+# ── Gemini visual evaluation of generated thumbnails ─────────────────────────
+
+_EVAL_PASS_THRESHOLD = 7  # overall score to accept (religion style is softer than cosmos)
+
+def _build_religion_eval_prompt(preview_text: str, script_topic: str) -> str:
+    return f"""\
+You are a YouTube thumbnail analyst for a warm Christian spiritual channel in Spanish.
+You understand what drives CTR in the faith/religion/spiritual niche.
+
+Evaluate this thumbnail. The image should contain text "{preview_text}" baked directly into the scene.
+
+VIDEO TOPIC: {script_topic}
+
+Score 1-10 on EACH criterion. Be honest — most AI images deserve 5-6:
+
+TEXT QUALITY:
+1. text_correctness: Is the text "{preview_text}" actually visible and correctly spelled in Spanish?
+   Score 1 if text is missing, distorted, misspelled, gibberish, or invisible.
+2. text_readability: Readable on a 120px mobile thumbnail? Bold enough? High contrast vs background?
+3. text_size: Is the text LARGE — at least 25% of frame width? Small text = 1-3.
+4. text_placement: Is text in the lower portion of the image with clear separation from the figure?
+
+VISUAL QUALITY:
+5. jesus_recognizable: Is the figure recognizable as Jesus Christ (long brown hair, beard, robes)?
+   Generic man or wrong appearance = 1-4.
+6. composition: Is the composition balanced? Figure in upper portion, text in lower? Clear focal point?
+7. visual_impact: Does this image feel divine, warm, spiritual? Would it stop someone scrolling?
+8. color_quality: Bright luminous palette — warm golds, whites, sky blues? Dark or muddy = 1-3.
+
+SEMANTIC:
+9. topic_match: Does the visual connect to the video topic and the preview text message?
+10. niche_fit: Does this look like a high-performing Christian spiritual YouTube thumbnail?
+11. ctr_potential: Would a Spanish-speaking viewer click this? Emotional pull?
+12. overall: Weighted overall. 8+ only if this could genuinely compete with top Spanish Christian channels.
+
+Return ONLY valid JSON:
+{{
+  "scores": {{
+    "text_correctness": <1-10>,
+    "text_readability": <1-10>,
+    "text_size": <1-10>,
+    "text_placement": <1-10>,
+    "jesus_recognizable": <1-10>,
+    "composition": <1-10>,
+    "visual_impact": <1-10>,
+    "color_quality": <1-10>,
+    "topic_match": <1-10>,
+    "niche_fit": <1-10>,
+    "ctr_potential": <1-10>,
+    "overall": <1-10>
+  }},
+  "passed": <true if overall >= {_EVAL_PASS_THRESHOLD} else false>,
+  "text_issues": "<specific text problems: missing/misspelled/too small/wrong placement, or null>",
+  "visual_issues": "<specific visual problems, or null>",
+  "what_works": "<what is genuinely strong about this thumbnail>"
+}}
+"""
+
+
+def evaluate_religion_thumbnails(
+    saved_paths: list[Path],
+    preview_texts: list[str],
+    script_topic: str,
+) -> list[dict]:
+    """
+    Gemini Flash looks at each generated thumbnail and scores it.
+    Returns list of dicts with path, scores, overall, passed, text_issues.
+    """
+    import re as _re
+    results = []
+    for idx, path in enumerate(saved_paths):
+        if not path.exists():
+            continue
+        text = preview_texts[idx] if idx < len(preview_texts) else ""
+        img_bytes = path.read_bytes()
+        eval_prompt = _build_religion_eval_prompt(text, script_topic)
+        try:
+            raw = _flash_with_image(eval_prompt, img_bytes, max_tokens=800)
+            raw_clean = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw, flags=_re.DOTALL).strip()
+            data = json.loads(raw_clean)
+            scores  = data.get("scores", {})
+            overall = scores.get("overall", 0)
+            passed  = data.get("passed", False)
+            txt_issues = data.get("text_issues") or ""
+            vis_issues = data.get("visual_issues") or ""
+            good       = data.get("what_works", "")
+
+            log(f"  [{path.name}] overall={overall} passed={passed}")
+            log(f"    text: correct={scores.get('text_correctness','?')} "
+                f"read={scores.get('text_readability','?')} "
+                f"size={scores.get('text_size','?')} "
+                f"place={scores.get('text_placement','?')}")
+            log(f"    visual: jesus={scores.get('jesus_recognizable','?')} "
+                f"comp={scores.get('composition','?')} "
+                f"impact={scores.get('visual_impact','?')} "
+                f"color={scores.get('color_quality','?')}")
+            if passed:
+                log(f"    ✅ {good}")
+            else:
+                if txt_issues:
+                    log(f"    ❌ TEXT: {txt_issues}")
+                if vis_issues:
+                    log(f"    ❌ VISUAL: {vis_issues}")
+
+            results.append({
+                "path":        path,
+                "preview_text": text,
+                "scores":      scores,
+                "overall":     overall,
+                "passed":      passed,
+                "text_issues": txt_issues,
+                "visual_issues": vis_issues,
+                "what_works":  good,
+            })
+        except Exception as e:
+            log(f"  Eval error for {path.name}: {e}")
+            results.append({
+                "path": path, "preview_text": text,
+                "scores": {}, "overall": 0, "passed": False,
+                "text_issues": "eval_error", "visual_issues": "", "what_works": "",
+            })
+    return results
+
+
+def _flash_with_image(prompt: str, img_bytes: bytes, max_tokens: int = 800) -> str:
+    from google.genai import types as gtypes
+    import io as _io
+    try:
+        from PIL import Image as _PILImage
+        pil = _PILImage.open(_io.BytesIO(img_bytes)).convert("RGB")
+        buf = _io.BytesIO()
+        pil.save(buf, format="JPEG", quality=92)
+        jpeg_bytes = buf.getvalue()
+    except Exception:
+        jpeg_bytes = img_bytes  # fallback: send as-is
+
+    parts = [
+        gtypes.Part.from_bytes(data=jpeg_bytes, mime_type="image/jpeg"),
+        gtypes.Part.from_text(text=prompt),
+    ]
+    for attempt in range(5):
+        try:
+            resp = _get_gemini_client().models.generate_content(
+                model=_FLASH_MODEL,
+                contents=parts,
+                config={"temperature": 0.2, "max_output_tokens": max_tokens, **_NO_THINKING},
+            )
+            return resp.text.strip()
+        except Exception as e:
+            if "503" in str(e) or "UNAVAILABLE" in str(e):
+                wait = 15 * (attempt + 1)
+                log(f"[Flash] 503, retry {attempt+1}/5 in {wait}s...")
+                time.sleep(wait)
+            else:
+                raise
+    raise RuntimeError("Flash API unavailable after 5 retries")
+
+
 # ── Image generation + thumbnail composition ──────────────────────────────────
 
 def generate_and_compose_thumbnails(
@@ -1910,17 +2187,18 @@ def generate_and_compose_thumbnails(
     meta_dir: Path,
     api_url: str,
     api_key: str,
-) -> list[Path]:
+    script_topic: str = "",
+) -> tuple[list[Path], list[dict]]:
     """
-    Generates 5 images in parallel, composes 5 thumbnails (each with its own preview text).
-    Returns list of all 5 thumbnail paths.
+    Generates 5 images in parallel, evaluates each with Gemini Flash.
+    Returns (saved_paths, eval_results).
     """
     if not image_prompts:
         log("No image prompts — skipping thumbnail generation")
-        return []
+        return [], []
     if not api_url or not api_key:
         log("PIXEL_API_URL or PIXEL_API_KEY not set — skipping image generation")
-        return []
+        return [], []
 
     while len(preview_texts) < len(image_prompts):
         preview_texts.append(preview_texts[0] if preview_texts else "DIOS TE VE")
@@ -1928,7 +2206,6 @@ def generate_and_compose_thumbnails(
     log(f"Generating {len(image_prompts)} thumbnail images in parallel...")
     t0 = time.time()
 
-    # Generate images in parallel
     raw_images: dict[int, bytes] = {}
 
     def _gen_one(idx_prompt: tuple[int, str]) -> tuple[int, bytes | None]:
@@ -1953,35 +2230,29 @@ def generate_and_compose_thumbnails(
 
     saved_paths = []
 
-    # Try HTML renderer
-    try:
-        from agents.meta_agent.html_thumbnail import render_thumbnail as html_render
-        html_available = True
-    except Exception:
-        html_available = False
-
+    # Text is baked directly into the image — save raw bytes, no PIL overlay.
     for idx in range(len(image_prompts)):
         img_bytes = raw_images.get(idx)
         if img_bytes is None:
             log(f"  Skipping thumbnail_{idx+1}.png — image generation failed")
             continue
-
-        text     = preview_texts[idx] if idx < len(preview_texts) else "Dios te habla"
         out_path = meta_dir / f"thumbnail_{idx+1}.png"
-
-        if html_available:
-            layout = "standard"
-            log(f"  Text layout: {layout}")
-            success = html_render(img_bytes, text, out_path, layout=layout)
-        else:
-            # Fallback: PIL compositor
-            success = compose_thumbnail(img_bytes, text, out_path)
-
-        if success:
+        try:
+            out_path.write_bytes(img_bytes)
             saved_paths.append(out_path)
-            save_thumbnail_project(img_bytes, text, out_path, layout=layout)
+            log(f"  Saved: {out_path.name} ({len(img_bytes)//1024}KB)")
+        except Exception as e:
+            log(f"  ERROR saving {out_path.name}: {e}")
 
-    return saved_paths
+    # ── Gemini Flash visual evaluation ────────────────────────────────────────
+    eval_results: list[dict] = []
+    if saved_paths:
+        log(f"\nGemini Flash: evaluating {len(saved_paths)} thumbnails...")
+        eval_results = evaluate_religion_thumbnails(saved_paths, preview_texts, script_topic)
+        passed_count = sum(1 for r in eval_results if r["passed"])
+        log(f"Evaluation done — {passed_count}/{len(eval_results)} passed (threshold={_EVAL_PASS_THRESHOLD})")
+
+    return saved_paths, eval_results
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -2007,23 +2278,13 @@ def main_thumbnails_only(channel_id: str, session: str) -> None:
     with open(raw_json, encoding="utf-8") as f:
         raw_data = json.load(f)
 
-    # Always regenerate image prompts with the current build_image_prompt()
-    # (cached prompts in meta_raw.json may be outdated)
-    log("Generating fresh image prompts via Claude Opus...")
+    # Load top-5 preview texts first, then regenerate image prompts with text baked in
     try:
         script_for_prompts = reconstruct_script(
             get_transcripts_dir(channel_id, session) / "result.json"
         )
     except Exception:
         script_for_prompts = ""
-    ta = thread_a_image_prompts(script_for_prompts)
-    image_prompts = ta.get("image_prompts", [])
-    if not image_prompts:
-        log("WARNING: Claude returned no prompts — falling back to meta_raw.json")
-        image_prompts = raw_data.get("image_prompts", [])
-    if not image_prompts:
-        log("ERROR: no image_prompts available")
-        sys.exit(1)
 
     # Load top-5 preview texts from preview_texts.txt
     preview_txt = meta_dir / "preview_texts.txt"
@@ -2048,13 +2309,20 @@ def main_thumbnails_only(channel_id: str, session: str) -> None:
         log("WARNING: could not load top-5 previews, using defaults")
         top5_previews = ["DIOS TE VE"] * 5
 
-    log(f"Loaded {len(image_prompts)} image prompts, top-5 previews: {top5_previews}")
+    log(f"Top-5 previews: {top5_previews}")
 
     env = load_env()
     pixel_api_url = env.get("PIXEL_API_URL", "").rstrip("/")
     pixel_api_key = env.get("PIXEL_API_KEY", "")
     if not pixel_api_url or not pixel_api_key:
         log("ERROR: PIXEL_API_URL or PIXEL_API_KEY not set in config/.env")
+        sys.exit(1)
+
+    # Generate fresh image prompts with text baked in via Gemini Flash
+    log("Generating fresh image prompts with text via Gemini Flash...")
+    image_prompts = build_image_prompts_with_text(top5_previews, script_for_prompts)
+    if not image_prompts:
+        log("ERROR: no image_prompts generated")
         sys.exit(1)
 
     # Load script for CTR analysis
@@ -2064,27 +2332,27 @@ def main_thumbnails_only(channel_id: str, session: str) -> None:
     except Exception:
         script = ""
 
-    all_thumb_paths = generate_and_compose_thumbnails(
+    all_thumb_paths, eval_results = generate_and_compose_thumbnails(
         image_prompts=image_prompts[:5],
         preview_texts=top5_previews[:5],
         meta_dir=meta_dir,
         api_url=pixel_api_url,
         api_key=pixel_api_key,
+        script_topic=script_for_prompts[:300],
     )
-    log(f"Composed {len(all_thumb_paths)} thumbnails")
+    log(f"Generated {len(all_thumb_paths)} thumbnails")
 
     if not all_thumb_paths:
         log("ERROR: no thumbnails generated")
         sys.exit(1)
 
-    compositions = [
-        {"text": top5_previews[i] if i < len(top5_previews) else "",
-         "image_desc": image_prompts[i] if i < len(image_prompts) else ""}
-        for i in range(len(all_thumb_paths))
-    ]
-
-    log("Claude analyzing thumbnails for CTR → picking top 3...")
-    top3_indices, ctr_analysis = analyze_thumbnails_for_ctr(compositions, script)
+    # Sort by Gemini overall score → top 3
+    if eval_results:
+        sorted_evals = sorted(eval_results, key=lambda r: r["overall"], reverse=True)
+        top3_indices = [all_thumb_paths.index(r["path"]) for r in sorted_evals[:3]
+                        if r["path"] in all_thumb_paths]
+    else:
+        top3_indices = list(range(min(3, len(all_thumb_paths))))
 
     save_names = ["thumbnail.png", "thumbnail_2.png", "thumbnail_3.png"]
     top3_set = set(top3_indices[:3])
@@ -2184,39 +2452,18 @@ def main() -> None:
     if thumb_engine == "pixel" and (not pixel_api_url or not pixel_api_key):
         log("WARNING: PIXEL_API_URL or PIXEL_API_KEY not found in config/.env — image generation will be skipped")
 
-    # ── Run Thread A + Thread B in parallel ───────────────────────────────────
-    # Canva engine: Thread A (image prompts) is not needed — skip it
-    use_thread_a = (thumb_engine == "pixel")
-    log(f"Launching parallel Claude Opus calls "
-        f"({'Thread A: images + ' if use_thread_a else ''}Thread B: meta)...")
+    # ── Thread B: titles + descriptions + tags + preview texts ───────────────
+    log("Launching Claude Opus (Thread B: meta)...")
     t_claude = time.time()
 
-    thread_a_result: dict = {}
     thread_b_result: dict = {}
-
-    with ThreadPoolExecutor(max_workers=2) as exe:
-        futs = []
-        if use_thread_a:
-            fut_a = exe.submit(thread_a_image_prompts, script)
-            futs.append(fut_a)
-        else:
-            fut_a = None
-        fut_b = exe.submit(thread_b_meta, script, competitors_data)
-        futs.append(fut_b)
-
-        for fut in as_completed(futs):
-            if fut is fut_a:
-                thread_a_result = fut.result()
-            else:
-                thread_b_result = fut.result()
+    thread_b_result = thread_b_meta(script, competitors_data)
 
     log(f"Claude Opus done in {time.time()-t_claude:.1f}s")
 
     # ── Extract data from results ─────────────────────────────────────────────
-    image_prompts  = thread_a_result.get("image_prompts", [])
     parsed_meta    = thread_b_result.get("parsed", {})
     raw_meta       = thread_b_result.get("raw", "")
-    raw_images     = thread_a_result.get("raw", "")
 
     # ── Extract 10 preview texts → Claude picks top 5 ────────────────────────
     preview_section = parsed_meta.get("preview_texts", "")
@@ -2225,6 +2472,11 @@ def main() -> None:
 
     log("Claude selecting top 5 preview texts...")
     top5_previews = select_top5_previews(all_previews, script)
+
+    # ── Gemini Flash: generate 5 image prompts with text baked in ─────────────
+    image_prompts: list[str] = []
+    if thumb_engine == "pixel" and pixel_api_url and pixel_api_key:
+        image_prompts = build_image_prompts_with_text(top5_previews, script)
 
     # ── Generate 5 thumbnails → Claude picks 3 best ───────────────────────────
     thumbnail_paths = []
@@ -2243,28 +2495,32 @@ def main() -> None:
             "preview_texts":  top5_previews,
         }, ensure_ascii=False))
     elif image_prompts and pixel_api_url and pixel_api_key:
-        all_thumb_paths = generate_and_compose_thumbnails(
+        script_topic = script[:300]
+        all_thumb_paths, eval_results = generate_and_compose_thumbnails(
             image_prompts=image_prompts,
             preview_texts=top5_previews,
             meta_dir=meta_dir,
             api_url=pixel_api_url,
             api_key=pixel_api_key,
+            script_topic=script_topic,
         )
-        log(f"All 5 thumbnails composed: {len(all_thumb_paths)}")
+        log(f"All {len(all_thumb_paths)} thumbnails generated and evaluated")
 
-        # Build compositions list for CTR analysis
-        compositions = [
-            {"text": top5_previews[i] if i < len(top5_previews) else "",
-             "image_desc": image_prompts[i] if i < len(image_prompts) else ""}
-            for i in range(len(all_thumb_paths))
-        ]
-
-        log("Claude analyzing 5 thumbnails for CTR → picking top 3...")
-        top3_indices, ctr_analysis = analyze_thumbnails_for_ctr(compositions, script)
+        # Sort by Gemini overall score → pick top 3
+        if eval_results:
+            sorted_evals = sorted(eval_results, key=lambda r: r["overall"], reverse=True)
+            top3_evals = sorted_evals[:3]
+            top3_indices = [all_thumb_paths.index(r["path"]) for r in top3_evals
+                            if r["path"] in all_thumb_paths]
+            ctr_analysis = " | ".join(
+                f"{r['path'].name}: overall={r['overall']} text={r['scores'].get('text_correctness','?')}"
+                for r in top3_evals
+            )
+        else:
+            top3_indices = list(range(min(3, len(all_thumb_paths))))
+            ctr_analysis = ""
 
         # Save top 3 as thumbnail.png, thumbnail_2.png, thumbnail_3.png; delete the rest.
-        # Two-phase rename: first move winners to temp names to avoid src==dst or collisions,
-        # then rename temps to final names.
         save_names = ["thumbnail.png", "thumbnail_2.png", "thumbnail_3.png"]
         top3_set = set(top3_indices[:3])
         temp_paths: dict[int, Path] = {}
@@ -2302,7 +2558,7 @@ def main() -> None:
                 log(f"  File op error (phase 2): {e}")
 
         thumbnail_paths = winner_paths
-        log(f"CTR Analysis: {ctr_analysis[:400]}")
+        log(f"Gemini scores summary: {ctr_analysis}")
     elif thumb_engine == "pixel":
         log("Skipping thumbnail generation (missing image prompts or API credentials)")
 
@@ -2430,12 +2686,10 @@ def main() -> None:
             "preview_text_top5": top5_previews,
             "preview_text_all":  all_previews,
             "ctr_analysis":      ctr_analysis,
-            "raw_image_prompts_output": raw_images,
             "raw_meta_output":  raw_meta,
             "parsed_sections":  parsed_meta,
             "thumbnail_paths":  [str(p) for p in thumbnail_paths],
             "errors": {
-                "thread_a": thread_a_result.get("error"),
                 "thread_b": thread_b_result.get("error"),
             },
         }
@@ -2462,8 +2716,6 @@ def main() -> None:
     if pdf_ok:
         log(f"PDF Report:    {pdf_path}")
     log(f"Raw JSON:      {meta_raw_path}")
-    if thread_a_result.get("error"):
-        log(f"Thread A error: {thread_a_result['error']}")
     if thread_b_result.get("error"):
         log(f"Thread B error: {thread_b_result['error']}")
 
