@@ -1296,6 +1296,19 @@ def _inject_mg_into_lib_clips(
     return injected, sfx_events, intra_mg_seg_ids
 
 
+def _probe_dur(path: Path) -> float:
+    """ffprobe duration of a media file, returns 0.0 on failure."""
+    r = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "csv=p=0", str(path)],
+        capture_output=True, text=True,
+    )
+    try:
+        return float(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else 0.0
+    except ValueError:
+        return 0.0
+
+
 def _slice_mg_into_segs(
     anim_mp4:   Path,
     covered:    list[tuple[float, float, int]],  # (start, end, seg_id) в порядке возрастания
@@ -1305,41 +1318,41 @@ def _slice_mg_into_segs(
 ) -> list[tuple[int, Path]]:
     """
     Нарезает fullscreen MG-клип на части по длительности каждого сегмента.
-    Каждая часть (видео + аудио SFX из Remotion) заменяет clip_NNN.mp4 в lib_dir.
+    anim_offset строится накопительно по реальным длительностям lib-клипов,
+    а не по Whisper-таймингам — иначе скейл Zone A смещает всю нарезку.
     """
     slice_dir = temp_dir / "mg_slices"
     slice_dir.mkdir(parents=True, exist_ok=True)
     result: list[tuple[int, Path]] = []
 
-    # Длина анимации — защита от нарезки за конец файла (плановый dur < zone span)
-    _anim_dur_r = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "csv=p=0", str(anim_mp4)],
-        capture_output=True, text=True,
-    )
-    _anim_file_dur = float(_anim_dur_r.stdout.strip() or "0") if _anim_dur_r.returncode == 0 else 0.0
+    anim_file_dur = _probe_dur(anim_mp4)
 
+    anim_offset = 0.0
     for seg_start, seg_end, seg_id in covered:
-        anim_offset = seg_start - zone_start   # позиция в MG-клипе
-        seg_dur     = seg_end - seg_start
+        src = lib_dir / f"clip_{seg_id:03d}.mp4"
+        # Реальная длительность клипа (может отличаться от Whisper-сегмента из-за Zone A скейла)
+        actual_dur = _probe_dur(src) if src.exists() else (seg_end - seg_start)
+        if actual_dur <= 0:
+            actual_dur = seg_end - seg_start
 
-        # Сегмент начинается за концом анимации → пропустить (план vs рендер расходятся)
-        if _anim_file_dur > 0 and anim_offset >= _anim_file_dur - 0.05:
-            log(f"  [MG] Slice seg {seg_id:03d}: offset={anim_offset:.2f}s >= anim_dur={_anim_file_dur:.2f}s → skip")
+        # Анимация закончилась — оставляем оригинальный lib-клип без MG
+        if anim_file_dur > 0 and anim_offset >= anim_file_dur - 0.05:
+            log(f"  [MG] Slice seg {seg_id:03d}: anim exhausted at offset {anim_offset:.2f}s → skip")
+            anim_offset += actual_dur
             continue
-        # Усечь сегмент если выходит за конец анимации
-        if _anim_file_dur > 0:
-            seg_dur = min(seg_dur, _anim_file_dur - anim_offset)
+        # Слайс обрежет клип — пропускаем чтобы не укоротить видео
+        if anim_file_dur > 0 and anim_offset + actual_dur > anim_file_dur + 0.1:
+            log(f"  [MG] Slice seg {seg_id:03d}: would truncate {actual_dur:.2f}s→{anim_file_dur-anim_offset:.2f}s → skip")
+            anim_offset += actual_dur
+            continue
 
         sliced = slice_dir / f"slice_{seg_id:03d}.mp4"
         if not sliced.exists():
-            # Output seek (-ss после -i): точный побайтный старт, без keyframe drift.
-            # Input seek был бы быстрее, но для коротких зон (8-10s) разница <0.5s.
             cmd = [
                 "ffmpeg", "-y",
                 "-i", str(anim_mp4),
                 "-ss", f"{anim_offset:.3f}",
-                "-t",  f"{seg_dur:.3f}",
+                "-t",  f"{actual_dur:.3f}",
                 "-vf", "fps=25,scale=1920:1080",
                 "-c:v", "libx264", "-preset", "fast", "-crf", "17",
                 "-pix_fmt", "yuv420p",
@@ -1350,6 +1363,7 @@ def _slice_mg_into_segs(
             r = subprocess.run(cmd, capture_output=True)
             if r.returncode != 0 or not sliced.exists():
                 log(f"  [MG] Slice seg {seg_id:03d} FAILED")
+                anim_offset += actual_dur
                 continue
 
         dst = lib_dir / f"clip_{seg_id:03d}.mp4"
@@ -1360,6 +1374,7 @@ def _slice_mg_into_segs(
         except OSError:
             shutil.copy2(sliced, dst)
         result.append((seg_id, sliced))
+        anim_offset += actual_dur
 
     return result
 
@@ -1386,27 +1401,61 @@ def _bake_panel_zone(
     bake_dir = temp_dir / "mg_baked"
     bake_dir.mkdir(parents=True, exist_ok=True)
     result: list[tuple[int, Path]] = []
-    n  = len(seg_ids)
 
-    zone_start = covered[0][0] if covered else 0.0
+    anim_file_dur = _probe_dur(anim_mp4)
 
+    # ── Pre-compute: реальные длительности клипов и anim_seek (накопительный) ──
+    actual_durs: list[float] = []
+    anim_seeks:  list[float] = []
+    cum = 0.0
     for i, seg_id in enumerate(seg_ids):
         src = lib_dir / f"clip_{seg_id:03d}.mp4"
+        seg_s, seg_e, _ = covered[i]
+        dur = _probe_dur(src) if src.exists() else (seg_e - seg_s)
+        if dur <= 0:
+            dur = seg_e - seg_s
+        actual_durs.append(dur)
+        anim_seeks.append(cum)
+        cum += dur
+
+    # ── Какие сегменты войдут в бейк (анимация их покрывает полностью) ──
+    will_bake: list[bool] = []
+    for i, seg_id in enumerate(seg_ids):
+        seek = anim_seeks[i]
+        dur  = actual_durs[i]
+        if anim_file_dur > 0 and seek >= anim_file_dur - 0.05:
+            will_bake.append(False)
+        elif anim_file_dur > 0 and seek + dur > anim_file_dur + 0.1:
+            will_bake.append(False)  # обрезало бы клип
+        else:
+            will_bake.append(True)
+
+    bake_indices = [i for i, b in enumerate(will_bake) if b]
+    if not bake_indices:
+        return result
+
+    first_bake_i = bake_indices[0]
+    last_bake_i  = bake_indices[-1]
+
+    for i, seg_id in enumerate(seg_ids):
+        if not will_bake[i]:
+            log(f"  [MG] Panel seg {seg_id:03d}: anim seek={anim_seeks[i]:.2f}s/dur={anim_file_dur:.2f}s → skip")
+            continue
+
+        src      = lib_dir / f"clip_{seg_id:03d}.mp4"
         if not src.exists():
             continue
 
-        baked    = bake_dir / f"baked_{seg_id:03d}.mp4"
-        seg_s, seg_e, _ = covered[i]
-        clip_dur = seg_e - seg_s
-        anim_seek = seg_s - zone_start   # смещение в MG-клипе для этого сегмента
+        baked     = bake_dir / f"baked_{seg_id:03d}.mp4"
+        clip_dur  = actual_durs[i]
+        anim_seek = anim_seeks[i]
 
-        is_first = (i == 0)
-        is_last  = (i == n - 1)
+        is_first = (i == first_bake_i)
+        is_last  = (i == last_bake_i)
 
         if not baked.exists():
             # ── строим выражения x для панели и видео ─────────────────────
             if is_first and is_last:
-                # Один сегмент: въезд + удержание + выезд
                 hold_end = max(sd, clip_dur - sd)
                 anim_x = (
                     f"if(lt(t,{sd:.3f}),-{pw}+{pw}*t/{sd:.3f},"
@@ -1419,16 +1468,13 @@ def _bake_panel_zone(
                     f"{vs}*(1-(t-{hold_end:.3f})/{sd:.3f})))"
                 )
             elif is_first:
-                # Въезд в начале, удерживается до конца клипа
                 anim_x = f"if(lt(t,{sd:.3f}),-{pw}+{pw}*t/{sd:.3f},0)"
                 main_x = f"if(lt(t,{sd:.3f}),{vs}*t/{sd:.3f},{vs})"
             elif is_last:
-                # Уже въехала, выезд в конце
                 hold_end = max(0.0, clip_dur - sd)
                 anim_x = f"if(lt(t,{hold_end:.3f}),0,-{pw}*(t-{hold_end:.3f})/{sd:.3f})"
                 main_x = f"if(lt(t,{hold_end:.3f}),{vs},{vs}*(1-(t-{hold_end:.3f})/{sd:.3f}))"
             else:
-                # Средний клип: панель статична
                 anim_x = "0"
                 main_x = str(vs)
 
