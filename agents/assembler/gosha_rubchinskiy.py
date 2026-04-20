@@ -1519,9 +1519,10 @@ def main() -> None:
             _fut_mg_render = _mg_render_executor.submit(_render_mg_zones, _mg_zones, _mg_dir)
             log("MG: Remotion рендер запущен в фон...")
 
-    # ── 1c. THUMBNAIL (фоновый агент) ─────────────────────────────────────────
-    # Стартует параллельно с clip selection и рендером — нужен только result.json.
-    # Только для cosmos DE/FR; ES — отдельный агент по желанию.
+    # ── 1c. THUMBNAIL (фоновый поллер) ───────────────────────────────────────
+    # Запускается параллельно с clip selection и рендером.
+    # Если thumbnail_text.txt пустой — ждёт каждые 30с пока пользователь не заполнит.
+    # Только для cosmos DE/FR.
     _THUMBNAIL_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr"}
     _fut_thumb: "concurrent.futures.Future | None" = None
     _thumb_executor: "concurrent.futures.ThreadPoolExecutor | None" = None
@@ -1534,31 +1535,50 @@ def main() -> None:
                 "# Строка 2: большой жирный текст (напр. VERNICHTET)\n",
                 encoding="utf-8",
             )
-            log(f"THUMBNAIL: создан {_thumb_txt.name} — заполни текст, превью будет при следующем запуске")
-        else:
-            _thumb_lines = [
-                l.strip() for l in _thumb_txt.read_text(encoding="utf-8").splitlines()
-                if l.strip() and not l.strip().startswith("#")
-            ]
-            _thumb_text = " ".join(_thumb_lines) if _thumb_lines else None
-            if _thumb_text:
-                _thumb_agent = BASE_DIR / "agents" / "thumbnail" / "thumbnail_agent.py"
-                def _run_thumbnail(_channel=channel_id, _session=session, _text=_thumb_text):
+            log(f"THUMBNAIL: 📝 создан {_thumb_txt} — заполни текст, агент проверяет каждые 30с")
+
+        _thumb_agent = BASE_DIR / "agents" / "thumbnail" / "thumbnail_agent.py"
+
+        def _poll_and_run_thumbnail(
+            _channel=channel_id, _session=session,
+            _txt=_thumb_txt, _agent=_thumb_agent,
+        ):
+            _POLL_INTERVAL = 30
+            _TIMEOUT       = 1800  # 30 мин — достаточно для любого рендера
+            deadline = time.time() + _TIMEOUT
+            announced = False
+
+            while time.time() < deadline:
+                lines = [
+                    l.strip() for l in _txt.read_text(encoding="utf-8").splitlines()
+                    if l.strip() and not l.strip().startswith("#")
+                ]
+                text = " ".join(lines) if lines else None
+
+                if text:
+                    log(f"THUMBNAIL: текст найден ('{text[:50]}') — запускаю агент...")
                     _env = os.environ.copy()
                     _env["PYTHONPATH"] = str(BASE_DIR) + os.pathsep + _env.get("PYTHONPATH", "")
                     r = subprocess.run(
-                        [sys.executable, str(_thumb_agent),
-                         "--channel", _channel, "--session", _session, "--text", _text],
+                        [sys.executable, str(_agent),
+                         "--channel", _channel, "--session", _session, "--text", text],
                         capture_output=True, text=True,
                         encoding="utf-8", errors="replace",
                         cwd=str(BASE_DIR), env=_env,
                     )
                     return r.returncode == 0, r.stderr
-                _thumb_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                _fut_thumb = _thumb_executor.submit(_run_thumbnail)
-                log(f"THUMBNAIL: запущен в фоне ('{_thumb_text[:50]}')")
-            else:
-                log("THUMBNAIL: thumbnail_text.txt пустой — заполни текст и перезапусти")
+
+                if not announced:
+                    log(f"THUMBNAIL: жду текст в {_txt.name} (каждые {_POLL_INTERVAL}с, до 30 мин)...")
+                    announced = True
+
+                time.sleep(_POLL_INTERVAL)
+
+            return False, "timeout — текст не был заполнен за 30 минут"
+
+        _thumb_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        _fut_thumb = _thumb_executor.submit(_poll_and_run_thumbnail)
+        log("THUMBNAIL: наблюдатель запущен в фоне")
 
     # ── 2. CLIPS ──────────────────────────────────────────────────────────────
     t_clips = time.time()
