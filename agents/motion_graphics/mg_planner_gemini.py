@@ -243,6 +243,49 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
    }
 
 ══════════════════════════════════════════
+CHARACTER LIMITS — MANDATORY, NEVER EXCEED:
+══════════════════════════════════════════
+Every text field in props MUST fit within these hard limits.
+If the natural phrasing is too long → REPHRASE, abbreviate, use numerals instead
+of words, drop articles. The viewer reads the animation in 1-2 seconds maximum.
+A shorter, punchier phrase is always better than an overflowing one.
+
+  Statement   text          → 80 chars max  (rephrase to one punchy sentence)
+  Statement   sub           → 60 chars max
+  Statement   highlight     → 1 word only
+  Timeline    title         → 40 chars max
+  Timeline    steps[].label → 30 chars max  (verb + noun, no filler)
+  Timeline    steps[].desc  → 50 chars max
+  Comparison  title         → 40 chars max
+  Comparison  left/right.label → 15 chars max  (abbreviate: "Planck-Teleskop" → "Planck")
+  Comparison  left/right.sub   → 50 chars max
+  Highlight   value         → 12 chars max  (e.g. "15 Mio." "×1.000" "99,8 %")
+  Highlight   label         → 40 chars max
+  Highlight   sub           → 80 chars max
+  List        title         → 40 chars max
+  List        items[].text  → 50 chars max  (cut to the essential noun phrase)
+  List        items[].sub   → 60 chars max
+  DataCard    title         → 40 chars max
+  DataCard    items[].label → 30 chars max
+  DataCard    items[].suffix → 8 chars max
+  BarChart    title         → 40 chars max
+  BarChart    bars[].label  → 10 chars max  (abbreviate aggressively: "Andromedagalaxie" → "Andromeda")
+  BarChart    unit          → 8 chars max
+  RadialChart title         → 40 chars max
+  RadialChart segments[].label → 20 chars max
+  RadialChart center_text   → 10 chars max
+  LineChart   title         → 40 chars max
+  LineChart   points[].label → 8 chars max  (years: "2024", short: "Jan")
+  LineChart   unit          → 8 chars max
+
+REWRITING RULES:
+- Count characters mentally before writing each field.
+- Prefer numerals: "fünfzehn Millionen" → "15 Mio."
+- Drop articles/prepositions when possible: "Die Temperatur des Kerns" → "Kerntemperatur"
+- For labels: use the shortest recognisable noun: "Neutronenstern-Rotation" → "Rotation"
+- NEVER truncate mid-word — always produce a complete, readable phrase.
+
+══════════════════════════════════════════
 COLOR SEMANTICS (for your reference only — Python will assign palettes):
 wow_fact_record → orange/fire tones
 data_statistics → blue tones
@@ -395,6 +438,79 @@ def _assign_palette(zones: list[dict]) -> list[dict]:
     return zones
 
 
+# ─── Props clamping (safety net if Gemini exceeds char limits) ───────────────
+
+def _trunc(s: str | None, n: int) -> str | None:
+    """Trim string to n chars at word boundary, append … if cut."""
+    if s is None:
+        return None
+    s = str(s)
+    if len(s) <= n:
+        return s
+    cut = s[:n - 1].rsplit(" ", 1)[0].rstrip(",.;:")
+    return cut + "…"
+
+
+_LIMITS: dict[str, dict[str, int]] = {
+    "Statement":  {"text": 80, "sub": 60, "highlight": 20},
+    "Timeline":   {"title": 40},
+    "Comparison": {"title": 40},
+    "Highlight":  {"value": 12, "label": 40, "sub": 80},
+    "List":       {"title": 40},
+    "DataCard":   {"title": 40},
+    "BarChart":   {"title": 40, "unit": 8},
+    "RadialChart":{"title": 40, "center_text": 10},
+    "LineChart":  {"title": 40, "unit": 8},
+}
+
+_LIST_LIMITS: dict[str, dict[str, dict[str, int]]] = {
+    "Timeline":   {"steps":    {"label": 30, "desc": 50}},
+    "Comparison": {"left":     {"label": 15, "sub": 50},
+                   "right":    {"label": 15, "sub": 50}},
+    "List":       {"items":    {"text": 50, "sub": 60}},
+    "DataCard":   {"items":    {"label": 30, "suffix": 8}},
+    "BarChart":   {"bars":     {"label": 10}},
+    "RadialChart":{"segments": {"label": 20}},
+    "LineChart":  {"points":   {"label": 8}},
+}
+
+
+def _clamp_props(comp: str, props: dict) -> dict:
+    """Enforce character limits on all text fields. Trims at word boundary."""
+    for field, limit in _LIMITS.get(comp, {}).items():
+        if field in props and props[field] is not None:
+            props[field] = _trunc(props[field], limit)
+
+    for list_field, subfields in _LIST_LIMITS.get(comp, {}).items():
+        items = props.get(list_field)
+        if not isinstance(items, list):
+            continue
+        if isinstance(items, dict):
+            # Comparison: left/right are dicts, not list
+            for key, item in items.items():
+                if isinstance(item, dict):
+                    for f, lim in subfields.items():
+                        if f in item and item[f] is not None:
+                            item[f] = _trunc(item[f], lim)
+        else:
+            for item in items:
+                if isinstance(item, dict):
+                    for f, lim in subfields.items():
+                        if f in item and item[f] is not None:
+                            item[f] = _trunc(item[f], lim)
+
+    # Comparison left/right are top-level dict fields, not a list
+    if comp == "Comparison":
+        for side in ("left", "right"):
+            obj = props.get(side)
+            if isinstance(obj, dict):
+                for f, lim in _LIST_LIMITS["Comparison"].get(side, {}).items():
+                    if f in obj and obj[f] is not None:
+                        obj[f] = _trunc(obj[f], lim)
+
+    return props
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def _segments_block(segments: list[dict]) -> str:
@@ -427,6 +543,7 @@ def plan_zones(segments: list[dict], lang: str = "German") -> list[dict]:
             comp = "Statement"
 
         props = z.get("props", {})
+        props = _clamp_props(comp, props)
 
         # clamp duration — min per composition, max per composition,
         # and never let animation extend past end of B-roll
