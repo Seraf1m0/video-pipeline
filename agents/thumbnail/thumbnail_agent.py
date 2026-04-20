@@ -141,7 +141,7 @@ Return ONLY valid JSON:
 {{
   "text_line1": "<supporting text — context/setup, or empty string if single line. If used, must still be large and bold — NOT tiny>",
   "text_line2": "<MAIN bold word(s) — the emotional hook, LARGEST on screen>",
-  "text_hierarchy": "<describe: which is bigger, size ratio, e.g. 'line2 is 3x larger than line1'>",
+  "text_hierarchy": "<BOTH lines must be large. Max ratio 1.5x. E.g. 'line2 is 1.3x larger than line1 — both are big bold headlines'>",
   "text_placement": "<upper-left | lower-left | upper-right — where text block sits>",
   "main_object": "<ONE dominant photorealistic object filling 60-80% of frame — must match topic exactly>",
   "emotional_tone": "<awe | shock | revelation | urgency | wonder — appropriate for 65+ sensibility>",
@@ -221,7 +221,7 @@ CREATIVE BRIEF (TZ):
 TEXT TO INCLUDE (mandatory, exact spelling):
 {f'- Supporting text (line 1): "{line1}" — LARGE AND BOLD, minimum 15% of frame height' if line1 else '- No line 1 — single dominant line only'}
 - MAIN bold text (line 2): "{line2}" — the HERO text
-- Text hierarchy: {hierarchy}
+- Text hierarchy: {hierarchy} — MAX size ratio 1.5x between lines, BOTH must be headline-sized
 
 TEXT RENDERING RULES (non-negotiable):
 - "{line2}" must be ENORMOUS — letters 25-35% of frame HEIGHT, ultra-thick strokes
