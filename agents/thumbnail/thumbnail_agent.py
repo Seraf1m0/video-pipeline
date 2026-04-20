@@ -81,7 +81,13 @@ def _flash(prompt: str, images: list[bytes] | None = None, max_tokens: int = 100
                 contents=parts,
                 config={"temperature": 0.4, "max_output_tokens": max_tokens, **_NO_THINKING},
             )
-            return resp.text.strip()
+            text = (resp.text or "").strip()
+            if not text:
+                attempt += 1
+                print(f"  [Flash] empty response, retry #{attempt} in 10s...", flush=True)
+                time.sleep(10)
+                continue
+            return text
         except Exception as e:
             if "503" in str(e) or "UNAVAILABLE" in str(e) or "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                 attempt += 1
