@@ -5,7 +5,7 @@ Video Pipeline — полный оркестратор.
   py pipeline.py --channel de
   py pipeline.py --channel fr --session Video_20260409_120000
   py pipeline.py --channel de --only assemble
-  py pipeline.py --channel de --only motion_graphics
+  py pipeline.py --channel de --only thumbnail
   py pipeline.py --channel de --from thumbnail
 
 Основной пайплайн:
@@ -25,11 +25,6 @@ Gosha (assemble) внутри себя:
   e. Субтитры            — ASS karaoke (word-level Whisper timestamps)
   f. GPU рендер          — PyTorch CUDA compositing -> final.mp4
 
-Motion Graphics (mg) внутри себя:
-  a. mg_planner_gemini   — Gemini 2.5 Flash читает скрипт -> motion_graphics_plan.json
-  b. mg_renderer         — Remotion рендерит каждую зону -> zone_XX.mp4
-  c. mg_injector         — патчит clip_selection.json с mg_overrides
-  d. gosha (повторно)    — gosha использует mg_overrides -> final.mp4 с вставками
 """
 
 import argparse
@@ -234,10 +229,10 @@ def run_pipeline(
     start_from: str | None = None,
 ) -> None:
     """
-    Полный пайплайн: assemble ->thumbnail ->motion_graphics.
+    Полный пайплайн: assemble ->thumbnail.
 
     Каждая стадия проверяет артефакты и пропускается если уже выполнена.
-    Транскрипция Whisper выполняется внутри gosha если result.json отсутствует.
+    Транскрипция Whisper и Remotion MG выполняются внутри gosha автоматически.
     """
     channel_id = _CH_ALIAS.get(channel_alias, channel_alias)
     t_total = time.time()
@@ -263,12 +258,8 @@ def run_pipeline(
     # если result.json отсутствует.
     # ══════════════════════════════════════════════════════════════════════════
     if "assemble" in active_stages:
-        _mg_coming = "motion_graphics" in active_stages
-        _can_skip = session and _check_final(channel_id, session)
-        if _can_skip and not _mg_coming:
+        if session and _check_final(channel_id, session):
             print(f"\n⏭ ASSEMBLE: final.mp4 уже есть")
-        elif _can_skip and _mg_coming:
-            print(f"\n⏭ ASSEMBLE: final.mp4 уже есть (MG стадия перерендерит после вставок)")
         else:
             ok = stage_assemble(channel_id, channel_alias, session)
             if not ok:
