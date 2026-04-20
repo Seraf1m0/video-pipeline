@@ -569,10 +569,15 @@ def trim_clips(
 
         def _trim(args: tuple) -> None:
             src, dst, dur, seg_id = args
+            # Re-encode с tpad=clone чтобы гарантировать точную длину:
+            # stream copy (-c:v copy) режет по keyframe → клип может быть
+            # короче на 1-2 кадра → GPU compositor читает EOF раньше времени.
             cmd = [
                 "ffmpeg", "-y", "-i", str(src),
+                "-vf", f"fps=25,tpad=stop_mode=clone:stop_duration=0.08",
                 "-t", f"{dur:.3f}",
-                "-c:v", "copy", "-an",
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
+                "-pix_fmt", "yuv420p", "-an",
                 "-loglevel", "warning",
                 str(dst),
             ]
@@ -1317,9 +1322,12 @@ def _slice_mg_into_segs(
 
         sliced = slice_dir / f"slice_{seg_id:03d}.mp4"
         if not sliced.exists():
+            # Output seek (-ss после -i): точный побайтный старт, без keyframe drift.
+            # Input seek был бы быстрее, но для коротких зон (8-10s) разница <0.5s.
             cmd = [
                 "ffmpeg", "-y",
-                "-ss", f"{anim_offset:.3f}", "-i", str(anim_mp4),
+                "-i", str(anim_mp4),
+                "-ss", f"{anim_offset:.3f}",
                 "-t",  f"{seg_dur:.3f}",
                 "-vf", "fps=25,scale=1920:1080",
                 "-c:v", "libx264", "-preset", "fast", "-crf", "17",
