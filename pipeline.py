@@ -4,17 +4,15 @@ Video Pipeline — полный оркестратор.
 Запуск одной командой:
   py pipeline.py --channel de
   py pipeline.py --channel fr --session Video_20260409_120000
-  py pipeline.py --channel de --only transcribe
   py pipeline.py --channel de --only assemble
   py pipeline.py --channel de --only motion_graphics
-  py pipeline.py --channel de --from assemble
-  py pipeline.py --channel de --from motion_graphics
+  py pipeline.py --channel de --from thumbnail
 
 Основной пайплайн:
-  1. TRANSCRIBE       — MP3 -> session + result.json (Whisper large-v3-turbo)
-  2. ASSEMBLE         — result.json + библиотека клипов -> final.mp4 (Gosha)
-  3. THUMBNAIL        — script + thumbnail_text.txt -> thumbnail_final.png + seo_report.txt
-  4. MOTION GRAPHICS  — final.mp4 + Remotion -> final.mp4 с анимированными вставками
+  1. ASSEMBLE         — MP3/result.json + библиотека клипов -> final.mp4 (Gosha)
+                        Whisper запускается внутри gosha если result.json отсутствует
+  2. THUMBNAIL        — script + thumbnail_text.txt -> thumbnail_final.png + seo_report.txt
+  3. MOTION GRAPHICS  — final.mp4 + Remotion -> final.mp4 с анимированными вставками
 
 Для превью положи текст в: data/channels/<lang>/thumbnail_text.txt
   Строка 1 = маленький текст сверху (например: TESS-DATEN)
@@ -57,8 +55,8 @@ if str(_UTILS_DIR) not in sys.path:
     sys.path.insert(0, str(_UTILS_DIR))
 
 from paths import (
-    get_channel_dir, get_last_session,
-    get_result_json, get_final_video, get_session_dir,
+    get_last_session,
+    get_final_video, get_session_dir,
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -124,7 +122,7 @@ _CH_ALIAS = {
     "es":  "channel_003_religion_es",
 }
 
-STAGES = ["transcribe", "assemble", "thumbnail", "motion_graphics"]
+STAGES = ["assemble", "thumbnail", "motion_graphics"]
 
 THUMBNAIL_TEXT_FILE = "thumbnail_text.txt"   # канал/de/thumbnail_text.txt
 
@@ -178,15 +176,6 @@ def _run(cmd: list[str], label: str) -> bool:
     return ok
 
 
-def _has_audio(channel_id: str) -> bool:
-    """Есть ли MP3/WAV в корне канала (для создания новой сессии)."""
-    ch_dir = get_channel_dir(channel_id)
-    for ext in ("*.mp3", "*.wav", "*.m4a"):
-        if list(ch_dir.glob(ext)):
-            return True
-    return False
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Проверки артефактов
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -203,18 +192,6 @@ def _check_mg_injected(channel_id: str, session: str) -> bool:
         return False
 
 
-def _check_transcription(channel_id: str, session: str) -> bool:
-    """result.json существует и содержит сегменты."""
-    rj = get_result_json(channel_id, session)
-    if not rj.exists():
-        return False
-    try:
-        data = json.loads(rj.read_text(encoding="utf-8"))
-        return len(data.get("segments", [])) > 0
-    except Exception:
-        return False
-
-
 def _check_final(channel_id: str, session: str) -> bool:
     """final.mp4 существует и > 10MB."""
     final = get_final_video(channel_id, session)
@@ -225,28 +202,13 @@ def _check_final(channel_id: str, session: str) -> bool:
 # Стадии
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def stage_transcribe(channel_id: str) -> str | None:
-    """Запустить транскрипцию, вернуть имя сессии."""
-    cmd = [
-        _PYTHON,
-        "agents/transcriber/transcriber.py",
-        "--channel", channel_id,
-        "--mode", "random",
-    ]
-    ok = _run(cmd, "TRANSCRIBE — Whisper ->result.json")
-    if not ok:
-        return None
-    return get_last_session(channel_id)
-
-
-def stage_assemble(channel_id: str, channel_alias: str, session: str) -> bool:
-    """Запустить монтаж через gosha (clips + audio + subs ->final.mp4)."""
-    cmd = [
-        _PYTHON,
-        "agents/assembler/gosha_rubchinskiy.py",
-        "--channel", channel_alias,
-        "--session", session,
-    ]
+def stage_assemble(channel_id: str, channel_alias: str, session: str | None) -> bool:
+    """Запустить монтаж через gosha (clips + audio + subs ->final.mp4).
+    session=None — gosha сам найдёт/создаст сессию из MP3 или последней сессии.
+    """
+    cmd = [_PYTHON, "agents/assembler/gosha_rubchinskiy.py", "--channel", channel_alias]
+    if session:
+        cmd += ["--session", session]
     return _run(cmd, "ASSEMBLE — Gosha ->clip selection + render ->final.mp4")
 
 
@@ -337,9 +299,10 @@ def run_pipeline(
     start_from: str | None = None,
 ) -> None:
     """
-    Полный пайплайн: transcribe ->assemble.
+    Полный пайплайн: assemble ->thumbnail ->motion_graphics.
 
     Каждая стадия проверяет артефакты и пропускается если уже выполнена.
+    Транскрипция Whisper выполняется внутри gosha если result.json отсутствует.
     """
     channel_id = _CH_ALIAS.get(channel_alias, channel_alias)
     t_total = time.time()
@@ -360,22 +323,27 @@ def run_pipeline(
     print(f"  Стадии: {' ->'.join(active_stages)}")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 1. TRANSCRIBE
+    # 1. ASSEMBLE
+    # Gosha сам создаёт сессию из MP3 (если session=None) и запускает Whisper
+    # если result.json отсутствует.
     # ══════════════════════════════════════════════════════════════════════════
-    if "transcribe" in active_stages:
-        if session and _check_transcription(channel_id, session):
-            print(f"\n⏭ TRANSCRIBE: result.json уже есть ({session})")
-        elif _has_audio(channel_id) or not session:
-            new_session = stage_transcribe(channel_id)
-            if new_session:
-                session = new_session
-            else:
-                print("✗ Транскрипция не удалась.")
-                return
+    if "assemble" in active_stages:
+        _mg_coming = "motion_graphics" in active_stages
+        _can_skip = session and _check_final(channel_id, session)
+        if _can_skip and not _mg_coming:
+            print(f"\n⏭ ASSEMBLE: final.mp4 уже есть")
+        elif _can_skip and _mg_coming:
+            print(f"\n⏭ ASSEMBLE: final.mp4 уже есть (MG стадия перерендерит после вставок)")
         else:
-            print(f"\n⏭ TRANSCRIBE: нет аудио в корне канала, используем сессию {session}")
+            ok = stage_assemble(channel_id, channel_alias, session)
+            if not ok:
+                print("✗ Монтаж не удался.")
+                return
+            # Gosha мог создать новую сессию из MP3 — обновляем
+            if not session:
+                session = get_last_session(channel_id)
 
-    # Если сессия не определена — ищем последнюю
+    # Если сессия всё ещё не определена — ищем последнюю
     if not session:
         session = get_last_session(channel_id)
     if not session:
@@ -391,28 +359,7 @@ def run_pipeline(
         print(f"\n  📝 Создан {_thumb_txt} — заполни текст для превью")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 2. ASSEMBLE
-    # ══════════════════════════════════════════════════════════════════════════
-    if "assemble" in active_stages:
-        # Пропускаем если final.mp4 уже есть И НЕТ следующей стадии MG
-        # (если запущены motion_graphics — final.mp4 будет удалён и перерендерен там)
-        _mg_coming = "motion_graphics" in active_stages
-        if _check_final(channel_id, session) and not _mg_coming:
-            print(f"\n⏭ ASSEMBLE: final.mp4 уже есть")
-        elif _check_final(channel_id, session) and _mg_coming:
-            # final.mp4 есть — первый проход уже был, MG стадия сделает второй
-            print(f"\n⏭ ASSEMBLE: final.mp4 уже есть (MG стадия перерендерит после вставок)")
-        else:
-            if not _check_transcription(channel_id, session):
-                print("✗ Нет result.json — нужна транскрипция сначала.")
-                return
-            ok = stage_assemble(channel_id, channel_alias, session)
-            if not ok:
-                print("✗ Монтаж не удался.")
-                return
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # 3. THUMBNAIL
+    # 2. THUMBNAIL
     # ══════════════════════════════════════════════════════════════════════════
     if "thumbnail" in active_stages:
         thumb_dir = get_session_dir(channel_id, session) / "thumbnail"
@@ -431,7 +378,7 @@ def run_pipeline(
                     print("⚠ Thumbnail не удался — продолжаем без превью.")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 4. MOTION GRAPHICS
+    # 3. MOTION GRAPHICS
     # ══════════════════════════════════════════════════════════════════════════
     if "motion_graphics" in active_stages:
         if not _check_final(channel_id, session):
@@ -478,11 +425,9 @@ def main():
 Примеры:
   py pipeline.py --channel de                                    # полный пайплайн
   py pipeline.py --channel fr --session Video_xxx                # конкретная сессия
-  py pipeline.py --channel de --only transcribe                  # только транскрипция
   py pipeline.py --channel de --only assemble                    # только монтаж
   py pipeline.py --channel de --only thumbnail                   # только превью
   py pipeline.py --channel de --only motion_graphics             # только вставки
-  py pipeline.py --channel de --from assemble                    # пропустить транскрипцию
   py pipeline.py --channel de --from thumbnail                   # только превью + вставки
   py pipeline.py --channel de --from motion_graphics             # только вставки (если final.mp4 есть)
   py pipeline.py --stop                                          # остановить текущий пайплайн

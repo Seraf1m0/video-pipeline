@@ -1415,7 +1415,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Assembler v2 — чистый монтаж видео")
     parser.add_argument("--channel",  help="Канал: de | fr | es | channel_001_cosmos_de | ...")
     parser.add_argument("--session",  help="Имя сессии (по умолчанию: последняя)")
-    parser.add_argument("--text-only", action="store_true", help="Только E5 text matching — без visual embeddings и pHash")
+    parser.add_argument("--text-only", action="store_true", help="Только Gemini text embeddings — без pHash sliding window")
     parser.add_argument("--no-subs",  action="store_true", help="Без субтитров")
     parser.add_argument("--no-music", action="store_true", help="Без фоновой музыки")
     parser.add_argument("--skip-intro-clips", action="store_true",
