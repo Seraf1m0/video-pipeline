@@ -18,8 +18,8 @@ gemini_indexer.py — Индексатор библиотеки через Gemin
   py agents/library/gemini_indexer.py --full
   py agents/library/gemini_indexer.py --resume
 
-После индекса — перестроить CLIP embeddings:
-  py agents/library/visual_embedder.py --channel channel_001_cosmos_de
+После индекса — обновить Gemini embeddings:
+  py agents/library/gemini_embedder.py --channel channel_001_cosmos_de
 """
 
 import argparse

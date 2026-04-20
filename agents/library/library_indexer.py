@@ -6,12 +6,11 @@ Library Indexer — индексация библиотеки футажей д�
   2. FFprobe-фильтрация (портрет, ratio, длительность, разрешение)
   3. Нарезка по сценам (файлы >30с), trim 2с с краёв
   4. Апскейл до 1920x1080 (NVENC или CPU fallback)
-  5. BLIP-описание 3 кадров (если сервер доступен)
+  5. Vision-описание 3 кадров (если сервер доступен)
   6. Сохранение library.json
 
 Запуск:
-  py agents/library/library_indexer.py --source "D:\\Монета ютуб\\Cosmos\\Футажи" --skip-blip
-  py agents/library/library_indexer.py --blip-only
+  py agents/library/library_indexer.py --source "D:\\Монета ютуб\\Cosmos\\Футажи"
   py agents/library/library_indexer.py --source "..." --resume
 """
 
@@ -570,8 +569,6 @@ def process_file(
             "fps":                info["fps"],
             "bitrate":            info["bitrate"],
             "has_text":           vision_result["has_text"],
-            "blip_descriptions":  vision_result["descriptions"],
-            "blip_tags":          vision_result["vision_tags"],
             "indexed":            bool(vision_result["descriptions"]),
         }
         lib["clips"][clip_id] = clip_entry
@@ -624,122 +621,6 @@ def copy_phase(source: Path) -> list[Path]:
     return copied
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Vision-only фаза
-# ══════════════════════════════════════════════════════════════════════════════
-
-def vision_only_phase(channel_id: str = "channel_001_cosmos_de") -> None:
-    """Параллельная индексация серверами Qwen (round-robin, батчи по 4)."""
-    import threading
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from vision.vision_client import get_available_servers, analyze_batch, analyze_video
-
-    niche = get_niche(channel_id)
-    lib   = load_library()
-    if not lib["clips"]:
-        print("library.json пустой — сначала запусти индексацию.")
-        return
-
-    available = get_available_servers()
-    if not available:
-        print("Нет доступных Vision серверов!\nЗапусти: agents\\vision\\start_servers.bat")
-        return
-
-    n_servers = len(available)
-    print(f"\n🚀 Vision серверов: {n_servers}/4", flush=True)
-
-    to_process = [
-        (cid, clip) for cid, clip in lib["clips"].items()
-        if not clip.get("indexed")
-        and not cid.startswith("photo_")
-    ]
-    print(f"📋 Клипов для индексации: {len(to_process)}\n", flush=True)
-
-    # Разбить на батчи по 4
-    pairs = []
-    for i in range(0, len(to_process), 4):
-        pairs.append(to_process[i:i + 4])
-
-    try:
-        from tqdm import tqdm
-    except ImportError:
-        tqdm = None
-
-    _json_lock  = threading.Lock()
-    done_count  = [0]
-    reject_count = [0]
-    completed   = [0]
-    total_clips = len(to_process)
-
-    def process_pair(pair, server_url):
-        paths = [str(_CLIPS_DIR / e["file"]) for _, e in pair]
-        # Дополнить до 4 пустыми строками
-        p1 = paths[0]
-        p2 = paths[1] if len(paths) > 1 else ""
-        p3 = paths[2] if len(paths) > 2 else ""
-        p4 = paths[3] if len(paths) > 3 else ""
-        result = analyze_batch(p1, p2, p3, p4, server_url=server_url, niche=niche)
-        out = []
-        if result:
-            for j, (cid, entry) in enumerate(pair):
-                key = f"clip{j+1}"
-                out.append((cid, entry, result.get(key, {})))
-        return out
-
-    assignments = [(pair, available[i % n_servers]) for i, pair in enumerate(pairs)]
-
-    bar = tqdm(
-        total=total_clips,
-        unit="clip",
-        dynamic_ncols=True,
-        bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
-    ) if tqdm else None
-
-    with ThreadPoolExecutor(max_workers=n_servers) as executor:
-        futures = {
-            executor.submit(process_pair, pair, server): pair
-            for pair, server in assignments
-        }
-        for future in as_completed(futures):
-            try:
-                results = future.result()
-            except Exception as e:
-                if bar:
-                    bar.write(f"  Ошибка: {e}")
-                continue
-
-            with _json_lock:
-                completed[0] += 1
-                for cid, entry, r in results:
-                    entry["indexed"] = True
-                    entry.pop("blip_descriptions", None)
-                    entry.pop("blip_tags", None)
-                    if r.get("valid"):
-                        entry["rejected"] = False
-                        entry["keywords"] = r.get("keywords", "")
-                        done_count[0] += 1
-                        if bar:
-                            bar.write(f"  {cid}: {entry['keywords'][:80]}")
-                    else:
-                        entry["rejected"]      = True
-                        entry["reject_reason"] = r.get("reason", "no_response")
-                        reject_count[0] += 1
-                        if bar:
-                            bar.write(f"  X {cid}: {entry['reject_reason']}")
-                    if bar:
-                        bar.update(1)
-                        bar.set_postfix(ok=done_count[0], rej=reject_count[0], srv=n_servers)
-
-                if completed[0] % 50 == 0:
-                    save_library(lib)
-
-    if bar:
-        bar.close()
-    save_library(lib)
-    print(f"\nVision: {done_count[0]}/{total_clips} клипов  отклонено: {reject_count[0]}")
-    print(f"{_LIB_JSON}")
 
 
 def _apply_single_result(cid: str, clip: dict, result: dict) -> None:
@@ -748,8 +629,6 @@ def _apply_single_result(cid: str, clip: dict, result: dict) -> None:
         clip["indexed"]  = True
         clip["rejected"] = False
         clip["keywords"] = result.get("vision_tags", result["descriptions"][0])
-        clip.pop("blip_descriptions", None)
-        clip.pop("blip_tags", None)
         print(f"  ✅ {cid}: {clip['keywords'][:60]}", flush=True)
     else:
         # Чёрный экран или frozen — всё равно помечаем indexed чтобы не ретраить
@@ -871,7 +750,7 @@ def index_photos_phase(skip_vision: bool = False) -> None:
             "height":        h,
             "ratio":         ratio,
             "description":   vision_result["description"],
-            "blip_tags":     vision_result["vision_tags"],
+            "keywords":      vision_result["vision_tags"],
             "has_text":      vision_result["has_text"],
             "indexed":       bool(vision_result["description"]),
         }
@@ -941,13 +820,13 @@ def main() -> None:
     )
     parser.add_argument("--source", default=r"D:\Монета ютуб\Cosmos\Футажи",
                         help="Папка с исходными футажами")
-    parser.add_argument("--skip-vision", "--skip-blip", action="store_true",
+    parser.add_argument("--skip-vision", action="store_true",
                         dest="skip_vision", help="Пропустить Vision анализ")
     parser.add_argument("--skip-copy",  action="store_true",
                         help="Не копировать файлы (уже в temp/raw/)")
     parser.add_argument("--resume",     action="store_true",
                         help="Продолжить с места остановки")
-    parser.add_argument("--vision-only", "--blip-only", action="store_true",
+    parser.add_argument("--vision-only", action="store_true",
                         dest="vision_only", help="Только добавить Vision к уже готовым клипам")
     parser.add_argument("--photos-only", action="store_true",
                         dest="photos_only", help="Только проиндексировать фото из library/photos/")
@@ -992,7 +871,7 @@ def main() -> None:
 
     # ── Vision-only режим ───────────────────────────────────────────────────────
     if args.vision_only:
-        vision_only_phase(args.channel)
+        print("⚠ --vision-only: vision_only_phase удалена (использовала удалённый vision.vision_client)")
         return
 
     # ── Photos-only режим ───────────────────────────────────────────────────────
@@ -1023,8 +902,6 @@ def main() -> None:
         print(f"Фото сброшено:   {reset_photos}")
 
         save_library(lib)
-        print("Запускаю vision_only_phase (клипы)...\n")
-        vision_only_phase(args.channel)
         print("\nЗапускаю index_photos_phase (фото)...\n")
         index_photos_phase(skip_vision=args.skip_vision)
         return

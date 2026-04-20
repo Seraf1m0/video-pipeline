@@ -20,8 +20,6 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 
-
-
 # ── Пути через paths.py (поддержка нескольких библиотек по нишам) ─────────────
 _utils_dir  = Path(__file__).resolve().parent.parent / "utils"
 _tools_dir  = Path(__file__).resolve().parent.parent.parent / "tools"
@@ -32,82 +30,10 @@ if str(_tools_dir) not in sys.path:
 from paths import (
     get_library_dir,
     get_library_json,
-    get_clips_dir,
-    get_embeddings_file,
     get_usage_history,
     get_niche,
     get_lang,
 )
-
-_EMBED_SERVER    = "http://127.0.0.1:8765"
-
-# ─── Embedding — сервер или локальная модель ──────────────────────────
-
-_embed_model = None
-_server_ok: bool | None = None  # None = не проверяли
-
-
-def _check_server() -> bool:
-    global _server_ok
-    if _server_ok is not None:
-        return _server_ok
-    try:
-        import urllib.request
-        import json as _j
-        body = _j.dumps({"texts": ["test"], "mode": "query"}).encode()
-        req = urllib.request.Request(f"{_EMBED_SERVER}/encode", data=body, headers={"Content-Type": "application/json"})
-        urllib.request.urlopen(req, timeout=3)
-        _server_ok = True
-        print(f"⚡ Embedding server доступен ({_EMBED_SERVER})", flush=True)
-    except Exception:
-        _server_ok = False
-        print("📦 Embedding server недоступен — загружаем модель локально...", flush=True)
-    return _server_ok
-
-
-def _encode_via_server(texts: list[str], mode: str) -> np.ndarray:
-    import json as _json
-    import urllib.request
-    body = _json.dumps({"texts": texts, "mode": mode}).encode()
-    req = urllib.request.Request(
-        f"{_EMBED_SERVER}/encode",
-        data=body,
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = _json.loads(resp.read())
-    return np.array(data["embeddings"], dtype=np.float32)
-
-
-def _encode_local(texts: list[str], mode: str) -> np.ndarray:
-    global _embed_model
-    if _embed_model is None:
-        from sentence_transformers import SentenceTransformer
-        _embed_model = SentenceTransformer(
-            "intfloat/multilingual-e5-large",
-            model_kwargs={"torch_dtype": "float16"},
-        )
-        print("✅ Модель загружена", flush=True)
-    prefix = "query: " if mode == "query" else "passage: "
-    prefixed = [f"{prefix}{t}" for t in texts]
-    return _embed_model.encode(prefixed, normalize_embeddings=True, convert_to_numpy=True)
-
-
-def _encode(texts: list[str], mode: str) -> np.ndarray:
-    if _check_server():
-        return _encode_via_server(texts, mode)
-    return _encode_local(texts, mode)
-
-
-def encode_query(text: str) -> np.ndarray:
-    return _encode([text], "query")[0]
-
-
-def encode_passage(text: str) -> np.ndarray:
-    return _encode([text], "passage")[0]
-
-
-# ─── Build / load embeddings ──────────────────
 
 def _combine_keywords(entry: dict) -> str:
     """Объединить все доступные языковые keywords в одну строку."""
@@ -117,70 +43,6 @@ def _combine_keywords(entry: dict) -> str:
         entry.get("keywords_fr", ""),
         entry.get("keywords_es", ""),
     ]))
-
-
-def build_library_embeddings(channel_id: str = "channel_001_cosmos_de"):
-    """
-    Предвычислить embeddings для всех проиндексированных клипов.
-    Объединяет все доступные языковые keywords (EN/DE/FR/ES).
-    Сохраняет в embeddings.npz (ключи: clip_ids, embeddings).
-    """
-    library = load_library(channel_id)
-
-    clips = [
-        (clip_id, entry)
-        for clip_id, entry in library["clips"].items()
-        if entry.get("indexed", False)
-        and not entry.get("rejected", False)
-        and entry.get("keywords", "")
-    ]
-
-    clip_ids          = [c[0] for c in clips]
-    combined_keywords = [_combine_keywords(entry) for _, entry in clips]
-
-    print(
-        f"⏳ Embeddings для {len(clips)} клипов...",
-        flush=True,
-    )
-
-    passages = [f"passage: {kw}" for kw in combined_keywords]
-    embeddings = _encode_local(passages, "passage")
-    embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
-
-    emb_file = get_embeddings_file(channel_id)
-    np.savez(
-        emb_file,
-        clip_ids=np.array(clip_ids),
-        embeddings=embeddings,
-    )
-    print(f"✅ Embeddings: {embeddings.shape}", flush=True)
-    return clip_ids, embeddings
-
-
-def load_library_embeddings(channel_id: str = "channel_001_cosmos_de") -> tuple[list[str], np.ndarray]:
-    """
-    Загрузить предвычисленные embeddings.
-    Возвращает (clip_ids_list, embeddings_matrix).
-    Если файла нет — пересчитывает.
-    """
-    emb_file = get_embeddings_file(channel_id)
-    if not emb_file.exists():
-        print(
-            f"⚠️  embeddings.npz не найден "
-            f"[{get_niche(channel_id)}] — пересчитываем...",
-            flush=True,
-        )
-        return build_library_embeddings(channel_id)
-
-    data       = np.load(emb_file, allow_pickle=True)
-    ids        = list(data["clip_ids"])
-    embeddings = data["embeddings"]
-    print(
-        f"✅ Embeddings загружены: {len(ids)} клипов "
-        f"[{get_niche(channel_id)}]",
-        flush=True,
-    )
-    return ids, embeddings
 
 
 # ─── Загрузка данных ──────────────────────────
@@ -248,8 +110,6 @@ INTRA_REPEAT_MAX_S: float = 420.0   # 7 мин
 # который случайно оказался первым в отсортированном массиве.
 # С jitter ±0.04 каждый раз случайно побеждает разный из кластера.
 SCORE_JITTER: float = 0.005
-# Снижено с 0.04 → 0.005: разброс E5 между релевантным и нерелевантным клипом
-# всего 0.005–0.01, jitter 0.04 полностью уничтожал сигнал.
 
 
 # ─── Penalty система ──────────────────────────
@@ -321,253 +181,6 @@ def calculate_penalty(
 
 
 
-# ─── Контекст видео и глав ────────────────────
-
-def build_video_context(segments: list) -> np.ndarray:
-    """
-    [1] Глобальный топик: объединяем все тексты сценария в один embedding.
-    Возвращает нормализованный вектор темы видео.
-    """
-    all_text = " ".join(
-        seg.get("text", "") for seg in segments
-        if seg.get("text", "").strip()
-    )
-    print(f"🌍 Глобальный топик: {len(all_text)} символов → embedding...", flush=True)
-    vec = encode_query(all_text[:2000])  # e5 max ~512 tokens, обрезаем
-    return vec / (np.linalg.norm(vec) + 1e-9)
-
-
-def build_chapter_embeddings(segments: list, n_chapters: int = 5) -> list[np.ndarray]:
-    """
-    [3] Главы: делим сегменты на N равных по времени глав,
-    вычисляем embedding каждой → смысловой контекст главы.
-    """
-    if not segments:
-        return []
-
-    total_dur   = float(segments[-1].get("end", 0)) or 1.0
-    chapter_dur = total_dur / n_chapters
-    chapters: list[list[str]] = [[] for _ in range(n_chapters)]
-
-    for seg in segments:
-        t   = float(seg.get("start", 0))
-        idx = min(int(t / chapter_dur), n_chapters - 1)
-        txt = seg.get("text", "").strip()
-        if txt:
-            chapters[idx].append(txt)
-
-    embeddings = []
-    for i, texts in enumerate(chapters):
-        combined = " ".join(texts)
-        if combined.strip():
-            vec = encode_query(combined[:1000])
-            vec = vec / (np.linalg.norm(vec) + 1e-9)
-        else:
-            vec = np.zeros(1024, dtype=np.float32)  # dim e5-large
-        embeddings.append(vec)
-        print(f"  📖 Глава {i+1}/{n_chapters}: {len(texts)} сегментов", flush=True)
-
-    return embeddings
-
-
-def get_chapter_idx(seg_start: float, total_dur: float, n_chapters: int = 5) -> int:
-    if total_dur <= 0:
-        return 0
-    return min(int(seg_start / total_dur * n_chapters), n_chapters - 1)
-
-
-# ─── Матчинг сегмента с библиотекой ──────────
-
-def match_segment_to_clip(
-        segment_text: str,
-        keywords_list: list,          # (clip_id, keywords_en, duration)
-        video_used: dict,
-        prev_video_clips: set,
-        clip_embeddings: np.ndarray,  # (N, 1024) e5-large, нормализованные
-        clip_ids_list: list[str],     # [clip_id, ...] в том же порядке что clip_embeddings
-        max_repeats_in_video=10,
-        max_from_prev=20,
-        segment_duration=0.0,
-        top_n: int = 3,
-        context_vec: np.ndarray | None = None,      # [1] глобальный топик видео
-        chapter_vec: np.ndarray | None = None,      # [3] embedding текущей главы
-        window_text: str = "",                      # [2] текст окна prev+next
-        global_usage: dict | None = None,
-        clip_last_used_idx: dict | None = None,
-        current_video_idx:  int         = 0,
-        segment_start:      float       = 0.0,
-        video_used_at:      dict | None = None,
-        prev_video_centroid: np.ndarray | None = None,
-        clip_tags: dict[str, set[str]] | None = None,
-        query_tags: list[str] | None = None,
-):
-    """
-    Найти top_n лучших клипов по Gemini embedding скору.
-    Text query: window_text (скользящее окно) > segment_text.
-    Дополнительно: +global_topic (0.90/0.10) + chapter_vec (0.85/0.15)
-    """
-    # ── Text score ────────────────────────────────────────────────────────────
-    query_text = window_text if window_text.strip() else segment_text
-    seg_vec    = encode_query(query_text)
-    seg_vec    = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
-
-    if context_vec is not None:
-        seg_vec = 0.90 * seg_vec + 0.10 * context_vec
-        seg_vec = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
-        # Снижено с 0.75/0.25 → 0.90/0.10: контекст сжимал все запросы к
-        # общему "space" вектору, уничтожая специфику (spacecraft vs nebula)
-
-    if chapter_vec is not None and np.any(chapter_vec):
-        seg_vec = 0.85 * seg_vec + 0.15 * chapter_vec
-        seg_vec = seg_vec / (np.linalg.norm(seg_vec) + 1e-9)
-
-    text_scores = clip_embeddings @ seg_vec   # (N,) cosine similarity
-    emb_index   = {cid: i for i, cid in enumerate(clip_ids_list)}
-
-    cosine_scores = text_scores
-
-    import random as _random
-
-    def _build_candidates() -> list:
-        out = []
-        for clip_id, keywords, clip_duration in keywords_list:
-            if not keywords:
-                continue
-            if segment_duration > 0 and clip_duration > 0 and clip_duration < segment_duration:
-                continue
-
-            penalty = calculate_penalty(
-                clip_id, video_used, prev_video_clips,
-                max_repeats_in_video, max_from_prev,
-                global_usage=global_usage,
-                clip_last_used_idx=clip_last_used_idx,
-                current_video_idx=current_video_idx,
-                video_used_at=video_used_at,
-                segment_start=segment_start,
-            )
-            if penalty == 999:
-                continue
-
-            idx     = emb_index.get(clip_id)
-            score = float(cosine_scores[idx]) if idx is not None else 0.0
-
-            # Семантический штраф за схожесть с предыдущим видео:
-            # если клип близок к центроиду предыдущего видео → небольшой доп штраф
-            cross_penalty = 0.0
-            if prev_video_centroid is not None and idx is not None:
-                sim = float(clip_embeddings[idx] @ prev_video_centroid)
-                cross_penalty = max(0.0, (sim - 0.75) * 1.0)
-
-            # Tag boost: если теги из visual_query совпадают с тегами клипа
-            tag_boost = 0.0
-            if query_tags and clip_tags:
-                ctags = clip_tags.get(clip_id, set())
-                matched = set(query_tags) & ctags
-                if matched:
-                    tag_boost = 0.08 * min(len(matched), 2)  # max +0.16 за 2+ совпадений
-
-            # Jitter: разбиваем ties внутри embedding-кластера
-            jitter = _random.uniform(-SCORE_JITTER, SCORE_JITTER)
-            out.append((clip_id, score - penalty - cross_penalty + tag_boost + jitter,
-                        score, penalty, keywords, clip_duration))
-        return out
-
-    candidates = _build_candidates()
-
-    # Print tag boost stats if tags were used
-    if query_tags and clip_tags:
-        boosted_count = sum(
-            1 for clip_id, _, _, _, _, _ in candidates
-            if set(query_tags) & clip_tags.get(clip_id, set())
-        )
-        if boosted_count > 0:
-            print(f"  🏷 Tags from query: {query_tags} → {boosted_count} clips boosted", flush=True)
-
-    # Fallback: нет кандидатов → _fallback_match (без ограничения длины)
-    if not candidates:
-        print(f"  ⚠️  Нет кандидатов → fallback match", flush=True)
-        fb = _fallback_match(
-            segment_text, keywords_list, video_used, prev_video_clips,
-            clip_embeddings, clip_ids_list, precomputed_vec=seg_vec,
-            global_usage=global_usage,
-            clip_last_used_idx=clip_last_used_idx,
-            current_video_idx=current_video_idx,
-            video_used_at=video_used_at,
-            segment_start=segment_start,
-        )
-        return [fb] if fb else []
-
-    candidates.sort(key=lambda x: x[1], reverse=True)
-
-    best = candidates[0]
-    vis_info = ""
-    if query_tags and clip_tags:
-        ctags = clip_tags.get(best[0], set())
-        matched_tags = set(query_tags) & ctags
-        if matched_tags:
-            vis_info += f" tags={matched_tags}"
-    print(
-        f"  🎯 {best[0]} "
-        f"score={best[2]:.2f}{vis_info} "
-        f"dur={best[5]:.1f}s (seg={segment_duration:.1f}s) penalty={best[3]:.2f}",
-        flush=True,
-    )
-    return [c[0] for c in candidates[:top_n]]
-
-
-def _fallback_match(
-        segment_text,
-        keywords_list,
-        video_used,
-        prev_video_clips,
-        clip_embeddings,
-        clip_ids_list,
-        precomputed_vec: np.ndarray | None = None,
-        global_usage: dict | None = None,
-        clip_last_used_idx: dict | None = None,
-        current_video_idx: int = 0,
-        video_used_at: dict | None = None,
-        segment_start: float = 0.0):
-    """Fallback: лучший по embedding без учёта длины.
-    Если передан precomputed_vec (уже обогащённый контекстом) — использует его."""
-    seg_vec       = precomputed_vec if precomputed_vec is not None else encode_query(segment_text)
-    cosine_scores = clip_embeddings @ seg_vec
-    emb_index     = {cid: i for i, cid in enumerate(clip_ids_list)}
-
-    candidates = []
-    for clip_id, keywords, clip_duration in keywords_list:
-        if not keywords:
-            continue
-        if calculate_penalty(
-            clip_id, video_used, prev_video_clips,
-            global_usage=global_usage,
-            clip_last_used_idx=clip_last_used_idx,
-            current_video_idx=current_video_idx,
-            ignore_hard_block=True,   # fallback — снимаем hard block
-            video_used_at=video_used_at,
-            segment_start=segment_start,
-        ) == 999:
-            continue
-
-        idx   = emb_index.get(clip_id)
-        score = float(cosine_scores[idx]) if idx is not None else 0.0
-        candidates.append((clip_id, score, clip_duration))
-
-    if not candidates:
-        # Last-resort: случайный клип из ещё не использованных в этом видео
-        import random as _r
-        pool = [c for c in clip_ids_list if c not in (video_used or {})]
-        if not pool:
-            pool = list(clip_ids_list)
-        chosen = _r.choice(pool)
-        print(f"  ⚠️  Last-resort random: {chosen}", flush=True)
-        return chosen
-
-    candidates.sort(key=lambda x: x[1], reverse=True)
-    best = candidates[0]
-    print(f"  🔄 Fallback: {best[0]} emb={best[1]:.2f} dur={best[2]:.1f}s", flush=True)
-    return best[0]
-
 
 # ─── Главная функция выбора клипов ────────────
 
@@ -613,10 +226,7 @@ def select_clips_for_video(
         _gemini_ids, _gemini_emb = _load_gemini(channel_id)
         print(f"✅ Gemini embeddings: {len(_gemini_ids)} клипов ({_gemini_emb.shape[1]}-dim)", flush=True)
     except Exception as _ge:
-        print(f"⚠ Gemini embeddings недоступны: {_ge} — fallback E5", flush=True)
-
-    # ── E5 fallback ───────────────────────────────────────────────────────────
-    clip_ids_list, clip_embeddings = load_library_embeddings(channel_id)
+        print(f"⚠ Gemini embeddings недоступны: {_ge}", flush=True)
 
     # ── Flash reranker ────────────────────────────────────────────────────────
     _flash_available = False
@@ -675,26 +285,6 @@ def select_clips_for_video(
     print(f"🔒 Использовано в последних 2 видео: {_recently_used} клипов "
           f"(получат штраф 0.20–0.60, не заблокированы)", flush=True)
 
-    # Центроид предыдущего видео: среднее e5-embedding всех клипов из последней сессии.
-    # Клипы семантически похожие на предыдущее видео получат доп штраф (cross-video diversity).
-    prev_video_centroid: np.ndarray | None = None
-    _emb_index_map = {cid: i for i, cid in enumerate(clip_ids_list)}
-    channel_videos = sorted(
-        [(vid, d) for vid, d in history.get("videos", {}).items()
-         if d.get("channel") == channel_id],
-        key=lambda x: x[1].get("date", ""), reverse=True,
-    )
-    if channel_videos:
-        last_clips_used = channel_videos[0][1].get("clips_used", [])
-        last_indices    = [_emb_index_map[c] for c in last_clips_used if c in _emb_index_map]
-        if last_indices:
-            centroid = clip_embeddings[last_indices].mean(axis=0)
-            norm     = np.linalg.norm(centroid)
-            if norm > 1e-9:
-                prev_video_centroid = centroid / norm
-                print(f"📼 Центроид предыдущего видео: {len(last_indices)} клипов → "
-                      f"cross-video diversity активен", flush=True)
-
     # Разделить сегменты на intro / main по накопленной длительности
     intro_seg_ids: set[int] = set()
     accumulated = 0.0
@@ -711,26 +301,15 @@ def select_clips_for_video(
         flush=True,
     )
 
-    # [1] Глобальный топик всего видео
-    video_context_vec = build_video_context(segments)
-
-    # [3] Embedding каждой главы
-    total_dur     = float(segments[-1].get("end", 0)) if segments else 1.0
-    N_CHAPTERS    = 5
-    chapter_vecs  = build_chapter_embeddings(segments, n_chapters=N_CHAPTERS)
-
     video_used         = {}
     video_used_at      = {}   # {clip_id: first_use_time_s} — для in-video repeat gate
     intro_clips        = []
     main_clips         = []
     intro_total        = 0.0
     main_total         = 0.0
-    prev_clip_embeddings: list[tuple[float, np.ndarray]] = []   # E5 text diversity window (2 мин)
     recent_phashes:      list[tuple[float, int]]         = []   # pHash window (5 мин)
-    EMB_DIVERSITY_WINDOW_S  = 120   # 2 минуты — окно embedding diversity по времени
     PHASH_WINDOW_S          = 300   # 5 минут — окно pHash по времени
     PHASH_THRESHOLD         = 12    # hamming distance < 12 из 64 бит = визуально идентичны
-    emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
 
     _lang = get_lang(channel_id)
 
@@ -742,8 +321,6 @@ def select_clips_for_video(
 
     # ── Gemini batch embedding всех сегментов (один API call) ─────────────────
     _gemini_seg_embs: np.ndarray | None = None
-    _gemini_seg_index = {cid: i for i, cid in enumerate(_gemini_ids)} if _gemini_ids else {}
-
     if _gemini_ids is not None and _gemini_emb is not None:
         try:
             from gemini_embedder import embed_batch as _gemini_embed_batch
@@ -759,7 +336,7 @@ def select_clips_for_video(
             _gemini_seg_embs = _gemini_embed_batch(_all_windows)
             print(f"✅ Gemini сегменты: {_gemini_seg_embs.shape}", flush=True)
         except Exception as _gbe:
-            print(f"⚠ Gemini batch embed сегментов: {_gbe} — fallback E5", flush=True)
+            print(f"⚠ Gemini batch embed сегментов: {_gbe}", flush=True)
             _gemini_seg_embs = None
 
     # ── Flash rerank: буфер задач ─────────────────────────────────────────────
@@ -785,10 +362,6 @@ def select_clips_for_video(
         next2_text = segments[i + 2].get("text", "") if i < len(segments) - 2 else ""
         window_text = " ".join(filter(None, [prev2_text, prev_text, seg_text, next_text, next2_text]))
 
-        # [3] Embedding главы для текущего сегмента
-        ch_idx      = get_chapter_idx(seg_start, total_dur, N_CHAPTERS)
-        chapter_vec = chapter_vecs[ch_idx] if chapter_vecs else None
-
         section = "INTRO" if is_intro else "MAIN"
         print(f"\n[{seg_id}][{section}] {seg_duration:.1f}s '{seg_text[:60]}'", flush=True)
 
@@ -804,9 +377,8 @@ def select_clips_for_video(
         _is_interview_seg = any(kw in _seg_text_lower for kw in _INTERVIEW_KEYWORDS)
 
         # ── Stage 1: Recall ───────────────────────────────────────────────────
-        # Если есть Gemini embeddings — используем их для recall (мультиязычно, 3072-dim)
-        # Иначе fallback на E5 через match_segment_to_clip
         _gemini_margin_val = 1.0
+        top_candidates: list[str] = []
 
         if _gemini_seg_embs is not None and _gemini_emb is not None and _gemini_ids:
             # Gemini cosine: (3072,) × (N_clips × 3072) → (N_clips,)
@@ -884,31 +456,6 @@ def select_clips_for_video(
                 print(f"  [Gemini] top={top_candidates[0]} "
                       f"raw={_best_raw:.3f} penalized={_best_score:.3f} margin={_gemini_margin_val:.4f} "
                       f"({len(top_candidates)} cands)", flush=True)
-        else:
-            top_candidates = match_segment_to_clip(
-                segment_text=seg_text,
-                keywords_list=available_clips,
-                video_used=video_used,
-                prev_video_clips=prev_clips,
-                clip_embeddings=clip_embeddings,
-                clip_ids_list=clip_ids_list,
-                max_repeats_in_video=max_repeats_in_video,
-                max_from_prev=max_from_prev,
-                segment_duration=seg_duration,
-                top_n=8,
-                context_vec=video_context_vec,
-                chapter_vec=chapter_vec,
-                window_text=window_text,
-                global_usage=global_usage,
-                clip_last_used_idx=clip_last_used_idx,
-                current_video_idx=current_video_idx,
-                segment_start=seg_start,
-                video_used_at=video_used_at,
-                prev_video_centroid=prev_video_centroid,
-                clip_tags=_clip_tags,
-                query_tags=None,
-            )
-
         # [4c] Хард-блок: немедленный повтор (тот же клип что и предыдущий сегмент)
         if _last_clip_id and top_candidates and top_candidates[0] == _last_clip_id:
             _no_repeat = [c for c in top_candidates if c != _last_clip_id]
@@ -916,18 +463,7 @@ def select_clips_for_video(
                 top_candidates = _no_repeat
                 print(f"  ⚠ No-immediate-repeat → {top_candidates[0]}", flush=True)
 
-        # [5a] E5 text diversity window (2 мин): cosine > 0.92 → берём следующего кандидата
-        while prev_clip_embeddings and (seg_start - prev_clip_embeddings[0][0]) > EMB_DIVERSITY_WINDOW_S:
-            prev_clip_embeddings.pop(0)
         clip_id = top_candidates[0] if top_candidates else None
-        if clip_id and prev_clip_embeddings:
-            idx = emb_index.get(clip_id)
-            if idx is not None:
-                for _ts, prev_vec in prev_clip_embeddings:
-                    if float(clip_embeddings[idx] @ prev_vec) > 0.92 and len(top_candidates) > 1:
-                        clip_id = top_candidates[1]
-                        print(f"  ⚠ Emb-diversity → {clip_id}", flush=True)
-                        break
 
         # [6] pHash window (5 мин): визуально идентичные кадры → берём следующего кандидата
         # Сначала вычищаем устаревшие записи (старше PHASH_WINDOW_S секунд)
@@ -979,11 +515,7 @@ def select_clips_for_video(
                 print(f"  [Flash] queued: margin={_gemini_margin_val:.4f} "
                       f"(threshold {MARGIN_THRESHOLD})", flush=True)
 
-        # Обновить окна: E5 text (2 мин) + pHash (5 мин)
         if clip_id:
-            idx = emb_index.get(clip_id)
-            if idx is not None:
-                prev_clip_embeddings.append((seg_start, clip_embeddings[idx].copy()))
             if phash_map and clip_id in phash_map:
                 recent_phashes.append((seg_start, phash_map[clip_id]))
             video_used[clip_id] = video_used.get(clip_id, 0) + 1
@@ -1107,9 +639,6 @@ def select_clips_for_video(
   Из предыдущего:      {prev_overlap}/{max_from_prev}
 {'='*50}
 """, flush=True)
-
-    # Сохраняем BLIP ITM кэш на диск
-    _save_blip_cache()
 
     clips_used = [c for _, c, _ in all_selected if c]
 

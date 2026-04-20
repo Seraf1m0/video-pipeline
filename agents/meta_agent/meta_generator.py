@@ -1014,37 +1014,8 @@ def compose_thumbnail(img_bytes: bytes, overlay_text: str, out_path: Path) -> bo
         lines   = _split_text_lines(overlay_text)
         n_lines = len(lines)
 
-        # ── Layout mode: Qwen2.5-VL analysis → fallback OpenCV ───────────────
-        qwen_placement   = None
-        qwen_zone_center = None   # precomputed zone_center_frac from Qwen
-        face_bbox        = None   # set by OpenCV fallback path
-        try:
-            from agents.vision.vision_client import (
-                analyze_thumbnail_placement, get_available_servers,
-            )
-            servers = get_available_servers()
-            if servers:
-                qwen_placement = analyze_thumbnail_placement(img, server_url=servers[0])
-        except Exception as _qe:
-            log(f"  [Qwen] unavailable: {_qe}")
-
-        if qwen_placement is not None:
-            layout_mode = qwen_placement.get("layout", "standard")
-            tz          = qwen_placement.get("text_zone", {})
-            tz_x        = float(tz.get("x", 0.04))
-            tz_y        = float(tz.get("y", 0.55))
-            tz_w        = float(tz.get("w", 0.92))
-            tz_h        = float(tz.get("h", 0.40))
-            COL_MAX_W    = max(int(tz_w * w), int(w * 0.30))
-            _zone_cx     = tz_x + tz_w / 2
-            col_cx_left  = int(_zone_cx * w)   # Qwen gives one zone → both cols point there
-            col_cx_right = int(_zone_cx * w)
-            qwen_zone_center = tz_y + tz_h / 2  # center_frac for col layout y positioning
-            log(f"  [Qwen] layout={layout_mode} zone=({tz_x:.2f},{tz_y:.2f},"
-                f"{tz_w:.2f},{tz_h:.2f}) elapsed={qwen_placement.get('elapsed_s',0)}s")
-        else:
-            # Fallback: OpenCV Haar face detection
-            face_bbox   = _detect_face_bbox(img)
+        # ── Layout mode: OpenCV face detection ────────────────────────────────
+        face_bbox = _detect_face_bbox(img)
             layout_mode = "standard"
             if face_bbox is not None and n_lines >= 2:
                 fcx, fcy, fw_f, fh_f = face_bbox
@@ -1122,11 +1093,8 @@ def compose_thumbnail(img_bytes: bytes, overlay_text: str, out_path: Path) -> bo
 
         if layout_mode == "split":
             # Diagonal split: line 0 LEFT column, line 1 RIGHT column, line 2 bottom center
-            # Anchor y_start: prefer Qwen text_zone top, fallback to face bottom, fallback fixed
-            if qwen_zone_center is not None and qwen_placement is not None:
-                tz_y_val = float(qwen_placement.get("text_zone", {}).get("y", 0.55))
-                y_start  = max(int(h * 0.50), int(tz_y_val * h))
-            elif face_bbox is not None:
+            # Anchor y_start: face bottom, fallback fixed
+            if face_bbox is not None:
                 face_bot_px = int((face_bbox[1] + face_bbox[3] / 2) * h)
                 y_start = max(SAFE_TOP, face_bot_px + int(h * 0.025))
             else:
@@ -1157,10 +1125,7 @@ def compose_thumbnail(img_bytes: bytes, overlay_text: str, out_path: Path) -> bo
         elif layout_mode in ("left_col", "right_col"):
             col_cx = col_cx_left if layout_mode == "left_col" else col_cx_right
             text_h_frac      = total_h / h
-            if qwen_zone_center is not None:
-                zone_center_frac = qwen_zone_center
-            else:
-                zone_center_frac = _find_best_text_y(img, total_text_h_frac=text_h_frac)
+            zone_center_frac = _find_best_text_y(img, total_text_h_frac=text_h_frac)
             zone_center_px   = int(h * zone_center_frac)
             base_y = max(int(h * 0.05), min(zone_center_px - total_h // 2,
                                             h - total_h - int(h * 0.02)))
@@ -1986,18 +1951,7 @@ def generate_and_compose_thumbnails(
 
     log(f"Image generation done in {time.time()-t0:.1f}s — {len(raw_images)}/{len(image_prompts)} succeeded")
 
-    # Compose thumbnails — HTML engine (Playwright) with Qwen layout detection
     saved_paths = []
-
-    # Try to get Qwen servers for layout detection
-    qwen_servers = []
-    try:
-        from agents.vision.vision_client import (
-            analyze_thumbnail_placement, get_available_servers,
-        )
-        qwen_servers = get_available_servers()
-    except Exception:
-        pass
 
     # Try HTML renderer
     try:
@@ -2016,19 +1970,8 @@ def generate_and_compose_thumbnails(
         out_path = meta_dir / f"thumbnail_{idx+1}.png"
 
         if html_available:
-            # Detect layout with Qwen (if available), else default to standard
             layout = "standard"
-            if qwen_servers:
-                try:
-                    from PIL import Image
-                    import io
-                    img_pil = Image.open(io.BytesIO(img_bytes))
-                    result  = analyze_thumbnail_placement(img_pil, server_url=qwen_servers[0])
-                    if result:
-                        layout = result.get("layout", "standard")
-                except Exception as _e:
-                    pass
-            log(f"  Text layout: {layout} (Qwen{'✓' if qwen_servers else '✗'})")
+            log(f"  Text layout: {layout}")
             success = html_render(img_bytes, text, out_path, layout=layout)
         else:
             # Fallback: PIL compositor
