@@ -139,7 +139,7 @@ Your job:
 
 Return ONLY valid JSON:
 {{
-  "text_line1": "<smaller supporting text — context/setup, or empty string if single line>",
+  "text_line1": "<supporting text — context/setup, or empty string if single line. If used, must still be large and bold — NOT tiny>",
   "text_line2": "<MAIN bold word(s) — the emotional hook, LARGEST on screen>",
   "text_hierarchy": "<describe: which is bigger, size ratio, e.g. 'line2 is 3x larger than line1'>",
   "text_placement": "<upper-left | lower-left | upper-right — where text block sits>",
@@ -219,15 +219,16 @@ CREATIVE BRIEF (TZ):
 - Atmosphere: {tz.get('atmosphere','')}
 
 TEXT TO INCLUDE (mandatory, exact spelling):
-{f'- Smaller supporting text: "{line1}"' if line1 else '- No small text — single dominant line only'}
-- MAIN bold text: "{line2}" — this is the HERO text
+{f'- Supporting text (line 1): "{line1}" — LARGE AND BOLD, minimum 15% of frame height' if line1 else '- No line 1 — single dominant line only'}
+- MAIN bold text (line 2): "{line2}" — the HERO text
 - Text hierarchy: {hierarchy}
 
 TEXT RENDERING RULES (non-negotiable):
-- "{line2}" must be ENORMOUS — occupying 35-50% of frame WIDTH, letters very tall
-- Font: ultra-bold heavy condensed, pure white, ZERO thin strokes, ZERO decorative serifs
-- Very strong dark semi-transparent rectangle or heavy shadow behind ALL text — maximum contrast
-- Text must be readable as a thumbnail on a phone screen by someone over 65
+- "{line2}" must be ENORMOUS — letters 25-35% of frame HEIGHT, ultra-thick strokes
+- "{line1}" if present — must ALSO be large, at least 12-15% of frame HEIGHT — NOT a tiny caption
+- Both lines: ultra-bold heavy condensed, pure white, ZERO thin strokes, ZERO decorative serifs
+- MANDATORY: solid dark semi-transparent bar or heavy drop shadow behind ALL text lines
+- A 65-year-old must read BOTH lines instantly on a phone without zooming
 - Text block in: {tz.get('text_placement','')}
 - NO other text, NO logos, NO watermarks, NO digital/distressed fonts
 
@@ -340,8 +341,8 @@ Score 1-10 on EACH criterion. Be BRUTAL — most thumbnails deserve 5-6.
 TEXT QUALITY:
 1. text_correctness: Is the exact text "{text_line1}" and "{text_line2}" actually visible and correctly spelled?
    Score 1 if text is missing, distorted, misspelled, or merged into the background.
-2. text_readability: Can a 65-year-old read this instantly on a phone screen (120px thumbnail)?
-   Text must be MASSIVE with strong contrast. Small or medium text = 1-4. Giant clear text = 8-10.
+2. text_readability: Can a 65-year-old read BOTH lines instantly on a phone screen (120px thumbnail)?
+   BOTH lines must be large and bold. If line1 is tiny/caption-sized = score 1-3. Both lines giant and clear = 8-10.
 3. text_font_style: Is the font ULTRA BOLD HEAVY CONDENSED, pure white, with strong dark shadow?
    Thin fonts, decorative/distressed/digital/sci-fi fonts = 1-3. Clean heavy condensed white = 8-10.
 4. text_placement: Is text in a clean area with strong contrast backing?
