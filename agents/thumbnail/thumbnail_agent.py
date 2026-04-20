@@ -73,7 +73,8 @@ def _flash(prompt: str, images: list[bytes] | None = None, max_tokens: int = 100
             pil.save(buf, format="JPEG", quality=92)
             parts.append(gtypes.Part.from_bytes(data=buf.getvalue(), mime_type="image/jpeg"))
     parts.append(gtypes.Part.from_text(text=prompt))
-    for attempt in range(5):
+    attempt = 0
+    while True:
         try:
             resp = _get_gemini().models.generate_content(
                 model=FLASH_MODEL,
@@ -82,13 +83,13 @@ def _flash(prompt: str, images: list[bytes] | None = None, max_tokens: int = 100
             )
             return resp.text.strip()
         except Exception as e:
-            if "503" in str(e) or "UNAVAILABLE" in str(e):
-                wait = 15 * (attempt + 1)
-                print(f"  [Flash] 503 overloaded, retry {attempt+1}/5 in {wait}s...", flush=True)
+            if "503" in str(e) or "UNAVAILABLE" in str(e) or "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                attempt += 1
+                wait = min(15 * attempt, 60)
+                print(f"  [Flash] API overloaded, retry #{attempt} in {wait}s...", flush=True)
                 time.sleep(wait)
             else:
                 raise
-    raise RuntimeError("Flash API unavailable after 5 retries")
 
 
 def _parse_json(raw: str) -> dict | list:
