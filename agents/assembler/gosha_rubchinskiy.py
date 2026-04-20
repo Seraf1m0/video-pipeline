@@ -1245,9 +1245,6 @@ def _inject_mg_into_lib_clips(
     if not zones:
         return 0, [], set()
 
-    mg_audio_dir = temp_dir / "mg_audio"
-    mg_audio_dir.mkdir(parents=True, exist_ok=True)
-
     # (start, end, seg_id) — в порядке возрастания start
     seg_times: list[tuple[float, float, int]] = sorted(
         [(float(s.get("start", 0)), float(s.get("end", 0)), int(s.get("id", i + 1)))
@@ -1278,32 +1275,23 @@ def _inject_mg_into_lib_clips(
 
         if comp in _MG_PANEL_COMPS:
             seg_ids = [sid for (_, _, sid) in covered]
-            n = _bake_panel_zone(seg_ids, anim, covered, lib_dir, temp_dir)
-            log(f"  [MG] Zone {zone['zone_id']} (List/panel): {n}/{len(seg_ids)} сег бекнуто")
-            injected += (1 if n > 0 else 0)
-            intra_mg_seg_ids.update(seg_ids[1:])  # 2..N сег — стыки без перехода
+            baked_pairs = _bake_panel_zone(seg_ids, anim, covered, lib_dir, temp_dir)
+            log(f"  [MG] Zone {zone['zone_id']} (List/panel): {len(baked_pairs)}/{len(seg_ids)} сег бекнуто")
+            injected += (1 if baked_pairs else 0)
+            intra_mg_seg_ids.update(seg_ids[1:])
+            # Аудио из бейков — каждый слайс уже содержит правильный отрезок
+            for sid, baked_path in baked_pairs:
+                sfx_events.append({"file": str(baked_path), "time_s": z_start, "seg_id": sid})
         else:
-            # Fullscreen: нарезаем MG-клип по каждому сегменту зоны.
-            ok = _slice_mg_into_segs(anim, covered, z_start, lib_dir, temp_dir)
-            log(f"  [MG] Zone {zone['zone_id']} ({comp}): fullscreen {ok}/{len(covered)} сег")
-            injected += (1 if ok > 0 else 0)
+            # Fullscreen: нарезаем MG-клип с аудио по каждому сегменту зоны.
+            sliced_pairs = _slice_mg_into_segs(anim, covered, z_start, lib_dir, temp_dir)
+            log(f"  [MG] Zone {zone['zone_id']} ({comp}): fullscreen {len(sliced_pairs)}/{len(covered)} сег")
+            injected += (1 if sliced_pairs else 0)
             all_sids = [sid for (_, _, sid) in covered]
-            intra_mg_seg_ids.update(all_sids[1:])  # 2..N сег — стыки без перехода
-
-        # Извлечь аудио из MG-зоны для подмешивания в финальный трек
-        audio_out = mg_audio_dir / f"mg_zone_{zone['zone_id']}.wav"
-        if not audio_out.exists():
-            r = subprocess.run(
-                ["ffmpeg", "-y", "-i", str(anim),
-                 "-vn", "-c:a", "pcm_f32le", "-ar", "44100",
-                 "-loglevel", "warning", str(audio_out)],
-                capture_output=True,
-            )
-            if r.returncode != 0 or not audio_out.exists():
-                log(f"  [MG] Аудио зоны {zone['zone_id']} не извлечено")
-                continue
-        sfx_events.append({"file": str(audio_out), "time_s": z_start, "seg_id": covered[0][2]})
-        log(f"  [MG] Аудио зоны {zone['zone_id']} → {audio_out.name} (t={z_start:.1f}s)")
+            intra_mg_seg_ids.update(all_sids[1:])
+            # Аудио из слайсов — каждый слайс уже нарезан с правильным смещением
+            for sid, slice_path in sliced_pairs:
+                sfx_events.append({"file": str(slice_path), "time_s": z_start, "seg_id": sid})
 
     return injected, sfx_events, intra_mg_seg_ids
 
@@ -1314,14 +1302,14 @@ def _slice_mg_into_segs(
     zone_start: float,
     lib_dir:    Path,
     temp_dir:   Path,
-) -> int:
+) -> list[tuple[int, Path]]:
     """
     Нарезает fullscreen MG-клип на части по длительности каждого сегмента.
-    Каждая часть заменяет соответствующий clip_NNN.mp4 в lib_dir.
+    Каждая часть (видео + аудио SFX из Remotion) заменяет clip_NNN.mp4 в lib_dir.
     """
     slice_dir = temp_dir / "mg_slices"
     slice_dir.mkdir(parents=True, exist_ok=True)
-    ok = 0
+    result: list[tuple[int, Path]] = []
 
     # Длина анимации — защита от нарезки за конец файла (плановый dur < zone span)
     _anim_dur_r = subprocess.run(
@@ -1354,7 +1342,8 @@ def _slice_mg_into_segs(
                 "-t",  f"{seg_dur:.3f}",
                 "-vf", "fps=25,scale=1920:1080",
                 "-c:v", "libx264", "-preset", "fast", "-crf", "17",
-                "-pix_fmt", "yuv420p", "-an",
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac", "-b:a", "192k",
                 "-loglevel", "warning",
                 str(sliced),
             ]
@@ -1370,9 +1359,9 @@ def _slice_mg_into_segs(
             dst.symlink_to(sliced.resolve())
         except OSError:
             shutil.copy2(sliced, dst)
-        ok += 1
+        result.append((seg_id, sliced))
 
-    return ok
+    return result
 
 
 def _bake_panel_zone(
@@ -1381,11 +1370,11 @@ def _bake_panel_zone(
     covered:  list[tuple[float, float, int]],  # (start, end, seg_id) упорядоченные
     lib_dir:  Path,
     temp_dir: Path,
-) -> int:
+) -> list[tuple[int, Path]]:
     """
     List-режим: панель Remotion выезжает слева поверх каждого lib-клипа.
     Видео сдвигается на VIDEO_SHIFT вправо.
-    Каждый запечённый клип — stream-ready: 25fps, 1920×1080, без аудио.
+    Каждый запечённый клип — stream-ready: 25fps, 1920×1080, аудио SFX из Remotion.
 
     Панель въезжает в начале первого клипа, статична в середине, выезжает в конце последнего.
     Анимация берётся из нужного временного диапазона MG-клипа через -ss на инпуте.
@@ -1396,7 +1385,7 @@ def _bake_panel_zone(
 
     bake_dir = temp_dir / "mg_baked"
     bake_dir.mkdir(parents=True, exist_ok=True)
-    ok = 0
+    result: list[tuple[int, Path]] = []
     n  = len(seg_ids)
 
     zone_start = covered[0][0] if covered else 0.0
@@ -1455,8 +1444,9 @@ def _bake_panel_zone(
                 "-i", str(src),
                 "-ss", f"{anim_seek:.3f}", "-i", str(anim_mp4),
                 "-filter_complex", filter_v,
-                "-map", "[vout]", "-an",
+                "-map", "[vout]", "-map", "1:a?",
                 "-c:v", "libx264", "-preset", "fast", "-crf", "17",
+                "-c:a", "aac", "-b:a", "192k",
                 "-t", f"{clip_dur:.3f}",
                 "-loglevel", "warning",
                 str(baked),
@@ -1475,9 +1465,9 @@ def _bake_panel_zone(
             dst.symlink_to(baked.resolve())
         except OSError:
             shutil.copy2(baked, dst)
-        ok += 1
+        result.append((seg_id, baked))
 
-    return ok
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────
