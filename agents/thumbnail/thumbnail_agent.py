@@ -135,21 +135,27 @@ Your job:
 3. Choose a PHOTOREALISTIC main object that directly represents the video topic
    - Real spacecraft, real planets, real scientists — not fantasy/sci-fi designs
    - The image must tell the story BEFORE the viewer reads the text
-4. Colors: vivid but CLEAN — deep blues, warm oranges, whites — NOT dark distressed neon grids
+   - Add a DRAMATIC MOMENT: something is happening, being revealed, or confronted — not static
+4. Add INTRIGUE and BAIT — details that make the viewer lean in:
+   - A second element in the background that raises questions
+   - Dramatic lighting contrast (spotlight, rim light, glowing edge)
+   - A subtle visual "secret" or detail that rewards close inspection
+   - Clear sense of scale, danger, or revelation
+5. Colors: vivid, high contrast, dramatic — deep blues, glowing oranges, sharp whites
 
 Return ONLY valid JSON:
 {{
-  "text_line1": "<supporting text — context/setup, or empty string if single line. If used, must still be large and bold — NOT tiny>",
+  "text_line1": "<supporting text — context/setup, or empty string if single line. Must be large and bold — NOT tiny>",
   "text_line2": "<MAIN bold word(s) — the emotional hook, LARGEST on screen>",
   "text_hierarchy": "<BOTH lines must be large. Max ratio 1.5x. E.g. 'line2 is 1.3x larger than line1 — both are big bold headlines'>",
   "text_placement": "<upper-left | lower-left | upper-right — where text block sits>",
-  "main_object": "<ONE dominant photorealistic object filling 60-80% of frame — must match topic exactly>",
-  "emotional_tone": "<awe | shock | revelation | urgency | wonder — appropriate for 65+ sensibility>",
-  "color_palette": "<vivid but clean, e.g. 'deep space blue + bright white + warm orange glow'>",
-  "text_style": "<ultra-bold, clean white sans-serif — NO decorative/distressed/digital fonts. Strong dark shadow for contrast>",
-  "graphic_elements": "<minimal — at most a subtle gradient, glow behind text, or color accent stripe. NO grids, NO dragon motifs, NO laser beams unless topic demands it>",
-  "atmosphere": "<1 sentence: overall mood — documentary/authoritative, not sci-fi>",
-  "why_people_click": "<psychological hook for 60-70+ German viewer — curiosity, urgency, or revelation>"
+  "main_object": "<ONE dominant photorealistic object filling 60-80% of frame — dramatic moment, not static pose>",
+  "emotional_tone": "<shock | revelation | urgency | awe | confrontation — strong and specific>",
+  "color_palette": "<vivid, high contrast, e.g. 'deep space black + dramatic orange glow + sharp white highlights'>",
+  "text_style": "<ultra-bold, clean white sans-serif — NO decorative fonts. Strong dark shadow or semi-transparent backing>",
+  "graphic_elements": "<1-2 specific details that add intrigue: e.g. a glowing circle highlighting a detail, a subtle flag/symbol, dramatic rim lighting, a half-hidden second object>",
+  "atmosphere": "<1 sentence: mood — tense, revelatory, urgent — documentary authority with emotional punch>",
+  "why_people_click": "<specific psychological hook: what visual question does this thumbnail pose that DEMANDS an answer?>"
 }}
 
 SCRIPT:
@@ -233,10 +239,13 @@ TEXT RENDERING RULES (non-negotiable):
 - NO other text, NO logos, NO watermarks, NO digital/distressed fonts
 
 IMAGE RULES:
-- Photorealistic style — documentary, not sci-fi fantasy
+- Photorealistic style — documentary/cinematic, grounded in reality
 - The image tells the story BEFORE the text is read
-- ONE dominant clear subject, not busy/cluttered composition
-- NO neon grid overlays, NO Chinese dragon motifs, NO laser beam grids unless they are the actual topic
+- ONE dominant subject + 1-2 secondary details that add intrigue (not clutter)
+- MANDATORY dramatic lighting: strong contrast, rim light, spotlight, or atmospheric glow
+- Add SMALL DETAILS that reward attention: a subtle flag, a half-hidden object, a glowing trail, dramatic exhaust/atmosphere — things that make the viewer look closer
+- Sense of SCALE and TENSION — something is at stake, something is happening RIGHT NOW
+- NO neon grid overlays, NO generic stock space photos, NO flat/static compositions
 
 {critique_block}{round_escalation}
 
