@@ -106,18 +106,26 @@ def write_tz(segments: list[dict], thumbnail_text: str) -> dict:
     )[:4000]
 
     prompt = f"""\
-You are a YouTube thumbnail art director for a German space documentary channel.
+You are a YouTube thumbnail art director for a German space/cosmos documentary channel.
+
+TARGET AUDIENCE: Germans aged 60-70+. They watch ZDF Dokumentationen, read Spiegel and Stern.
+They are curious, intelligent — but they will NOT click on something they cannot READ instantly.
+They do NOT respond well to sci-fi movie poster aesthetics, neon colors, or chaotic designs.
+They respond to: CLEAR bold text, photorealistic imagery that matches the topic, authoritative mood.
 
 The user wants this text on the thumbnail: "{thumbnail_text}"
 
 Your job:
 1. Analyze the script to understand the video topic and emotional hook
 2. Decide HOW to use this text for maximum CTR impact:
-   - Split it into lines if needed (e.g. "DIE SONNE IST WACH" → "DIE SONNE IST" + "WACH")
+   - Split into lines if needed (e.g. "DIE SONNE IST WACH" → "DIE SONNE IST" + "WACH")
    - OR keep as one dominant line
-   - Decide which part is the MAIN bold word and which is supporting context
-   - Decide the text hierarchy, size ratio, and placement
-3. Create a complete visual brief for the image generator
+   - Main text must be MASSIVE — the kind a 65-year-old can read on a phone without glasses
+   - Decide text hierarchy, size ratio, and placement
+3. Choose a PHOTOREALISTIC main object that directly represents the video topic
+   - Real spacecraft, real planets, real scientists — not fantasy/sci-fi designs
+   - The image must tell the story BEFORE the viewer reads the text
+4. Colors: vivid but CLEAN — deep blues, warm oranges, whites — NOT dark distressed neon grids
 
 Return ONLY valid JSON:
 {{
@@ -125,13 +133,13 @@ Return ONLY valid JSON:
   "text_line2": "<MAIN bold word(s) — the emotional hook, LARGEST on screen>",
   "text_hierarchy": "<describe: which is bigger, size ratio, e.g. 'line2 is 3x larger than line1'>",
   "text_placement": "<upper-left | lower-left | upper-right — where text block sits>",
-  "main_object": "<the ONE dominant visual object that fills 60-80% of frame>",
-  "emotional_tone": "<fear | awe | shock | urgency | mystery | revelation>",
-  "color_palette": "<vivid palette, e.g. 'electric red + deep black'>",
-  "text_style": "<font weight, glow, shadow, color — be specific>",
-  "graphic_elements": "<arrows, stripes, glows, overlays — be SPECIFIC and CREATIVE>",
-  "atmosphere": "<1 sentence: overall mood>",
-  "why_people_click": "<psychological hook — why someone stops scrolling>"
+  "main_object": "<ONE dominant photorealistic object filling 60-80% of frame — must match topic exactly>",
+  "emotional_tone": "<awe | shock | revelation | urgency | wonder — appropriate for 65+ sensibility>",
+  "color_palette": "<vivid but clean, e.g. 'deep space blue + bright white + warm orange glow'>",
+  "text_style": "<ultra-bold, clean white sans-serif — NO decorative/distressed/digital fonts. Strong dark shadow for contrast>",
+  "graphic_elements": "<minimal — at most a subtle gradient, glow behind text, or color accent stripe. NO grids, NO dragon motifs, NO laser beams unless topic demands it>",
+  "atmosphere": "<1 sentence: overall mood — documentary/authoritative, not sci-fi>",
+  "why_people_click": "<psychological hook for 60-70+ German viewer — curiosity, urgency, or revelation>"
 }}
 
 SCRIPT:
@@ -150,9 +158,10 @@ SCRIPT:
 # ── Stage 2: Prompt Generation from TZ ───────────────────────────────────────
 
 IMAGE_STYLE_SUFFIX = (
-    "ultra vivid saturated colors, cinematic sci-fi movie poster style, "
-    "deep black space background, ultra detailed, 8K, dramatic lighting, "
-    "professional digital art, 16:9 aspect ratio"
+    "photorealistic, ultra detailed, 8K, dramatic documentary lighting, "
+    "vivid natural colors, professional photography style, "
+    "NO sci-fi fantasy elements unless topic requires it, "
+    "16:9 aspect ratio"
 )
 
 def generate_prompts(
@@ -170,24 +179,26 @@ def generate_prompts(
 CRITICAL — previous attempts FAILED. Specific problems identified:
 {joined}
 
-You MUST fix ALL of these problems. Be MORE dramatic, MORE saturated, MORE impactful.
+Fix ALL of these. Make text even BIGGER and CLEANER. Image must be more photorealistic.
 Each prompt must be COMPLETELY DIFFERENT from previous attempts.
 """
 
     round_escalation = ""
     if round_num == 2:
-        round_escalation = "ESCALATE: Make it 2x more dramatic. Extreme contrast. Overwhelming visual power."
+        round_escalation = "ESCALATE: Text even larger. Simpler composition. Maximum clarity and readability."
     elif round_num == 3:
-        round_escalation = "MAXIMUM DRAMA. This is your last chance. Like the greatest movie poster ever made. No compromises."
+        round_escalation = "FINAL PUSH: Strip everything non-essential. ONE massive image, ONE huge text. Zero ambiguity."
     elif round_num == 4:
-        round_escalation = "FINAL ATTEMPT. Completely rethink the concept. Break all rules. Make it IMPOSSIBLE to ignore."
+        round_escalation = "FINAL ATTEMPT: Completely rethink. Bold, simple, unmistakably readable. Like a Spiegel magazine cover."
 
     line1 = tz.get("text_line1", "")
     line2 = tz.get("text_line2", "")
     hierarchy = tz.get("text_hierarchy", "line2 is larger")
 
     prompt = f"""\
-You are a master prompt engineer for AI image generation (YouTube thumbnails for space channel).
+You are a master prompt engineer for AI image generation.
+You create YouTube thumbnails for a German space documentary channel targeting viewers aged 60-70+.
+These viewers use phones and tablets — text MUST be readable at thumbnail size without zooming.
 
 CREATIVE BRIEF (TZ):
 - Main object: {tz.get('main_object','')}
@@ -197,17 +208,24 @@ CREATIVE BRIEF (TZ):
 - Graphic elements: {tz.get('graphic_elements','')}
 - Atmosphere: {tz.get('atmosphere','')}
 
-TEXT TO INCLUDE (mandatory, exact):
+TEXT TO INCLUDE (mandatory, exact spelling):
 {f'- Smaller supporting text: "{line1}"' if line1 else '- No small text — single dominant line only'}
 - MAIN bold text: "{line2}" — this is the HERO text
 - Text hierarchy: {hierarchy}
 
-TEXT RENDERING RULES (critical):
-- "{line2}" must be MASSIVE — taking 25-35% of frame width
-- Font: ultra-bold heavy condensed, white, no thin strokes
-- Strong dark glow/drop shadow behind text for readability
+TEXT RENDERING RULES (non-negotiable):
+- "{line2}" must be ENORMOUS — occupying 35-50% of frame WIDTH, letters very tall
+- Font: ultra-bold heavy condensed, pure white, ZERO thin strokes, ZERO decorative serifs
+- Very strong dark semi-transparent rectangle or heavy shadow behind ALL text — maximum contrast
+- Text must be readable as a thumbnail on a phone screen by someone over 65
 - Text block in: {tz.get('text_placement','')}
-- NO other text, logos, watermarks
+- NO other text, NO logos, NO watermarks, NO digital/distressed fonts
+
+IMAGE RULES:
+- Photorealistic style — documentary, not sci-fi fantasy
+- The image tells the story BEFORE the text is read
+- ONE dominant clear subject, not busy/cluttered composition
+- NO neon grid overlays, NO Chinese dragon motifs, NO laser beam grids unless they are the actual topic
 
 {critique_block}{round_escalation}
 
@@ -220,7 +238,7 @@ Return ONLY valid JSON:
     {{
       "id": 1,
       "concept": "<one line — what makes this variant unique>",
-      "prompt": "<full generation prompt, 100-150 words, extremely detailed>"
+      "prompt": "<full generation prompt, 120-180 words, extremely detailed>"
     }}
   ]
 }}
@@ -295,9 +313,10 @@ def generate_images(prompts: list[dict], out_dir: Path, round_num: int) -> list[
 def _build_eval_prompt(thumbnail_text: str, text_line1: str, text_line2: str, script_topic: str) -> str:
     expected = f'"{text_line2}"' if not text_line1 else f'"{text_line1}" (small) + "{text_line2}" (large bold)'
     return f"""\
-You are a YouTube thumbnail analyst with deep expertise in the space/cosmos niche.
-You are integrated into YouTube and understand exactly what drives CTR in this category.
-You have analyzed millions of thumbnails across German, Russian, English space channels.
+You are a YouTube thumbnail analyst specializing in the German space/cosmos niche.
+The target audience is Germans aged 60-70+. They watch ZDF documentaries, read Stern/Spiegel.
+They will NOT click on thumbnails with tiny text or sci-fi movie poster aesthetics.
+They click when they can INSTANTLY READ the text and the image clearly shows what the video is about.
 
 Evaluate this thumbnail across ALL dimensions — visual, textual, semantic, and SEO.
 
@@ -306,40 +325,36 @@ EXPECTED TEXT ON THIS THUMBNAIL: {expected}
 
 VIDEO TOPIC: {script_topic}
 
-Score 1-10 on EACH criterion. Be BRUTAL — most thumbnails deserve 5-6:
+Score 1-10 on EACH criterion. Be BRUTAL — most thumbnails deserve 5-6.
 
 TEXT QUALITY:
 1. text_correctness: Is the exact text "{text_line1}" and "{text_line2}" actually visible and correctly spelled?
    Score 1 if text is missing, distorted, misspelled, or merged into the background.
-2. text_readability: Instantly readable on a 120px mobile thumbnail? Bold enough? High contrast?
-3. text_font_style: Does the font look ULTRA BOLD HEAVY CONDENSED (YouTube/tabloid style)?
-   Thin, outlined, serif, or decorative fonts = 1-3. Heavy condensed white = 8-10.
-4. text_placement: Is text positioned in a VISUALLY BALANCED way?
-   - Is it in a clean dark area with clear separation from the main visual object?
-   - Does the text layout look intentional and designed (not accidental)?
-   - Is the hierarchy clear (small text above, large text below)?
+2. text_readability: Can a 65-year-old read this instantly on a phone screen (120px thumbnail)?
+   Text must be MASSIVE with strong contrast. Small or medium text = 1-4. Giant clear text = 8-10.
+3. text_font_style: Is the font ULTRA BOLD HEAVY CONDENSED, pure white, with strong dark shadow?
+   Thin fonts, decorative/distressed/digital/sci-fi fonts = 1-3. Clean heavy condensed white = 8-10.
+4. text_placement: Is text in a clean area with strong contrast backing?
+   Does the hierarchy look intentional? Is there a visible dark background/shadow behind the text?
 
 VISUAL QUALITY:
-5. composition: Does ONE dominant object fill 60-80% of the frame?
-   Is there clear visual hierarchy? Does the eye know where to go first?
-6. graphic_elements: If arrows, stripes, circles, glows, or other UI elements are present —
-   do they look intentional and enhance the image, or do they look clutter/cheap?
-   Score N/A (7) if no graphic elements are present.
-7. visual_impact: Does this image make you STOP scrolling? Dramatic? Powerful? Cinematic?
-8. color_saturation: VIVID and HIGH-CONTRAST? Deep blacks + glowing highlights?
-   Muted/gray/dark-without-glow = 1-3.
+5. composition: Does ONE dominant photorealistic object fill 60-80% of the frame?
+   Clear visual hierarchy, unambiguous subject, NOT busy or cluttered.
+6. graphic_elements: Any graphic elements (arrows, glows, overlays)?
+   Clean and intentional = 7-10. Neon grids, dragon motifs, laser beams = 1-3 (looks cheap).
+   No graphic elements = 7 (neutral).
+7. visual_impact: Does this image make a 65+ German viewer curious/shocked/amazed?
+   Photorealistic and emotionally resonant = 8-10. Fantasy sci-fi = 3-5 for this audience.
+8. color_saturation: Vivid and high contrast? Natural vivid colors = 8-10. Dark neon chaos = 3-5.
 
 SEMANTIC + SEO:
-9. topic_match: Does the thumbnail VISUALLY REPRESENT the video topic ("{script_topic}")?
-   Would someone who clicked this thumbnail feel the video delivered what the thumbnail promised?
-10. niche_fit: Does this thumbnail FIT the top-performing German space/cosmos channel style?
-    Compare to channels with millions of views in this niche. Generic stock space photo = 3.
-    Dramatic, emotional, story-driven visual = 8-10.
-11. ctr_potential: Based on your YouTube integration knowledge — how likely is a real German
-    viewer scrolling their feed to click THIS thumbnail vs. skip it?
-    Consider: thumbnail size on mobile, competition in this niche, emotional trigger strength.
-12. overall: Strict weighted overall. Only 8+ if this thumbnail could genuinely compete with
-    top-tier German cosmos channels (Kurzgesagt-level production quality for thumbnails).
+9. topic_match: Does the image DIRECTLY REPRESENT the video topic ("{script_topic}")?
+   The image should tell the story without reading the text.
+10. niche_fit: Does this fit how top German cosmos channels (Terra X, Lesch & Co, ZDF) look?
+    Clean documentary authority style = 8-10. Generic sci-fi poster = 2-4.
+11. ctr_potential: Would a real German 65+ viewer scrolling YouTube click this?
+    Consider: is the text readable, is the image intriguing, does it promise a clear topic?
+12. overall: Strict. Only 8+ if this thumbnail is INSTANTLY READABLE and CLEARLY MATCHES the topic.
 
 Return ONLY valid JSON:
 {{
