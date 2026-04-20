@@ -548,6 +548,11 @@ def select_clips_for_video(
                 if not _new_clip_id or _new_clip_id == _old_clip_id:
                     continue
 
+                # Хард-блок: Flash не может назначить клип который уже использован 2+ раз
+                _new_uses = video_used.get(_new_clip_id, 0)
+                if _old_clip_id != _new_clip_id and _new_uses >= 2:
+                    continue
+
                 # Обновляем финальный результат
                 _seg_id_v, _is_intro_v, _seg_dur_v = _seg_meta[_si]
                 _final_clip_id = _new_clip_id
