@@ -384,7 +384,9 @@ class BrosMon:
           - PID не совпадает с текущим pipeline (и не сам BrosMon)
           - Возраст > ORPHAN_KILL_MIN минут  ИЛИ  это дубликат текущей сессии > 3 мин
         """
-        _KEYWORDS = ("pipeline.py", "gosha_rubchinskiy.py")
+        _KEYWORDS = ("pipeline.py", "gosha_rubchinskiy.py", "thumbnail_agent.py",
+                     "thumbnail_editor", "meta_generator.py", "mg_planner_gemini.py",
+                     "mg_renderer.py")
         own_pid      = os.getpid()
         pipeline_pid = self._pipeline_pid()
         now          = datetime.now()
