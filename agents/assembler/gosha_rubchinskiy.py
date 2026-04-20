@@ -596,7 +596,7 @@ def trim_clips(
     return ordered
 
 
-_COSMOS_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr", "channel_004_cosmos_fr"}
+_COSMOS_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr"}
 
 
 def build_transition_plan(
@@ -1076,7 +1076,6 @@ def _plan_motion_graphics(channel_id: str, session: str, segments: list) -> list
             "channel_001_cosmos_de": "German",
             "channel_002_cosmos_fr": "French",
             "channel_003_religion_es": "Spanish",
-            "channel_004_cosmos_fr": "French",
         }
         lang  = _LANG.get(channel_id, "German")
         log(f"MG: планирование Gemini  (lang={lang}, {len(segments)} сегментов)...")
@@ -1508,7 +1507,7 @@ def main() -> None:
     _fut_mg_render: "concurrent.futures.Future | None" = None
     _mg_render_executor: "concurrent.futures.ThreadPoolExecutor | None" = None
 
-    _MG_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr", "channel_004_cosmos_fr"}
+    _MG_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr"}
 
     if not args.skip_mg and channel_id in _MG_CHANNELS:
         _mg_zones = _plan_motion_graphics(channel_id, session, segments)

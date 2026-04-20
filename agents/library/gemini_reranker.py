@@ -195,7 +195,7 @@ def rerank_batch(tasks: list[dict]) -> dict[int, str]:
             try:
                 seg_idx, clip_id = fut.result()
                 results[seg_idx] = clip_id
-            except Exception:
-                pass
+            except Exception as _e:
+                print(f"  ⚠ Flash rerank seg={futures[fut]}: {_e}", flush=True)
 
     return results

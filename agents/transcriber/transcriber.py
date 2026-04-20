@@ -34,11 +34,10 @@ try:
 
     def get_transcribe_language(channel_id: str = "") -> str:
         _LANG_MAP = {
-            "de": "de", "fr": "fr", "es": "es", "fr2": "fr",
+            "de": "de", "fr": "fr", "es": "es",
             "channel_001_cosmos_de": "de",
             "channel_002_cosmos_fr": "fr",
             "channel_003_religion_es": "es",
-            "channel_004_cosmos_fr": "fr",
         }
         if channel_id and channel_id in _LANG_MAP:
             lang = _LANG_MAP[channel_id]
@@ -52,11 +51,10 @@ try:
         return "de"
 except Exception:
     def get_transcribe_language(channel_id: str = "") -> str:
-        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es", "fr2": "fr",
+        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es",
                      "channel_001_cosmos_de": "de",
                      "channel_002_cosmos_fr": "fr",
-                     "channel_003_religion_es": "es",
-                     "channel_004_cosmos_fr": "fr"}
+                     "channel_003_religion_es": "es"}
         return _LANG_MAP.get(channel_id, "de")
 
 # Windows cp1251 консоль не поддерживает эмодзи — переключаем на UTF-8
@@ -924,11 +922,10 @@ def run():
         if _utils not in _sys.path:
             _sys.path.insert(0, _utils)
         from paths import CHANNELS_DIR as _CHANNELS_DIR
-        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es", "fr2": "fr",
+        _LANG_MAP = {"de": "de", "fr": "fr", "es": "es",
                      "channel_001_cosmos_de": "de",
                      "channel_002_cosmos_fr": "fr",
-                     "channel_003_religion_es": "es",
-                     "channel_004_cosmos_fr": "fr"}
+                     "channel_003_religion_es": "es"}
         _ch_lang = _LANG_MAP.get(args.channel or "", "") if args.channel else ""
         channel_root = (_CHANNELS_DIR / _ch_lang) if _ch_lang else _CH_DATA_DIR
     except Exception:

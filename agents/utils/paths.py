@@ -76,10 +76,6 @@ def get_library_json(channel_id: str) -> Path:
     return get_library_dir(channel_id) / "library.json"
 
 
-def get_embeddings_file(channel_id: str) -> Path:
-    return get_library_dir(channel_id) / "embeddings.npz"
-
-
 def get_usage_history(channel_id: str) -> Path:
     # Per-channel file: usage_history_de.json / usage_history_fr.json / usage_history_es.json
     # Channels in the same niche (e.g. DE + FR both = cosmos) share the same clip library

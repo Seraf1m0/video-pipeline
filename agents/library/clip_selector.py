@@ -267,12 +267,6 @@ def select_clips_for_video(
         and entry.get("keywords", "")
         and entry.get("category", "other") not in _EXCLUDED_CATEGORIES
     ]
-    # Индекс тегов: {clip_id: set(tags + [category])} для быстрого lookup
-    _clip_tags: dict[str, set[str]] = {
-        clip_id: set(entry.get("tags", []) + [entry.get("category", "other")])
-        for clip_id, entry in library["clips"].items()
-        if entry.get("indexed", False) and not entry.get("rejected", False)
-    }
     garbage_count = sum(1 for e in library["clips"].values()
                         if e.get("category") in _EXCLUDED_CATEGORIES)
     long_clips = sum(1 for _, _, d in available_clips if d >= 10)
@@ -354,13 +348,6 @@ def select_clips_for_video(
         seg_start    = float(seg.get("start", 0))
         seg_duration = float(seg.get("end", 0)) - seg_start
         is_intro     = int(seg_id) in intro_seg_ids
-
-        # [2] Скользящее окно: prev + current + next (5 сегментов для контекста)
-        prev2_text = segments[i - 2].get("text", "") if i > 1 else ""
-        prev_text  = segments[i - 1].get("text", "") if i > 0 else ""
-        next_text  = segments[i + 1].get("text", "") if i < len(segments) - 1 else ""
-        next2_text = segments[i + 2].get("text", "") if i < len(segments) - 2 else ""
-        window_text = " ".join(filter(None, [prev2_text, prev_text, seg_text, next_text, next2_text]))
 
         section = "INTRO" if is_intro else "MAIN"
         print(f"\n[{seg_id}][{section}] {seg_duration:.1f}s '{seg_text[:60]}'", flush=True)
@@ -558,8 +545,6 @@ def select_clips_for_video(
                 _old_clip_id = _initial_results.get(_si)
                 if not _new_clip_id or _new_clip_id == _old_clip_id:
                     continue
-
-                _final_clip_id = _new_clip_id
 
                 # Обновляем финальный результат
                 _seg_id_v, _is_intro_v, _seg_dur_v = _seg_meta[_si]

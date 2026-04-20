@@ -7,8 +7,8 @@ test_speed.py — мини-тест всего пайплайна на N сег�
     python test_speed.py --channel fr --segments 20
 
 Тестирует все шаги:
-  1. Загрузка embeddings (D: SSD)
-  2. Clip selection (CLIP + e5 matching)
+  1. Загрузка Gemini embeddings
+  2. Clip selection (Gemini + Flash reranker + pHash)
   3. Trim клипов (чтение D: SSD → запись C: SSD)
   4. Render видеоряда (gray_wipe / crossfade / fadeblack)
   5. Аудио микс
@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent / "agents"))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from paths import get_clips_dir, get_library_json, get_embeddings_file, get_niche
+from paths import get_clips_dir, get_library_json, get_niche
 from paths import CHANNELS_DIR
 
 CHANNEL_MAP = {
@@ -83,15 +83,14 @@ def main():
 
     t0_total = time.time()
 
-    # ── 1. Embeddings ─────────────────────────────────────────────
-    print(f"\n[1] Загрузка embeddings с {get_embeddings_file(channel_id).drive}:")
+    # ── 1. Gemini Embeddings ──────────────────────────────────────
+    print(f"\n[1] Загрузка Gemini embeddings:")
     def load_emb():
-        import numpy as np
-        npz = get_embeddings_file(channel_id)
-        data = np.load(str(npz))
-        return len(data.files)
-    n_emb, t1 = t("embeddings", load_emb)
-    print(f"      {n_emb} arrays, файл: {get_embeddings_file(channel_id)}")
+        from gemini_embedder import load_library_embeddings
+        ids, emb = load_library_embeddings(channel_id)
+        return len(ids), emb.shape
+    (n_emb, emb_shape), t1 = t("embeddings", load_emb)
+    print(f"      {n_emb} клипов, shape={emb_shape}")
 
     # ── 2. Clip selection ─────────────────────────────────────────
     print(f"\n[2] Clip selection ({N} сегментов):")
