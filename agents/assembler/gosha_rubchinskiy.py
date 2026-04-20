@@ -1414,8 +1414,9 @@ def _bake_panel_zone(
 
             filter_v = (
                 f"[1:v]crop={pw}:1080:0:0,fps=25,setpts=PTS-STARTPTS[anim];"
+                f"[0:v]fps=25,setpts=PTS-STARTPTS[main];"
                 f"color=black:s=1920x1080:r=25[bg];"
-                f"[bg][0:v]fps=25,setpts=PTS-STARTPTS,overlay=x='{main_x}':y=0[base];"
+                f"[bg][main]overlay=x='{main_x}':y=0[base];"
                 f"[base][anim]overlay=x='{anim_x}':y=0[vout]"
             )
             cmd = [

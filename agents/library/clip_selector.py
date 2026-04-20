@@ -387,12 +387,14 @@ def select_clips_for_video(
                     continue
                 _graw = float(_g_scores[_gidx])
                 _gscore = _graw
-                # Мягкий штраф за повторы (не хард-блок)
+                # Повторы: хард-блок после 2 использований, мягкий штраф для 1-го
                 _uses = video_used.get(_gcid, 0)
+                if _uses >= 2:
+                    continue
                 if _uses >= max_repeats_in_video:
                     continue
                 if _uses > 0:
-                    _gscore *= (0.7 ** _uses)
+                    _gscore *= 0.5
                 # Штраф за recency (последние 2 видео)
                 _last = clip_last_used_idx.get(_gcid, -999)
                 _recency_gap = current_video_idx - _last
