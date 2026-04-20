@@ -818,6 +818,53 @@ def build_audio_track(
 
 
 
+def _suppress_mg_zones_in_ass(
+    ass_path: Path,
+    mg_zones: list[tuple[float, float]],  # (start, end) в Whisper-времени
+    sub_intro_dur: float,
+) -> None:
+    """
+    Убирает Dialogue-строки .ass файла, чьё время полностью или частично
+    попадает в MG fullscreen-зону. Тайминги субтитров — в sub_time = whisper - sub_intro_dur.
+    """
+    import re as _re
+    if not mg_zones or not ass_path.exists():
+        return
+    # Конвертируем MG-зоны в subtitle-время
+    sub_zones = [(max(0.0, s - sub_intro_dur), max(0.0, e - sub_intro_dur)) for s, e in mg_zones]
+
+    def _ass_ts_to_sec(ts: str) -> float:
+        # формат: H:MM:SS.cs (centiseconds)
+        try:
+            h, m, rest = ts.split(":")
+            s, cs = rest.split(".")
+            return int(h) * 3600 + int(m) * 60 + int(s) + int(cs) / 100.0
+        except Exception:
+            return 0.0
+
+    lines = ass_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    out = []
+    removed = 0
+    for line in lines:
+        if not line.startswith("Dialogue:"):
+            out.append(line)
+            continue
+        parts = line.split(",", 9)
+        if len(parts) < 10:
+            out.append(line)
+            continue
+        s_sec = _ass_ts_to_sec(parts[1].strip())
+        e_sec = _ass_ts_to_sec(parts[2].strip())
+        overlap = any(s_sec < z_end and e_sec > z_start for z_start, z_end in sub_zones)
+        if overlap:
+            removed += 1
+        else:
+            out.append(line)
+    if removed:
+        ass_path.write_text("".join(out), encoding="utf-8")
+        log(f"[SUBS] Убрано {removed} строк субтитров из MG-зон")
+
+
 def generate_subtitles(
     result_json:    Path,
     ass_path:       Path,
@@ -825,6 +872,7 @@ def generate_subtitles(
     intro_dur:      float,
     no_subs:        bool,
     intro_trans_dur: float = 0.0,
+    mg_zones:       list[tuple[float, float]] | None = None,
 ) -> tuple[bool, str]:
     """
     Генерация субтитров по стилю канала.
@@ -855,7 +903,6 @@ def generate_subtitles(
                 SUBTITLE_FADE_IN_MS, rise_px,
                 sub_intro_dur, 3, "&H0000FFFF", "&H00707070", border,
             )
-            return ass_path.exists(), ""
         elif sub_style == "scripture":
             generate_scripture_ass(
                 str(result_json), str(ass_path),
@@ -863,7 +910,6 @@ def generate_subtitles(
                 350, 200, sub_intro_dur,
                 style.get("subtitle_max_words", 5),
             )
-            return ass_path.exists(), ""
         elif sub_style == "scale_pop":
             # FR "scale_pop" → drawtext, 6-шаговый scale ease-out + тень
             fp = style.get("subtitle_font_path", "C:/Windows/Fonts/arialbd.ttf")
@@ -893,7 +939,10 @@ def generate_subtitles(
                 intro_duration   = sub_intro_dur,
                 border_style     = border,
             )
-            return ass_path.exists(), ""
+        # Убрать субтитры поверх MG fullscreen-зон
+        if mg_zones and ass_path.exists():
+            _suppress_mg_zones_in_ass(ass_path, mg_zones, sub_intro_dur)
+        return ass_path.exists(), ""
     except Exception as e:
         log(f"[SUBS] ошибка: {e}")
         return False, ""
@@ -1144,20 +1193,52 @@ def _render_mg_zones(zones: list[dict], mg_dir: Path) -> list[dict]:
     return rendered
 
 
+def _mix_mg_audio_into_track(
+    audio_path: Path,
+    mg_sfx_events: list[dict],  # {"file": str, "time_s": float}
+    temp_dir: Path,
+) -> bool:
+    """Накладывает MG SFX-аудио поверх готового аудиотрека (voice+music) через adelay."""
+    if not mg_sfx_events or not audio_path.exists():
+        return True
+    mixed = temp_dir / "_mg_audio_mixed.wav"
+    cmd = ["ffmpeg", "-y", "-i", str(audio_path)]
+    for ev in mg_sfx_events:
+        cmd += ["-i", str(ev["file"])]
+    fc = ["[0:a]aresample=44100[base]"]
+    for k, ev in enumerate(mg_sfx_events):
+        delay_ms = max(0, int(float(ev["time_s"]) * 1000))
+        fc.append(f"[{k+1}:a]adelay={delay_ms}|{delay_ms},volume=0.85[mg{k}]")
+    all_in = "[base]" + "".join(f"[mg{k}]" for k in range(len(mg_sfx_events)))
+    fc.append(f"{all_in}amix=inputs={1+len(mg_sfx_events)}:duration=first:normalize=0[out]")
+    cmd += ["-filter_complex", ";".join(fc), "-map", "[out]",
+            "-c:a", "pcm_f32le", "-ar", "44100", "-loglevel", "warning", str(mixed)]
+    r = subprocess.run(cmd, capture_output=True)
+    if r.returncode == 0 and mixed.exists():
+        mixed.replace(audio_path)
+        log(f"MG: SFX аудио подмешано ({len(mg_sfx_events)} зон)")
+        return True
+    log(f"MG: ошибка подмешивания SFX аудио: {r.stderr.decode(errors='replace')[:200]}")
+    return False
+
+
 def _inject_mg_into_lib_clips(
     zones:    list[dict],
     lib_dir:  Path,
     temp_dir: Path,
     segments: list[dict],
-) -> int:
+) -> tuple[int, list[dict]]:
     """
     Встраивает MG-клипы прямо в temp/lib_clips/ до финального рендера:
       - Fullscreen: нарезаем MG по сегментам и relink каждый clip_NNN.mp4
       - Panel (List): bake(lib_clip + panel_overlay) → clip_NNN.mp4
-    Возвращает количество успешно внедрённых зон.
+    Возвращает (injected_count, mg_sfx_events) где sfx_events — аудио каждой зоны.
     """
     if not zones:
-        return 0
+        return 0, []
+
+    mg_audio_dir = temp_dir / "mg_audio"
+    mg_audio_dir.mkdir(parents=True, exist_ok=True)
 
     # (start, end, seg_id) — в порядке возрастания start
     seg_times: list[tuple[float, float, int]] = sorted(
@@ -1167,6 +1248,8 @@ def _inject_mg_into_lib_clips(
     )
 
     injected = 0
+    sfx_events: list[dict] = []
+
     for zone in zones:
         rendered = zone.get("rendered_path")
         if not rendered or not Path(rendered).exists():
@@ -1191,12 +1274,26 @@ def _inject_mg_into_lib_clips(
             injected += (1 if n > 0 else 0)
         else:
             # Fullscreen: нарезаем MG-клип по каждому сегменту зоны.
-            # Сегмент i получает MG[offset_i : offset_i + seg_dur].
             ok = _slice_mg_into_segs(anim, covered, z_start, lib_dir, temp_dir)
             log(f"  [MG] Zone {zone['zone_id']} ({comp}): fullscreen {ok}/{len(covered)} сег")
             injected += (1 if ok > 0 else 0)
 
-    return injected
+        # Извлечь аудио из MG-зоны для подмешивания в финальный трек
+        audio_out = mg_audio_dir / f"mg_zone_{zone['zone_id']}.wav"
+        if not audio_out.exists():
+            r = subprocess.run(
+                ["ffmpeg", "-y", "-i", str(anim),
+                 "-vn", "-c:a", "pcm_f32le", "-ar", "44100",
+                 "-loglevel", "warning", str(audio_out)],
+                capture_output=True,
+            )
+            if r.returncode != 0 or not audio_out.exists():
+                log(f"  [MG] Аудио зоны {zone['zone_id']} не извлечено")
+                continue
+        sfx_events.append({"file": str(audio_out), "time_s": z_start})
+        log(f"  [MG] Аудио зоны {zone['zone_id']} → {audio_out.name} (t={z_start:.1f}s)")
+
+    return injected, sfx_events
 
 
 def _slice_mg_into_segs(
@@ -1637,6 +1734,9 @@ def main() -> None:
     # ── 2c. MOTION GRAPHICS INJECT ────────────────────────────────────────────
     # Ждём завершения Remotion-рендера (он стартовал ДО clip selection)
     # и встраиваем MG-клипы прямо в temp/lib_clips/ — без дополнительного рендера.
+    _mg_sfx_events:      list[dict]              = []
+    _mg_fullscreen_zones: list[tuple[float, float]] = []
+
     if _fut_mg_render is not None:
         log("MG: ожидание Remotion...")
         t_mg_wait = time.time()
@@ -1650,9 +1750,16 @@ def main() -> None:
                 _mg_render_executor.shutdown(wait=False)
         log(f"[⏱] MG render wait: {time.time()-t_mg_wait:.1f}s")
 
-        n_mg = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments)
+        n_mg, _mg_sfx_events = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments)
         if n_mg:
             log(f"MG: ✅ {n_mg} зон внедрено в видеоряд")
+        # Собираем fullscreen-зоны для подавления субтитров
+        _mg_fullscreen_zones = [
+            (float(z["start_time"]), float(z["end_time"]))
+            for z in _mg_zones_rendered
+            if z.get("composition") not in _MG_PANEL_COMPS
+            and z.get("rendered_path") and Path(z.get("rendered_path", "")).exists()
+        ]
 
     # ── 3. TIMELINE ───────────────────────────────────────────────────────────
     t_timeline = time.time()
@@ -1744,6 +1851,7 @@ def main() -> None:
         fut_subs = ex.submit(
             generate_subtitles,
             result_json, ass_path, style, intro_dur, args.no_subs, trans_dur,
+            _mg_fullscreen_zones or None,
         )
         # CPU fallback: encode videotrack параллельно с аудио/субтитрами
         fut_video = None
@@ -1762,6 +1870,10 @@ def main() -> None:
             audio_ok = True
         else:
             audio_ok = fut_audio.result()
+
+        # Подмешиваем MG SFX-аудио поверх готового трека
+        if audio_ok and _mg_sfx_events:
+            _mix_mg_audio_into_track(mixed_audio_path, _mg_sfx_events, temp_dir)
 
         ass_ok, drawtext_filter = fut_subs.result()
 
