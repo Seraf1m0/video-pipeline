@@ -153,7 +153,7 @@ Return ONLY valid JSON:
   "emotional_tone": "<shock | revelation | urgency | awe | confrontation — strong and specific>",
   "color_palette": "<vivid, high contrast, e.g. 'deep space black + dramatic orange glow + sharp white highlights'>",
   "text_style": "<ultra-bold, clean white sans-serif — NO decorative fonts. Strong dark shadow or semi-transparent backing>",
-  "graphic_elements": "<1-2 specific details that add intrigue: e.g. a glowing circle highlighting a detail, a subtle flag/symbol, dramatic rim lighting, a half-hidden second object>",
+  "graphic_elements": "<Choose 1-2 from these YouTube-proven techniques (or none if not fitting): (A) PNG cutout — a person, astronaut, or key object with NO background, placed in foreground at large scale for depth; (B) Red/yellow circle with thick border highlighting a specific detail in the image; (C) Bold arrow (thick, white or red) pointing at something surprising or key; (D) Split composition — image divided into two contrasting halves; (E) Zoom inset — a circular magnified detail somewhere in the corner. Describe EXACTLY which technique and where>",
   "atmosphere": "<1 sentence: mood — tense, revelatory, urgent — documentary authority with emotional punch>",
   "why_people_click": "<specific psychological hook: what visual question does this thumbnail pose that DEMANDS an answer?>"
 }}
@@ -245,6 +245,12 @@ IMAGE RULES:
 - MANDATORY dramatic lighting: strong contrast, rim light, spotlight, or atmospheric glow
 - Add SMALL DETAILS that reward attention: a subtle flag, a half-hidden object, a glowing trail, dramatic exhaust/atmosphere — things that make the viewer look closer
 - Sense of SCALE and TENSION — something is at stake, something is happening RIGHT NOW
+- If TZ specifies graphic elements — implement them PRECISELY:
+  * PNG cutout: person/object rendered WITHOUT background, sharp edges, slightly oversized, placed in foreground
+  * Circle highlight: thick-border red or yellow circle drawn around a specific detail in the image
+  * Arrow: bold thick arrow (white or red, solid fill) pointing at the key element
+  * Split composition: left half vs right half with clear visual divide
+  * Zoom inset: circular magnified detail with thick border in a corner
 - NO neon grid overlays, NO generic stock space photos, NO flat/static compositions
 
 {critique_block}{round_escalation}
