@@ -558,9 +558,9 @@ def trim_clips(
             # Zone A: нужна обрезка до точной длины сегмента
             tasks.append((src, dst, dur, seg_id))
         else:
-            # Zone B: тоже re-encode с tpad для гарантированной точной длины 5.0s.
-            # shutil.copy2 давал ~4.96s клипы → видео короче озвучки на N*0.04s.
-            tasks.append((src, dst, dur, seg_id))
+            # Zone B → физическая копия на D: (библиотечные клипы строго 5.000000s)
+            if not dst.exists():
+                copy_tasks.append((src, dst))
 
     n_trim = len(tasks)
     n_copy = len(copy_tasks)
