@@ -60,3 +60,9 @@ bot/logs/
 bot/active_channel.json
 .claude/
 data/transcripts_cache/
+remotion/node_modules/
+*.pid
+ab_test_out.txt
+compare_out.txt
+test_matching_demo_out.txt
+remotion/out/

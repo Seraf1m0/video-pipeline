@@ -1061,6 +1061,7 @@ def select_clips_for_video(
     _initial_results: dict[int, str] = {}  # seg_loop_idx → initial clip_id
     _gemini_cands_map: dict[int, list[str]] = {}  # seg_loop_idx → top candidates
     _prev_clip_desc: str = ""   # описание последнего выбранного клипа для Flash контекста
+    _last_clip_id: str | None = None  # immediately preceding selected clip — никогда не повторять подряд
 
     for i, seg in enumerate(segments):
         seg_id       = seg.get("id", 0)
@@ -1129,6 +1130,9 @@ def select_clips_for_video(
             for _gidx in _g_sorted:
                 _gcid = _gemini_ids[_gidx]
                 if _gcid not in _valid_cids_set:
+                    continue
+                # Никогда не повторять тот же клип подряд (хард-блок на немедленный повтор)
+                if _gcid == _last_clip_id:
                     continue
                 _graw = float(_g_scores[_gidx])
                 _gscore = _graw
@@ -1223,6 +1227,13 @@ def select_clips_for_video(
                 top_candidates, _vq, seg_start, _thumb_dir
             )
 
+        # [4c] Хард-блок: немедленный повтор (тот же клип что и предыдущий сегмент)
+        if _last_clip_id and top_candidates and top_candidates[0] == _last_clip_id:
+            _no_repeat = [c for c in top_candidates if c != _last_clip_id]
+            if _no_repeat:
+                top_candidates = _no_repeat
+                print(f"  ⚠ No-immediate-repeat → {top_candidates[0]}", flush=True)
+
         # [5a] E5 text diversity window (2 мин): cosine > 0.92 → берём следующего кандидата
         while prev_clip_embeddings and (seg_start - prev_clip_embeddings[0][0]) > EMB_DIVERSITY_WINDOW_S:
             prev_clip_embeddings.pop(0)
@@ -1258,15 +1269,24 @@ def select_clips_for_video(
         while recent_phashes and (seg_start - recent_phashes[0][0]) > PHASH_WINDOW_S:
             recent_phashes.pop(0)
         if clip_id and phash_map and recent_phashes:
-            h = phash_map.get(clip_id)
-            if h is not None:
-                for _ts, rh in recent_phashes:
-                    if bin(h ^ rh).count("1") < PHASH_THRESHOLD:
-                        alts = [c for c in top_candidates if c != clip_id]
-                        if alts:
-                            clip_id = alts[0]
-                            print(f"  ⚠ pHash-duplicate → {clip_id}", flush=True)
-                        break
+            _recent_hashes = [rh for _ts, rh in recent_phashes]
+            def _phash_blocked(cid: str) -> bool:
+                h = phash_map.get(cid)
+                if h is None:
+                    return False
+                return any(bin(h ^ rh).count("1") < PHASH_THRESHOLD for rh in _recent_hashes)
+            if _phash_blocked(clip_id):
+                # Перебираем кандидатов пока не найдём незаблокированного
+                alts = [c for c in top_candidates if c != clip_id and not _phash_blocked(c)]
+                if alts:
+                    clip_id = alts[0]
+                    print(f"  ⚠ pHash-duplicate → {clip_id}", flush=True)
+                else:
+                    # Все кандидаты заблокированы — берём любого кроме текущего
+                    alts_any = [c for c in top_candidates if c != clip_id]
+                    if alts_any:
+                        clip_id = alts_any[0]
+                        print(f"  ⚠ pHash-duplicate (no clean alt) → {clip_id}", flush=True)
 
         # ── Topic Change Detection ─────────────────────────────────────────────
         # Сравниваем embedding текущего сегмента с предыдущим.
@@ -1309,6 +1329,7 @@ def select_clips_for_video(
                 video_used_at[clip_id] = seg_start
             # Обновляем контекст для Flash reranker (описание текущего клипа)
             _prev_clip_desc = _clip_desc_map.get(clip_id, "")[:120]
+            _last_clip_id = clip_id  # хард-блок немедленного повтора в следующем сегменте
 
         # Сохраняем начальный выбор (до Flash коррекции)
         _initial_results[i] = clip_id
@@ -1392,6 +1413,35 @@ def select_clips_for_video(
             print(f"✅ Flash rerank: применено {_flash_applied}/{len(_flash_tasks)} замен", flush=True)
         except Exception as _fex:
             print(f"⚠ Flash rerank ошибка: {_fex}", flush=True)
+
+    # ── Финальный пост-процессинг: убираем оставшиеся consecutive duplicates ──
+    # Бежим по всем клипам (intro + main как один список в порядке seg_id).
+    # Если два соседних = одинаковый clip_id → меняем второй на следующего кандидата.
+    _all_clips_merged = sorted(intro_clips + main_clips, key=lambda x: x[0])
+    _consec_fixed = 0
+    for _ci in range(1, len(_all_clips_merged)):
+        _prev_sid, _prev_cid, _prev_dur = _all_clips_merged[_ci - 1]
+        _cur_sid, _cur_cid, _cur_dur   = _all_clips_merged[_ci]
+        if _cur_cid and _cur_cid == _prev_cid:
+            # Ищем альтернативу из кандидатов для этого сегмента
+            # Определяем seg_loop_idx по seg_id
+            _cur_si = next((idx for idx, seg in enumerate(segments)
+                            if seg.get("id", 0) == _cur_sid), None)
+            _alts = [c for c in (_gemini_cands_map.get(_cur_si, []) if _cur_si is not None else [])
+                     if c != _prev_cid]
+            if _alts:
+                _new_cid = _alts[0]
+                # Patch в нужном списке
+                _is_intro_ci = int(_cur_sid) in intro_seg_ids
+                _target = intro_clips if _is_intro_ci else main_clips
+                for _li, (_eid, _ecid, _edur) in enumerate(_target):
+                    if _eid == _cur_sid:
+                        _target[_li] = (_eid, _new_cid, _edur)
+                        _all_clips_merged[_ci] = (_cur_sid, _new_cid, _cur_dur)
+                        break
+                _consec_fixed += 1
+    if _consec_fixed:
+        print(f"  [dedup] Исправлено consecutive-дублей: {_consec_fixed}", flush=True)
 
     repeats      = sum(1 for cnt in video_used.values() if cnt > 1)
     prev_overlap = sum(1 for c in video_used if c in prev_clips)

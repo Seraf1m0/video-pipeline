@@ -1,0 +1,197 @@
+{
+  "_comment": "Validated Remotion compositions. Each entry = approved animation ready for production.",
+
+  "color_system": {
+    "_comment": "bg_color — тёмная база фона. accent_color — цвет всех элементов и orb-свечения. Они всегда меняются вместе.",
+    "palettes": {
+      "cosmic_blue":   { "bg_color": "#00050F", "accent_color": "#00C8FF" },
+      "neon_green":    { "bg_color": "#000F08", "accent_color": "#4DFFB4" },
+      "hot_pink":      { "bg_color": "#0F0008", "accent_color": "#FF3CAC" },
+      "orange_fire":   { "bg_color": "#0F0500", "accent_color": "#FF6B35" },
+      "gold":          { "bg_color": "#0F0C00", "accent_color": "#FFD700" },
+      "purple":        { "bg_color": "#08000F", "accent_color": "#A855F7" },
+      "electric_cyan": { "bg_color": "#00080F", "accent_color": "#00E5FF" },
+      "deep_pink":     { "bg_color": "#0F0005", "accent_color": "#FF0099" }
+    },
+    "semantic_mapping": {
+      "wow_fact_record":    "orange_fire",
+      "data_statistics":    "cosmic_blue",
+      "growth_positive":    "neon_green",
+      "composition_shares": "gold",
+      "drama_statement":    "hot_pink",
+      "process_timeline":   "purple",
+      "comparison":         "electric_cyan",
+      "list_enumeration":   "neon_green"
+    },
+    "rule": "Плановик выбирает палитру по смыслу зоны из semantic_mapping. bg_color и accent_color всегда берутся вместе из одной палитры."
+  },
+
+  "compositions": [
+    {
+      "id": "DataCard",
+      "status": "validated",
+      "description": "1-3 числа с подписями. Для фактов, статистики, ключевых данных.",
+      "when_to_use": ["факт", "число", "статистика", "данные", "температура", "размер", "возраст"],
+      "default_duration_s": 8,
+      "default_palette": "cosmic_blue",
+      "transition": "fullscreen_fade",
+      "props_schema": {
+        "title": "string",
+        "items": "[{label, value, color?, numeric?, suffix?}] — 1-3 элемента",
+        "accent_color": "string — hex",
+        "bg_color": "string — hex тёмного фона",
+        "duration_s": "number"
+      }
+    },
+    {
+      "id": "Statement",
+      "status": "validated",
+      "description": "Кинематографичный вывод текста. Для ключевых тезисов и push-моментов.",
+      "when_to_use": ["главная мысль", "вывод", "утверждение", "тезис", "ключевой момент"],
+      "default_duration_s": 6,
+      "default_palette": "hot_pink",
+      "transition": "fullscreen_fade",
+      "props_schema": {
+        "text": "string",
+        "highlight": "string?",
+        "sub": "string?",
+        "accent_color": "string",
+        "bg_color": "string",
+        "duration_s": "number"
+      }
+    },
+    {
+      "id": "Timeline",
+      "status": "validated",
+      "description": "Пронумерованные шаги. Для процессов и последовательностей.",
+      "when_to_use": ["этапы", "шаги", "процесс", "история", "последовательность", "как происходит"],
+      "default_duration_s": 10,
+      "default_palette": "purple",
+      "transition": "fullscreen_fade",
+      "props_schema": {
+        "title": "string",
+        "steps": "[{label, desc?, color?}] — 2-5 шагов",
+        "accent_color": "string",
+        "bg_color": "string",
+        "duration_s": "number"
+      }
+    },
+    {
+      "id": "Comparison",
+      "status": "validated",
+      "description": "VS-лейаут: два значения с разных сторон.",
+      "when_to_use": ["сравнение", "vs", "раньше vs сейчас", "больше меньше", "разница"],
+      "default_duration_s": 8,
+      "default_palette": "electric_cyan",
+      "transition": "fullscreen_fade",
+      "props_schema": {
+        "title": "string?",
+        "left": "{label, value, sub?}",
+        "right": "{label, value, sub?}",
+        "left_color": "string?",
+        "right_color": "string?",
+        "accent_color": "string",
+        "bg_color": "string",
+        "duration_s": "number"
+      }
+    },
+    {
+      "id": "Highlight",
+      "status": "validated",
+      "description": "Одно огромное число/факт на весь экран. Самая драматичная.",
+      "when_to_use": ["рекорд", "невероятное число", "wow-факт", "шокирующая цифра", "масштаб"],
+      "default_duration_s": 7,
+      "default_palette": "orange_fire",
+      "transition": "fullscreen_fade",
+      "props_schema": {
+        "value": "string",
+        "label": "string",
+        "sub": "string?",
+        "accent_color": "string",
+        "bg_color": "string",
+        "duration_s": "number"
+      }
+    },
+    {
+      "id": "List",
+      "status": "validated",
+      "description": "Маркированный список 2-5 пунктов. Панельная анимация слева.",
+      "when_to_use": ["список", "перечисление", "причины", "признаки", "факторы", "виды"],
+      "default_duration_s": 10,
+      "default_palette": "neon_green",
+      "transition": "panel_slide",
+      "panel_note": "Видео сдвигается на 20% вправо, список — левая треть экрана.",
+      "props_schema": {
+        "title": "string",
+        "items": "[{text, sub?}] — 2-5 пунктов",
+        "accent_color": "string",
+        "bg_color": "string",
+        "duration_s": "number"
+      }
+    },
+    {
+      "id": "BarChart",
+      "status": "validated",
+      "description": "Вертикальная гистограмма до 8 столбцов.",
+      "when_to_use": ["гистограмма", "сравнение по годам", "рейтинг", "топ", "распределение"],
+      "default_duration_s": 10,
+      "default_palette": "cosmic_blue",
+      "transition": "fullscreen_fade",
+      "props_schema": {
+        "title": "string",
+        "bars": "[{label, value, color?}] — до 8",
+        "unit": "string?",
+        "accent_color": "string",
+        "bg_color": "string",
+        "duration_s": "number"
+      }
+    },
+    {
+      "id": "RadialChart",
+      "status": "validated",
+      "description": "Кольцевая диаграмма с метками вокруг. Для долей и состава.",
+      "when_to_use": ["состав", "доля", "процент", "из чего состоит", "структура", "соотношение"],
+      "default_duration_s": 10,
+      "default_palette": "gold",
+      "transition": "fullscreen_fade",
+      "props_schema": {
+        "title": "string",
+        "segments": "[{label, value, color?}] — 2-6 сегментов",
+        "center_text": "string?",
+        "accent_color": "string",
+        "bg_color": "string",
+        "duration_s": "number"
+      }
+    },
+    {
+      "id": "LineChart",
+      "status": "validated",
+      "description": "Линейный график с шариком. Для динамики, трендов, роста и спадов.",
+      "when_to_use": ["динамика", "тренд", "рост", "спад", "за годы", "история показателя", "изменение"],
+      "default_duration_s": 12,
+      "default_palette": "neon_green",
+      "transition": "fullscreen_fade",
+      "props_schema": {
+        "title": "string",
+        "points": "[{label, value}] — 3-8 точек",
+        "unit": "string?",
+        "accent_color": "string",
+        "bg_color": "string",
+        "duration_s": "number"
+      }
+    }
+  ],
+
+  "transitions": {
+    "fullscreen_fade": {
+      "description": "Анимация поверх B-roll. B-roll продолжает идти. Fade-in 0.4с встроен в композицию.",
+      "compositions": ["DataCard","Statement","Timeline","Comparison","Highlight","BarChart","RadialChart","LineChart"],
+      "audio": "built-in (rise + SFX + whoosh_out)"
+    },
+    "panel_slide": {
+      "description": "640px панель выезжает слева за 0.5с. Видео сдвигается на 20% вправо.",
+      "compositions": ["List"],
+      "audio": "whoosh_in + whoosh_out + anim SFX тихо"
+    }
+  }
+}

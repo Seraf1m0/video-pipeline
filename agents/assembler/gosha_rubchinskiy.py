@@ -47,6 +47,8 @@ for _p in [
     BASE_DIR / "agents" / "utils",
     BASE_DIR / "agents" / "library",
     BASE_DIR / "agents" / "assembler",
+    BASE_DIR / "agents" / "transcriber",
+    BASE_DIR / "agents" / "motion_graphics",
     BASE_DIR / "bot",
 ]:
     if str(_p) not in sys.path:
@@ -1144,6 +1146,366 @@ def do_commit_history(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# MOTION GRAPHICS  (Gemini plan → Remotion render → inject into lib_clips)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Композиции в panel-режиме: панель выезжает слева, видео сдвигается вправо
+_MG_PANEL_COMPS = {"List"}
+_MG_PANEL_W     = 640   # ширина панели (px)
+_MG_VIDEO_SHIFT = 384   # сдвиг видео вправо (px)
+
+
+def _plan_motion_graphics(channel_id: str, session: str, segments: list) -> list[dict] | None:
+    """
+    Gemini анализирует транскрипт и возвращает список MG-зон.
+    Кеш: session_dir/motion_graphics_plan.json — если есть, Gemini не вызывается.
+    """
+    session_dir = get_session_dir(channel_id, session)
+    plan_path   = session_dir / "motion_graphics_plan.json"
+
+    if plan_path.exists():
+        log("MG: план загружен из кеша")
+        return json.loads(plan_path.read_text(encoding="utf-8")).get("zones", [])
+
+    try:
+        import mg_planner_gemini as _mgp
+        _LANG = {
+            "channel_001_cosmos_de": "German",
+            "channel_002_cosmos_fr": "French",
+            "channel_003_religion_es": "Spanish",
+            "channel_004_cosmos_fr": "French",
+        }
+        lang  = _LANG.get(channel_id, "German")
+        log(f"MG: планирование Gemini  (lang={lang}, {len(segments)} сегментов)...")
+        zones = _mgp.plan_zones(segments, lang=lang)
+
+        plan_path.write_text(
+            json.dumps({"channel_id": channel_id, "session": session, "zones": zones},
+                       ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        # Сохраняем читаемый TXT для проверки
+        txt_path = session_dir / "motion_graphics_plan.txt"
+        lines = [f"MG ПЛАН — {session}", "=" * 60]
+        for z in zones:
+            props = z.get("props", {})
+            lines += [
+                f"\nZone {z['zone_id']:02d}: {z['start_time']:.0f}s – {z['end_time']:.0f}s"
+                f"  [{z['composition']}]  palette={z.get('palette','')}",
+                f"  title : {z.get('title', '')}",
+            ]
+            for k, v in props.items():
+                if k in ("bg_color", "accent_color"):
+                    continue
+                lines.append(f"  {k:<12}: {v}")
+        txt_path.write_text("\n".join(lines), encoding="utf-8")
+
+        log(f"MG: {len(zones)} зон → {plan_path.name}")
+        log(f"MG: план для проверки → {txt_path}")
+        for z in zones:
+            log(f"  Zone {z['zone_id']:02d}: {z['start_time']:.0f}s-{z['end_time']:.0f}s  "
+                f"{z['composition']:<12}  {str(z.get('title',''))[:40]}")
+        return zones
+
+    except Exception as _e:
+        log(f"[MG] Планирование провалилось: {_e}")
+        return None
+
+
+def _render_mg_zones(zones: list[dict], mg_dir: Path) -> list[dict]:
+    """
+    Рендерит Remotion-анимации параллельно (4 потока).
+    Возвращает зоны с заполненным rendered_path.
+    """
+    if not zones:
+        return []
+    mg_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        import mg_renderer as _mgr
+    except ImportError as _e:
+        log(f"[MG] mg_renderer недоступен: {_e}")
+        return zones
+
+    log(f"MG: рендер {len(zones)} зон (Remotion)...")
+    t0 = time.time()
+
+    def _one(z: dict) -> dict:
+        mp4 = _mgr.render_zone(z, mg_dir)
+        return {**z, "rendered_path": str(mp4) if mp4 else None}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(zones))) as ex:
+        rendered = list(ex.map(_one, zones))
+
+    ok = sum(1 for z in rendered if z.get("rendered_path"))
+    log(f"MG: рендер завершён — {ok}/{len(zones)} зон за {time.time()-t0:.1f}s")
+    return rendered
+
+
+def _inject_mg_into_lib_clips(
+    zones:    list[dict],
+    lib_dir:  Path,
+    temp_dir: Path,
+    segments: list[dict],
+) -> int:
+    """
+    Встраивает MG-клипы прямо в temp/lib_clips/ до финального рендера:
+      - Fullscreen: нарезаем MG по сегментам и relink каждый clip_NNN.mp4
+      - Panel (List): bake(lib_clip + panel_overlay) → clip_NNN.mp4
+    Возвращает количество успешно внедрённых зон.
+    """
+    if not zones:
+        return 0
+
+    # (start, end, seg_id) — в порядке возрастания start
+    seg_times: list[tuple[float, float, int]] = sorted(
+        [(float(s.get("start", 0)), float(s.get("end", 0)), int(s.get("id", i + 1)))
+         for i, s in enumerate(segments)],
+        key=lambda x: x[0],
+    )
+
+    injected = 0
+    for zone in zones:
+        rendered = zone.get("rendered_path")
+        if not rendered or not Path(rendered).exists():
+            log(f"  [MG] Zone {zone['zone_id']} не отрендерена — пропуск")
+            continue
+
+        comp    = zone.get("composition", "")
+        z_start = float(zone.get("start_time", 0))
+        z_end   = float(zone.get("end_time",   0))
+        anim    = Path(rendered)
+
+        # Все сегменты, чей start попадает в зону [z_start, z_end)
+        covered = [(s, e, sid) for (s, e, sid) in seg_times if z_start <= s < z_end]
+        if not covered:
+            closest = min(seg_times, key=lambda x: abs(x[0] - z_start))
+            covered = [(closest[0], closest[1], closest[2])]
+
+        if comp in _MG_PANEL_COMPS:
+            seg_ids = [sid for (_, _, sid) in covered]
+            n = _bake_panel_zone(seg_ids, anim, covered, lib_dir, temp_dir)
+            log(f"  [MG] Zone {zone['zone_id']} (List/panel): {n}/{len(seg_ids)} сег бекнуто")
+            injected += (1 if n > 0 else 0)
+        else:
+            # Fullscreen: нарезаем MG-клип по каждому сегменту зоны.
+            # Сегмент i получает MG[offset_i : offset_i + seg_dur].
+            ok = _slice_mg_into_segs(anim, covered, z_start, lib_dir, temp_dir)
+            log(f"  [MG] Zone {zone['zone_id']} ({comp}): fullscreen {ok}/{len(covered)} сег")
+            injected += (1 if ok > 0 else 0)
+
+    return injected
+
+
+def _slice_mg_into_segs(
+    anim_mp4:   Path,
+    covered:    list[tuple[float, float, int]],  # (start, end, seg_id) в порядке возрастания
+    zone_start: float,
+    lib_dir:    Path,
+    temp_dir:   Path,
+) -> int:
+    """
+    Нарезает fullscreen MG-клип на части по длительности каждого сегмента.
+    Каждая часть заменяет соответствующий clip_NNN.mp4 в lib_dir.
+    """
+    slice_dir = temp_dir / "mg_slices"
+    slice_dir.mkdir(parents=True, exist_ok=True)
+    ok = 0
+
+    for seg_start, seg_end, seg_id in covered:
+        anim_offset = seg_start - zone_start   # позиция в MG-клипе
+        seg_dur     = seg_end - seg_start
+
+        sliced = slice_dir / f"slice_{seg_id:03d}.mp4"
+        if not sliced.exists():
+            cmd = [
+                "ffmpeg", "-y",
+                "-ss", f"{anim_offset:.3f}", "-i", str(anim_mp4),
+                "-t",  f"{seg_dur:.3f}",
+                "-vf", "fps=25,scale=1920:1080",
+                "-c:v", "libx264", "-preset", "fast", "-crf", "17",
+                "-pix_fmt", "yuv420p", "-an",
+                "-loglevel", "warning",
+                str(sliced),
+            ]
+            r = subprocess.run(cmd, capture_output=True)
+            if r.returncode != 0 or not sliced.exists():
+                log(f"  [MG] Slice seg {seg_id:03d} FAILED")
+                continue
+
+        dst = lib_dir / f"clip_{seg_id:03d}.mp4"
+        try:
+            if dst.is_symlink() or dst.exists():
+                dst.unlink()
+            dst.symlink_to(sliced.resolve())
+        except OSError:
+            shutil.copy2(sliced, dst)
+        ok += 1
+
+    return ok
+
+
+def _bake_panel_zone(
+    seg_ids:  list[int],
+    anim_mp4: Path,
+    covered:  list[tuple[float, float, int]],  # (start, end, seg_id) упорядоченные
+    lib_dir:  Path,
+    temp_dir: Path,
+) -> int:
+    """
+    List-режим: панель Remotion выезжает слева поверх каждого lib-клипа.
+    Видео сдвигается на VIDEO_SHIFT вправо.
+    Каждый запечённый клип — stream-ready: 25fps, 1920×1080, без аудио.
+
+    Панель въезжает в начале первого клипа, статична в середине, выезжает в конце последнего.
+    Анимация берётся из нужного временного диапазона MG-клипа через -ss на инпуте.
+    """
+    pw = _MG_PANEL_W
+    vs = _MG_VIDEO_SHIFT
+    sd = 0.4   # длительность въезда/выезда (s)
+
+    bake_dir = temp_dir / "mg_baked"
+    bake_dir.mkdir(parents=True, exist_ok=True)
+    ok = 0
+    n  = len(seg_ids)
+
+    zone_start = covered[0][0] if covered else 0.0
+
+    for i, seg_id in enumerate(seg_ids):
+        src = lib_dir / f"clip_{seg_id:03d}.mp4"
+        if not src.exists():
+            continue
+
+        baked    = bake_dir / f"baked_{seg_id:03d}.mp4"
+        seg_s, seg_e, _ = covered[i]
+        clip_dur = seg_e - seg_s
+        anim_seek = seg_s - zone_start   # смещение в MG-клипе для этого сегмента
+
+        is_first = (i == 0)
+        is_last  = (i == n - 1)
+
+        if not baked.exists():
+            # ── строим выражения x для панели и видео ─────────────────────
+            if is_first and is_last:
+                # Один сегмент: въезд + удержание + выезд
+                hold_end = max(sd, clip_dur - sd)
+                anim_x = (
+                    f"if(lt(t,{sd:.3f}),-{pw}+{pw}*t/{sd:.3f},"
+                    f"if(lt(t,{hold_end:.3f}),0,"
+                    f"-{pw}*(t-{hold_end:.3f})/{sd:.3f}))"
+                )
+                main_x = (
+                    f"if(lt(t,{sd:.3f}),{vs}*t/{sd:.3f},"
+                    f"if(lt(t,{hold_end:.3f}),{vs},"
+                    f"{vs}*(1-(t-{hold_end:.3f})/{sd:.3f})))"
+                )
+            elif is_first:
+                # Въезд в начале, удерживается до конца клипа
+                anim_x = f"if(lt(t,{sd:.3f}),-{pw}+{pw}*t/{sd:.3f},0)"
+                main_x = f"if(lt(t,{sd:.3f}),{vs}*t/{sd:.3f},{vs})"
+            elif is_last:
+                # Уже въехала, выезд в конце
+                hold_end = max(0.0, clip_dur - sd)
+                anim_x = f"if(lt(t,{hold_end:.3f}),0,-{pw}*(t-{hold_end:.3f})/{sd:.3f})"
+                main_x = f"if(lt(t,{hold_end:.3f}),{vs},{vs}*(1-(t-{hold_end:.3f})/{sd:.3f}))"
+            else:
+                # Средний клип: панель статична
+                anim_x = "0"
+                main_x = str(vs)
+
+            filter_v = (
+                f"[1:v]crop={pw}:1080:0:0,fps=25,setpts=PTS-STARTPTS[anim];"
+                f"color=black:s=1920x1080:r=25[bg];"
+                f"[bg][0:v]fps=25,setpts=PTS-STARTPTS,overlay=x='{main_x}':y=0[base];"
+                f"[base][anim]overlay=x='{anim_x}':y=0[vout]"
+            )
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", str(src),
+                "-ss", f"{anim_seek:.3f}", "-i", str(anim_mp4),
+                "-filter_complex", filter_v,
+                "-map", "[vout]", "-an",
+                "-c:v", "libx264", "-preset", "fast", "-crf", "17",
+                "-t", f"{clip_dur:.3f}",
+                "-loglevel", "warning",
+                str(baked),
+            ]
+            r = subprocess.run(cmd, capture_output=True)
+            if r.returncode != 0 or not baked.exists():
+                err = r.stderr.decode(errors="replace")[-200:]
+                log(f"  [MG] Panel bake seg {seg_id:03d} FAILED: {err}")
+                continue
+
+        # Relink
+        dst = lib_dir / f"clip_{seg_id:03d}.mp4"
+        try:
+            if dst.is_symlink() or dst.exists():
+                dst.unlink()
+            dst.symlink_to(baked.resolve())
+        except OSError:
+            shutil.copy2(baked, dst)
+        ok += 1
+
+    return ok
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TRANSCRIPTION (inline Whisper, runs when result.json is missing)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _transcribe_for_gosha(channel_id: str, session: str, audio_path: Path) -> Path:
+    """
+    Запустить Whisper-транскрипцию прямо внутри Гоши.
+    Вызывается автоматически если result.json не найден.
+    Возвращает путь к созданному result.json.
+    """
+    # transcriber.py делает "from agents.utils.progress import ProgressBar" —
+    # для этого нужен корень проекта в sys.path
+    if str(BASE_DIR) not in sys.path:
+        sys.path.insert(0, str(BASE_DIR))
+    try:
+        import transcriber as _tr
+    except ImportError as _e:
+        log(f"✗ Не удалось импортировать transcriber: {_e}")
+        sys.exit(1)
+
+    log("=" * 60)
+    log("ТРАНСКРИПЦИЯ (Whisper)")
+    log("=" * 60)
+
+    # Предобработка: убрать длинные паузы до транскрипции
+    log("Предобработка аудио...")
+    audio_path = _tr.preprocess_voice(audio_path)
+
+    # Определяем устройство и загружаем модель
+    device, gpu_name, model_size = _tr.detect_device()
+    log(f"Whisper: {model_size} на {'GPU: ' + gpu_name if device == 'cuda' else 'CPU'}")
+    model = _tr.get_whisper_model()
+
+    # Транскрипция
+    whisper_segs, duration, all_words = _tr.transcribe(
+        model, audio_path, use_gpu=(device == "cuda"), channel_id=channel_id,
+    )
+    log(f"Whisper: {len(whisper_segs)} сегментов, {len(all_words)} слов, {duration:.1f}s")
+
+    # Нарезка на блоки (random: 2–4s → 5s)
+    segments = _tr.build_segments(whisper_segs, "random", channel_id=channel_id)
+    log(f"Нарезка: {len(segments)} блоков")
+
+    # FFmpeg верификация и хвосты
+    segments, ffmpeg_meta = _tr.verify_with_ffmpeg(audio_path, segments)
+
+    # Сохранение result.json + субтитры
+    json_path = _tr.save(session, segments, ffmpeg_meta, words=all_words, channel_id=channel_id)
+    _tr.save_srt(session, segments, channel_id=channel_id)
+    _tr.save_vtt(session, segments, channel_id=channel_id)
+
+    log(f"Транскрипция готова → {json_path.name}")
+    log("=" * 60)
+    return json_path
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1156,8 +1518,8 @@ def main() -> None:
     parser.add_argument("--no-music", action="store_true", help="Без фоновой музыки")
     parser.add_argument("--skip-intro-clips", action="store_true",
                         help="Не генерировать intro_clips/ (только main-клипы)")
-    parser.add_argument("--skip-visual-queries", action="store_true",
-                        help="Пропустить генерацию visual queries через Claude Haiku")
+    parser.add_argument("--skip-mg", action="store_true",
+                        help="Пропустить планирование и рендер Remotion motion graphics")
     parser.add_argument("--intro-duration", type=float, default=90.0,
                         help="Длительность интро в секундах (default: 90)")
     args = parser.parse_args()
@@ -1208,16 +1570,20 @@ def main() -> None:
     set_temp_dir(temp_dir)   # все temp-файлы transitions.py → D: SSD
 
     # Загрузка данных
+    voiceover = get_audio_path(channel_id, session)
+    if not voiceover:
+        log("✗ Озвучка не найдена"); sys.exit(1)
+
     result_json = get_result_json(channel_id, session)
+    if not result_json.exists():
+        log("result.json не найден — запуск транскрипции Whisper...")
+        result_json = _transcribe_for_gosha(channel_id, session, voiceover)
+
     try:
         segments, total_dur = load_segments(result_json)
     except FileNotFoundError as e:
         log(f"✗ {e}"); sys.exit(1)
     log(f"Сегментов: {len(segments)}  |  Длительность: {total_dur:.1f}s")
-
-    voiceover = get_audio_path(channel_id, session)
-    if not voiceover:
-        log(f"✗ Озвучка не найдена"); sys.exit(1)
 
     # Реальная длина голоса — источник истины. result.json может ошибаться
     # (Whisper иногда выдаёт total_duration с паузами в конце или округлением).
@@ -1235,33 +1601,22 @@ def main() -> None:
     elif intro_enabled:
         log("Интро:   не найдено")
 
-    # ── 1b. VISUAL QUERIES (Haiku) ────────────────────────────────────────────
-    # Обогащаем сегменты визуальными описаниями для лучшего CLIP-матчинга.
-    # Запускаем только если result_visual.json ещё не создан.
-    result_visual_json = get_transcripts_dir(channel_id, session) / "result_visual.json"
-    if not result_visual_json.exists() and not args.skip_visual_queries:
-        try:
-            _vq_dir = BASE_DIR / "agents" / "library"
-            if str(_vq_dir) not in sys.path:
-                sys.path.insert(0, str(_vq_dir))
-            from visual_query_generator import generate_visual_queries
-            from paths import get_niche
-            niche = get_niche(channel_id)
-            log("Генерация visual queries через Claude Haiku...")
-            result_visual_json = generate_visual_queries(result_json, niche=niche)
-            segments, _ = load_segments(result_visual_json)
-            log(f"✅ Visual queries готовы: {result_visual_json.name}")
-        except Exception as _vq_err:
-            log(f"✗ Visual queries FAILED: {_vq_err}")
-            log("Останавливаемся — запустите снова или используйте --skip-visual-queries для пропуска.")
-            sys.exit(1)
-    elif result_visual_json.exists():
-        log("Visual queries: загружаем result_visual.json")
-        try:
-            segments, _ = load_segments(result_visual_json)
-        except Exception as _vq_load_err:
-            log(f"✗ Не удалось загрузить result_visual.json: {_vq_load_err}")
-            sys.exit(1)
+    # ── 1b. MOTION GRAPHICS PLAN (Gemini) ─────────────────────────────────────
+    # Gemini анализирует транскрипт → план зон → Remotion стартует в фон
+    # параллельно с clip selection (~45s overlap).
+    _mg_zones: list[dict] | None = None
+    _fut_mg_render: "concurrent.futures.Future | None" = None
+    _mg_render_executor: "concurrent.futures.ThreadPoolExecutor | None" = None
+
+    _MG_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr", "channel_004_cosmos_fr"}
+
+    if not args.skip_mg and channel_id in _MG_CHANNELS:
+        _mg_zones = _plan_motion_graphics(channel_id, session, segments)
+        if _mg_zones:
+            _mg_dir = temp_dir / "motion_graphics"
+            _mg_render_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            _fut_mg_render = _mg_render_executor.submit(_render_mg_zones, _mg_zones, _mg_dir)
+            log("MG: Remotion рендер запущен в фон...")
 
     # ── 2. CLIPS ──────────────────────────────────────────────────────────────
     t_clips = time.time()
@@ -1291,6 +1646,26 @@ def main() -> None:
     # Коммитим немедленно чтобы следующее видео уже знало какие клипы заняты.
     # Re-render этой же сессии пропустит коммит (history_committed=True).
     do_commit_history(selection_result, channel_id, session, Path("_pending"), force=True)
+
+    # ── 2c. MOTION GRAPHICS INJECT ────────────────────────────────────────────
+    # Ждём завершения Remotion-рендера (он стартовал ДО clip selection)
+    # и встраиваем MG-клипы прямо в temp/lib_clips/ — без дополнительного рендера.
+    if _fut_mg_render is not None:
+        log("MG: ожидание Remotion...")
+        t_mg_wait = time.time()
+        try:
+            _mg_zones_rendered = _fut_mg_render.result()
+        except Exception as _mg_err:
+            log(f"[MG] Рендер упал: {_mg_err}")
+            _mg_zones_rendered = []
+        finally:
+            if _mg_render_executor:
+                _mg_render_executor.shutdown(wait=False)
+        log(f"[⏱] MG render wait: {time.time()-t_mg_wait:.1f}s")
+
+        n_mg = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments)
+        if n_mg:
+            log(f"MG: ✅ {n_mg} зон внедрено в видеоряд")
 
     # ── 3. TIMELINE ───────────────────────────────────────────────────────────
     t_timeline = time.time()

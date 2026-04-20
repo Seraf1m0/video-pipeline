@@ -1,7 +1,7 @@
 {
   "channel_001_cosmos_de": {
     "name": "Cosmos DE",
-    "intro_transition": "whip_pan",
+    "intro_transition": "none",
     "clip_transition": "random",
     "clip_transition_duration": 0.35,
     "zone_a_end_s": 300,
@@ -22,7 +22,7 @@
   },
   "channel_002_cosmos_fr": {
     "name": "Cosmos FR",
-    "intro_transition": "zoom_blur",
+    "intro_transition": "none",
     "clip_transition": "random",
     "clip_transition_duration": 0.35,
     "zone_a_end_s": 300,
