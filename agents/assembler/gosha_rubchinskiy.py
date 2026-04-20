@@ -1872,7 +1872,7 @@ def main() -> None:
             audio_ok = fut_audio.result()
 
         # Подмешиваем MG SFX-аудио поверх готового трека
-        if audio_ok and _mg_sfx_events:
+        if audio_ok and _mg_sfx_events and not _au_ok:
             _mix_mg_audio_into_track(mixed_audio_path, _mg_sfx_events, temp_dir)
 
         ass_ok, drawtext_filter = fut_subs.result()
