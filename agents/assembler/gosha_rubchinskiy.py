@@ -1169,6 +1169,69 @@ def _plan_motion_graphics(channel_id: str, session: str, segments: list) -> list
         return None
 
 
+def _fix_zone_durations(
+    zones:        list[dict],
+    segments:     list[dict],
+    zone_a_end_s: float,
+) -> list[dict]:
+    """
+    Пересчитывает duration_s каждой зоны по реальным длительностям клипов:
+      Zone A-сегмент → whisper_dur (клип тримится под него)
+      Zone B-сегмент → 5.000s    (библиотечный клип фиксирован)
+
+    Это устраняет расхождение между Whisper-таймингами (на которых план строился)
+    и фактическим видеорядом ДО старта Remotion — анимация рендерится правильной длины.
+    """
+    from agents.motion_graphics.mg_planner_gemini import (
+        COMPOSITION_MAX_DURATION, COMPOSITION_MIN_DURATION,
+    )
+    ZONE_B_CLIP_DUR = 5.0
+
+    # seg_id → (start, end, zone)
+    seg_times = sorted(
+        [(float(s.get("start", 0)), float(s.get("end", 0)), int(s.get("id", i + 1)))
+         for i, s in enumerate(segments)],
+        key=lambda x: x[0],
+    )
+
+    result = []
+    for z in zones:
+        comp    = z.get("composition", "Statement")
+        z_start = float(z.get("start_time", 0))
+        z_end   = float(z.get("end_time",   z_start + z.get("duration", 10)))
+
+        covered = [(s, e, sid) for (s, e, sid) in seg_times if z_start <= s < z_end]
+        if not covered:
+            result.append(z)
+            continue
+
+        # Суммируем реальные длительности клипов
+        total_actual = 0.0
+        for seg_s, seg_e, _ in covered:
+            if seg_s < zone_a_end_s:
+                total_actual += seg_e - seg_s   # Zone A: trim до Whisper
+            else:
+                total_actual += ZONE_B_CLIP_DUR  # Zone B: строго 5.000s
+
+        max_dur = COMPOSITION_MAX_DURATION.get(comp, 12.0)
+        min_dur = COMPOSITION_MIN_DURATION.get(comp, 5.0)
+        new_dur = round(max(min_dur, min(total_actual, max_dur)), 2)
+
+        if abs(new_dur - z.get("duration", 0)) > 0.1:
+            log(f"  [MG] Zone {z['zone_id']} {comp}: duration {z.get('duration'):.1f}s → {new_dur:.1f}s "
+                f"(actual clips={total_actual:.1f}s)")
+
+        z = dict(z)
+        z["duration"]  = new_dur
+        z["end_time"]  = round(z["start_time"] + new_dur, 2)
+        if "props" in z:
+            z["props"] = dict(z["props"])
+            z["props"]["duration_s"] = new_dur
+        result.append(z)
+
+    return result
+
+
 def _render_mg_zones(zones: list[dict], mg_dir: Path) -> list[dict]:
     """
     Рендерит Remotion-анимации параллельно (4 потока).
@@ -1681,6 +1744,8 @@ def main() -> None:
     if not args.skip_mg and channel_id in _MG_CHANNELS:
         _mg_zones = _plan_motion_graphics(channel_id, session, segments)
         if _mg_zones:
+            # Пересчитываем duration_s до старта Remotion: Zone A=Whisper, Zone B=5.0s
+            _mg_zones = _fix_zone_durations(_mg_zones, segments, zone_a_end_s)
             _mg_dir = temp_dir / "motion_graphics"
             _mg_render_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             _fut_mg_render = _mg_render_executor.submit(_render_mg_zones, _mg_zones, _mg_dir)
