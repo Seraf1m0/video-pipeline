@@ -1232,15 +1232,17 @@ def _inject_mg_into_lib_clips(
     lib_dir:  Path,
     temp_dir: Path,
     segments: list[dict],
-) -> tuple[int, list[dict]]:
+) -> tuple[int, list[dict], set[int]]:
     """
     Встраивает MG-клипы прямо в temp/lib_clips/ до финального рендера:
       - Fullscreen: нарезаем MG по сегментам и relink каждый clip_NNN.mp4
       - Panel (List): bake(lib_clip + panel_overlay) → clip_NNN.mp4
-    Возвращает (injected_count, mg_sfx_events) где sfx_events — аудио каждой зоны.
+    Возвращает (injected_count, mg_sfx_events, intra_mg_seg_ids).
+    intra_mg_seg_ids — сегменты 2..N каждой зоны (не первый): на этих стыках
+    нужен cut-переход чтобы не разрывать непрерывную Remotion-анимацию.
     """
     if not zones:
-        return 0, []
+        return 0, [], set()
 
     mg_audio_dir = temp_dir / "mg_audio"
     mg_audio_dir.mkdir(parents=True, exist_ok=True)
@@ -1254,6 +1256,7 @@ def _inject_mg_into_lib_clips(
 
     injected = 0
     sfx_events: list[dict] = []
+    intra_mg_seg_ids: set[int] = set()
 
     for zone in zones:
         rendered = zone.get("rendered_path")
@@ -1277,11 +1280,14 @@ def _inject_mg_into_lib_clips(
             n = _bake_panel_zone(seg_ids, anim, covered, lib_dir, temp_dir)
             log(f"  [MG] Zone {zone['zone_id']} (List/panel): {n}/{len(seg_ids)} сег бекнуто")
             injected += (1 if n > 0 else 0)
+            intra_mg_seg_ids.update(seg_ids[1:])  # 2..N сег — стыки без перехода
         else:
             # Fullscreen: нарезаем MG-клип по каждому сегменту зоны.
             ok = _slice_mg_into_segs(anim, covered, z_start, lib_dir, temp_dir)
             log(f"  [MG] Zone {zone['zone_id']} ({comp}): fullscreen {ok}/{len(covered)} сег")
             injected += (1 if ok > 0 else 0)
+            all_sids = [sid for (_, _, sid) in covered]
+            intra_mg_seg_ids.update(all_sids[1:])  # 2..N сег — стыки без перехода
 
         # Извлечь аудио из MG-зоны для подмешивания в финальный трек
         audio_out = mg_audio_dir / f"mg_zone_{zone['zone_id']}.wav"
@@ -1298,7 +1304,7 @@ def _inject_mg_into_lib_clips(
         sfx_events.append({"file": str(audio_out), "time_s": z_start})
         log(f"  [MG] Аудио зоны {zone['zone_id']} → {audio_out.name} (t={z_start:.1f}s)")
 
-    return injected, sfx_events
+    return injected, sfx_events, intra_mg_seg_ids
 
 
 def _slice_mg_into_segs(
@@ -1743,8 +1749,9 @@ def main() -> None:
     # ── 2c. MOTION GRAPHICS INJECT ────────────────────────────────────────────
     # Ждём завершения Remotion-рендера (он стартовал ДО clip selection)
     # и встраиваем MG-клипы прямо в temp/lib_clips/ — без дополнительного рендера.
-    _mg_sfx_events:      list[dict]              = []
+    _mg_sfx_events:       list[dict]               = []
     _mg_fullscreen_zones: list[tuple[float, float]] = []
+    _mg_intra_seg_ids:    set[int]                  = set()
 
     if _fut_mg_render is not None:
         log("MG: ожидание Remotion...")
@@ -1759,7 +1766,7 @@ def main() -> None:
                 _mg_render_executor.shutdown(wait=False)
         log(f"[⏱] MG render wait: {time.time()-t_mg_wait:.1f}s")
 
-        n_mg, _mg_sfx_events = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments)
+        n_mg, _mg_sfx_events, _mg_intra_seg_ids = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments)
         if n_mg:
             log(f"MG: ✅ {n_mg} зон внедрено в видеоряд")
         # Собираем fullscreen-зоны для подавления субтитров
@@ -1819,6 +1826,17 @@ def main() -> None:
         clip_trans_dur  = trans_dur,
         channel_id      = channel_id,
     )
+
+    # Стыки внутри MG-зон → cut: Remotion-анимация непрерывна, crossfade её разрывает.
+    # Только вход (первый сег) и выход (после последнего) зоны сохраняют переход.
+    if _mg_intra_seg_ids:
+        mg_cut_count = 0
+        for i, timing in enumerate(timings[:-1]):
+            if timings[i + 1]["seg_id"] in _mg_intra_seg_ids:
+                trans_plan[i] = {"type": "cut", "dur": 0.0}
+                mg_cut_count += 1
+        if mg_cut_count:
+            log(f"MG: {mg_cut_count} внутризонных стыков → cut (непрерывная анимация)")
 
     # Trim клипов (stream copy, параллельно)
     # tpad генерирует freeze-frame handles синтетически — физический handle не нужен.
