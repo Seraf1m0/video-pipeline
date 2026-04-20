@@ -211,37 +211,6 @@ from paths import (
 )
 
 _EMBED_SERVER    = "http://127.0.0.1:8765"
-VISUAL_WEIGHT      = 0.35  # дефолт для абстрактного контента (dark matter, cosmic web...)
-VISUAL_WEIGHT_HIGH = 0.55  # для именованных объектов (JWST, ISS, Mars...) — CLIP доминирует
-VISUAL_WEIGHT_MED  = 0.50  # для общих физических объектов (telescope, rocket, astronaut...)
-# ViT-L-14 хорошо распознаёт конкретные объекты по внешнему виду.
-# Динамический вес: если Haiku написал конкретный объект → CLIP сигнал важнее.
-
-# Объекты с высоким CLIP весом (именованные — CLIP знает как они выглядят)
-_VW_HIGH = {
-    "james webb", "jwst", "euclid", "hubble", "chandra", "spitzer",
-    "artemis", "orion capsule", "sls rocket", "spacex", "falcon 9",
-    "iss", "international space station", "voyager", "cassini",
-    "perseverance", "curiosity", "apollo", "aurora",
-}
-# Объекты со средним CLIP весом (категория понятна, но не именованный объект)
-_VW_MED = {
-    "telescope", "rocket launch", "rocket", "capsule", "astronaut",
-    "spacewalk", "satellite", "probe", "lander", "rover", "observatory",
-    "radio dish", "mars surface", "saturn rings", "lunar surface",
-}
-
-
-def _dynamic_visual_weight(visual_query: str) -> float:
-    """Вычислить CLIP weight на основе конкретности visual_query от Haiku."""
-    q = visual_query.lower()
-    for kw in _VW_HIGH:
-        if kw in q:
-            return VISUAL_WEIGHT_HIGH
-    for kw in _VW_MED:
-        if kw in q:
-            return VISUAL_WEIGHT_MED
-    return VISUAL_WEIGHT
 
 # ─── Embedding — сервер или локальная модель ──────────────────────────
 
@@ -596,13 +565,10 @@ def match_segment_to_clip(
         window_text: str = "",                      # [2] текст окна prev+next
         global_usage: dict | None = None,
         visual_query: str = "",                     # [4] Haiku-сгенерированный визуальный запрос
-        visual_query_alts: list | None = None,     # [4b] альтернативные варианты запроса (multi-query expansion)
         clip_last_used_idx: dict | None = None,
         current_video_idx:  int         = 0,
         segment_start:      float       = 0.0,
         video_used_at:      dict | None = None,
-        visual_embeddings: np.ndarray | None = None,   # (M, 512) CLIP visual
-        visual_ids_list: list[str] | None = None,      # [clip_id, ...] для visual
         prev_video_centroid: np.ndarray | None = None, # центроид e5 предыдущего видео
         clip_tags: dict[str, set[str]] | None = None,  # {clip_id: {tags}} из library
         query_tags: list[str] | None = None,           # теги из visual_query (Haiku)
@@ -636,55 +602,7 @@ def match_segment_to_clip(
     text_scores = clip_embeddings @ seg_vec   # (N,) cosine similarity
     emb_index   = {cid: i for i, cid in enumerate(clip_ids_list)}
 
-    # ── Visual score (CLIP ViT-B/32 multilingual) ─────────────────────────────
-    # Используем visual_query (от Haiku) если есть, иначе window_text, иначе segment_text
-    vis_scores: dict[str, float] = {}
-    if visual_embeddings is not None and visual_ids_list:
-        try:
-            from visual_embedder import encode_text as _clip_encode_text
-            _clip_text = visual_query if visual_query.strip() else (window_text if window_text.strip() else segment_text)
-
-            # Multi-query expansion: основной запрос + альтернативы
-            _all_queries = [_clip_text]
-            if visual_query_alts:
-                _all_queries += [q for q in visual_query_alts if q and q.strip()]
-
-            # Кодируем все варианты и берём MAX score по каждому клипу
-            _all_vecs = [_clip_encode_text(q) for q in _all_queries]  # list of (768,)
-
-            if visual_embeddings.ndim == 3:
-                # [M, 5, 768]: MAX по кадрам И по query-вариантам
-                raw_vis_all = np.stack(
-                    [(visual_embeddings @ vec).max(axis=1) for vec in _all_vecs],
-                    axis=0,
-                )  # [n_queries, M]
-                raw_vis   = raw_vis_all.max(axis=0)   # [M] — MAX по кадрам и запросам
-                _vis_mode = f"MAX×{len(_all_queries)}"
-            else:
-                # [M, 768]: MAX по query-вариантам
-                raw_vis_all = np.stack(
-                    [visual_embeddings @ vec for vec in _all_vecs],
-                    axis=0,
-                )  # [n_queries, M]
-                raw_vis   = raw_vis_all.max(axis=0)
-                _vis_mode = f"avg×{len(_all_queries)}"
-
-            for cid, sc in zip(visual_ids_list, raw_vis.tolist()):
-                vis_scores[cid] = float(sc)
-        except Exception as _ve:
-            pass  # visual недоступно — работаем только на text
-
-    # Когда нет Haiku visual_query — используем фиксированный вес 0.45 (между дефолтом 0.35 и MED 0.50)
-    # window_text/segment_text дают меньше сигнала чем точный Haiku запрос, но CLIP всё равно полезен
-    _vw = _dynamic_visual_weight(visual_query) if visual_query.strip() else 0.45
-
-    def _hybrid_score(clip_id: str, t_score: float) -> float:
-        if not vis_scores:
-            return t_score
-        v_score = vis_scores.get(clip_id, 0.0)
-        return (1.0 - _vw) * t_score + _vw * v_score
-
-    cosine_scores = text_scores  # backward compat alias used below
+    cosine_scores = text_scores
 
     import random as _random
 
@@ -709,8 +627,7 @@ def match_segment_to_clip(
                 continue
 
             idx     = emb_index.get(clip_id)
-            t_score = float(cosine_scores[idx]) if idx is not None else 0.0
-            score   = _hybrid_score(clip_id, t_score)
+            score = float(cosine_scores[idx]) if idx is not None else 0.0
 
             # Семантический штраф за схожесть с предыдущим видео:
             # если клип близок к центроиду предыдущего видео → небольшой доп штраф
@@ -761,7 +678,7 @@ def match_segment_to_clip(
     candidates.sort(key=lambda x: x[1], reverse=True)
 
     best = candidates[0]
-    vis_info = f" vis={vis_scores.get(best[0], 0.0):.2f}(w={_vw:.2f})" if vis_scores else ""
+    vis_info = ""
     if query_tags and clip_tags:
         ctags = clip_tags.get(best[0], set())
         matched_tags = set(query_tags) & ctags
@@ -879,19 +796,6 @@ def select_clips_for_video(
     # ── E5 fallback ───────────────────────────────────────────────────────────
     clip_ids_list, clip_embeddings = load_library_embeddings(channel_id)
 
-    # ── CLIP visual (tiebreaker) ──────────────────────────────────────────────
-    visual_ids_list: list[str] | None  = None
-    visual_embeddings: np.ndarray | None = None
-    if not text_only:
-        try:
-            from visual_embedder import load_visual_embeddings as _load_vis
-            _vis = _load_vis(channel_id)
-            if _vis is not None:
-                visual_ids_list, visual_embeddings = _vis
-                print(f"✅ CLIP tiebreaker: {len(visual_ids_list)} клипов", flush=True)
-        except ImportError:
-            pass
-
     # ── Flash reranker ────────────────────────────────────────────────────────
     _flash_available = False
     try:
@@ -1002,14 +906,11 @@ def select_clips_for_video(
     intro_total        = 0.0
     main_total         = 0.0
     prev_clip_embeddings: list[tuple[float, np.ndarray]] = []   # E5 text diversity window (2 мин)
-    prev_visual_embeddings: list[tuple[float, np.ndarray]] = [] # CLIP visual diversity window (2 мин)
     recent_phashes:      list[tuple[float, int]]         = []   # pHash window (5 мин)
     EMB_DIVERSITY_WINDOW_S  = 120   # 2 минуты — окно embedding diversity по времени
     PHASH_WINDOW_S          = 300   # 5 минут — окно pHash по времени
     PHASH_THRESHOLD         = 12    # hamming distance < 12 из 64 бит = визуально идентичны
-    VIS_DIVERSITY_THRESHOLD = 0.88  # CLIP visual: выше этого → визуально слишком похожи
     emb_index = {cid: i for i, cid in enumerate(clip_ids_list)}
-    vis_emb_index = {cid: i for i, cid in enumerate(visual_ids_list)} if visual_ids_list else {}
 
     # Определяем язык канала для перевода (только если нет Gemini)
     _lang = get_lang(channel_id)
@@ -1090,7 +991,6 @@ def select_clips_for_video(
 
         # Извлечь теги из visual_query для tag-boost
         _vq      = seg.get("visual_query", "")
-        _vq_alts = seg.get("visual_query_alts", [])
         try:
             _tools_dir = str(Path(__file__).resolve().parent.parent.parent / "tools")
             if _tools_dir not in sys.path:
@@ -1212,10 +1112,7 @@ def select_clips_for_video(
                 current_video_idx=current_video_idx,
                 segment_start=seg_start,
                 video_used_at=video_used_at,
-                visual_embeddings=visual_embeddings,
-                visual_ids_list=visual_ids_list,
                 visual_query=_vq,
-                visual_query_alts=_vq_alts if _vq_alts else None,
                 prev_video_centroid=prev_video_centroid,
                 clip_tags=_clip_tags,
                 query_tags=_qtags if _qtags else None,
@@ -1245,23 +1142,6 @@ def select_clips_for_video(
                     if float(clip_embeddings[idx] @ prev_vec) > 0.92 and len(top_candidates) > 1:
                         clip_id = top_candidates[1]
                         print(f"  ⚠ Emb-diversity → {clip_id}", flush=True)
-                        break
-
-        # [5b] CLIP visual diversity window (2 мин): cosine > 0.88 → визуально слишком похожи
-        while prev_visual_embeddings and (seg_start - prev_visual_embeddings[0][0]) > EMB_DIVERSITY_WINDOW_S:
-            prev_visual_embeddings.pop(0)
-        if clip_id and prev_visual_embeddings and visual_embeddings is not None:
-            vis_idx = vis_emb_index.get(clip_id)
-            if vis_idx is not None:
-                for _ts, prev_vis_vec in prev_visual_embeddings:
-                    # Для diversity используем AVG кадров (не MAX — нам нужно общее сходство клипов)
-                    _cur_v  = visual_embeddings[vis_idx].mean(axis=0) if visual_embeddings[vis_idx].ndim == 2 else visual_embeddings[vis_idx]
-                    _prv_v  = prev_vis_vec.mean(axis=0) if prev_vis_vec.ndim == 2 else prev_vis_vec
-                    if float(np.dot(_cur_v, _prv_v)) > VIS_DIVERSITY_THRESHOLD:
-                        alts = [c for c in top_candidates if c != clip_id]
-                        if alts:
-                            clip_id = alts[0]
-                            print(f"  ⚠ Vis-diversity → {clip_id}", flush=True)
                         break
 
         # [6] pHash window (5 мин): визуально идентичные кадры → берём следующего кандидата
@@ -1314,14 +1194,11 @@ def select_clips_for_video(
                 print(f"  [Flash] queued: margin={_gemini_margin_val:.4f} "
                       f"(threshold {MARGIN_THRESHOLD})", flush=True)
 
-        # Обновить окна: E5 text (2 мин) + CLIP visual (2 мин) + pHash (5 мин)
+        # Обновить окна: E5 text (2 мин) + pHash (5 мин)
         if clip_id:
             idx = emb_index.get(clip_id)
             if idx is not None:
                 prev_clip_embeddings.append((seg_start, clip_embeddings[idx].copy()))
-            vis_idx = vis_emb_index.get(clip_id)
-            if vis_idx is not None and visual_embeddings is not None:
-                prev_visual_embeddings.append((seg_start, visual_embeddings[vis_idx].copy()))
             if phash_map and clip_id in phash_map:
                 recent_phashes.append((seg_start, phash_map[clip_id]))
             video_used[clip_id] = video_used.get(clip_id, 0) + 1
@@ -1365,22 +1242,7 @@ def select_clips_for_video(
                 if not _new_clip_id or _new_clip_id == _old_clip_id:
                     continue
 
-                # ── Stage 4: CLIP Tiebreaker ───────────────────────────────
-                # Если Flash вернул другой клип — проверим его визуально
-                # через CLIP cosine vs prev visual embedding (если доступен)
                 _final_clip_id = _new_clip_id
-                if visual_embeddings is not None and vis_emb_index:
-                    _vi_old = vis_emb_index.get(_old_clip_id)
-                    _vi_new = vis_emb_index.get(_new_clip_id)
-                    if _vi_old is not None and _vi_new is not None:
-                        # Сравниваем среднее визуальное сходство двух кандидатов
-                        _old_v = visual_embeddings[_vi_old].mean(axis=0) if visual_embeddings[_vi_old].ndim == 2 else visual_embeddings[_vi_old]
-                        _new_v = visual_embeddings[_vi_new].mean(axis=0) if visual_embeddings[_vi_new].ndim == 2 else visual_embeddings[_vi_new]
-                        # Flash выбирает по тексту, CLIP — по визуалу
-                        # Если Flash-клип визуально ОЧЕНЬ ПЛОХОЙ (малое сходство с query) → оставить old
-                        # В данном случае у нас нет query visual embedding, так что просто принимаем Flash
-                        pass  # Flash wins — он контекстуальный
-                    # else: нет vis embedding — Flash wins
 
                 # Обновляем финальный результат
                 _seg_id_v, _is_intro_v, _seg_dur_v = _seg_meta[_si]
