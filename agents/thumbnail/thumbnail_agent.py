@@ -94,7 +94,16 @@ def _flash(prompt: str, images: list[bytes] | None = None, max_tokens: int = 100
 
 def _parse_json(raw: str) -> dict | list:
     raw = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw, flags=re.DOTALL).strip()
-    return json.loads(raw)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # Gemini sometimes returns trailing commas or truncated JSON — find last valid object
+        for end in range(len(raw), 0, -1):
+            try:
+                return json.loads(raw[:end])
+            except json.JSONDecodeError:
+                continue
+        raise
 
 
 # ── Stage 1: Creative TZ ──────────────────────────────────────────────────────
