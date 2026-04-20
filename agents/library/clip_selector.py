@@ -585,6 +585,43 @@ def select_clips_for_video(
         except Exception as _fex:
             print(f"⚠ Flash rerank ошибка: {_fex}", flush=True)
 
+    # ── Финальный pHash-проход: убираем визуальные дубли введённые Flash reranker ──
+    # Flash мог назначить визуально похожий клип без проверки pHash.
+    # Строим recent_phashes заново по финальным клипам в порядке сегментов.
+    if phash_map:
+        _final_order = sorted(intro_clips + main_clips, key=lambda x: x[0])
+        _fp_recent: list[tuple[float, int]] = []  # (seg_start_s, hash)
+        _fp_fixed = 0
+        for _fi, (_fsid, _fcid, _fdur) in enumerate(_final_order):
+            _fseg = next((s for s in segments if s.get("id", 0) == _fsid), None)
+            _fstart = float(_fseg.get("start", 0)) if _fseg else 0.0
+            # Вычищаем устаревшие
+            while _fp_recent and (_fstart - _fp_recent[0][0]) > PHASH_WINDOW_S:
+                _fp_recent.pop(0)
+            if _fcid and _fp_recent:
+                _fh = phash_map.get(_fcid)
+                _fp_hashes = [rh for _, rh in _fp_recent]
+                if _fh is not None and any(bin(_fh ^ rh).count("1") < PHASH_THRESHOLD for rh in _fp_hashes):
+                    _fi_si = next((idx for idx, seg in enumerate(segments) if seg.get("id", 0) == _fsid), None)
+                    _fp_alts = [c for c in (_gemini_cands_map.get(_fi_si, []) if _fi_si is not None else [])
+                                if c != _fcid and video_used.get(c, 0) < 2
+                                and (not phash_map.get(c) or not any(
+                                    bin(phash_map[c] ^ rh).count("1") < PHASH_THRESHOLD for rh in _fp_hashes))]
+                    if _fp_alts:
+                        _fp_new = _fp_alts[0]
+                        _is_intro_fp = int(_fsid) in intro_seg_ids
+                        _tgt = intro_clips if _is_intro_fp else main_clips
+                        for _li, (_eid, _ecid, _edur) in enumerate(_tgt):
+                            if _eid == _fsid:
+                                _tgt[_li] = (_eid, _fp_new, _edur)
+                                _fcid = _fp_new
+                                break
+                        _fp_fixed += 1
+            if _fcid and phash_map.get(_fcid) is not None:
+                _fp_recent.append((_fstart, phash_map[_fcid]))
+        if _fp_fixed:
+            print(f"  [pHash-final] Исправлено визуальных дублей после Flash: {_fp_fixed}", flush=True)
+
     # ── Финальный пост-процессинг: убираем оставшиеся consecutive duplicates ──
     # Бежим по всем клипам (intro + main как один список в порядке seg_id).
     # Если два соседних = одинаковый clip_id → меняем второй на следующего кандидата.
