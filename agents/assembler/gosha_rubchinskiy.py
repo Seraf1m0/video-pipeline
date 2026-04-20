@@ -557,9 +557,9 @@ def trim_clips(
             # Zone A: нужна обрезка до точной длины сегмента
             tasks.append((src, dst, dur, seg_id))
         else:
-            # Zone B без handle → физическая копия на D: (не симлинк!) чтобы рендер шёл с SSD
-            if not dst.exists():
-                copy_tasks.append((src, dst))
+            # Zone B: тоже re-encode с tpad для гарантированной точной длины 5.0s.
+            # shutil.copy2 давал ~4.96s клипы → видео короче озвучки на N*0.04s.
+            tasks.append((src, dst, dur, seg_id))
 
     n_trim = len(tasks)
     n_copy = len(copy_tasks)
@@ -1301,7 +1301,7 @@ def _inject_mg_into_lib_clips(
             if r.returncode != 0 or not audio_out.exists():
                 log(f"  [MG] Аудио зоны {zone['zone_id']} не извлечено")
                 continue
-        sfx_events.append({"file": str(audio_out), "time_s": z_start})
+        sfx_events.append({"file": str(audio_out), "time_s": z_start, "seg_id": covered[0][2]})
         log(f"  [MG] Аудио зоны {zone['zone_id']} → {audio_out.name} (t={z_start:.1f}s)")
 
     return injected, sfx_events, intra_mg_seg_ids
@@ -1810,6 +1810,12 @@ def main() -> None:
             t["duration"] *= scale
         log(f"Zone A тайминги скалированы: {zone_a_sum:.1f}s -> {zone_a_target:.1f}s (x{scale:.4f})")
 
+    # Пересчитываем start-позиции после скейлинга Zone A
+    _vt = 0.0
+    for t in timings:
+        t["start"] = _vt
+        _vt += t["duration"]
+
     zone_a_segs = sum(1 for t in timings if t["zone"] == "A")
     zone_b_segs = sum(1 for t in timings if t["zone"] == "B")
     detected_boundary = timings[zone_a_segs]["start"] if zone_b_segs > 0 else clips_total_dur
@@ -1837,6 +1843,20 @@ def main() -> None:
                 mg_cut_count += 1
         if mg_cut_count:
             log(f"MG: {mg_cut_count} внутризонных стыков → cut (непрерывная анимация)")
+
+    # Корректируем SFX-тайминги: adelay должен совпадать с видео-позицией анимации,
+    # а не с Whisper-таймстампом (Zone A скейлинг и Zone B 5.0s сдвигают видео vs аудио).
+    if _mg_sfx_events:
+        _sid_to_vstart = {t["seg_id"]: t["start"] for t in timings}
+        _sfx_corrections = []
+        for ev in _mg_sfx_events:
+            sid = ev.get("seg_id")
+            if sid is not None and sid in _sid_to_vstart:
+                old_t = ev["time_s"]
+                ev["time_s"] = _sid_to_vstart[sid]
+                _sfx_corrections.append(f"{old_t:.1f}→{ev['time_s']:.1f}")
+        if _sfx_corrections:
+            log(f"MG: SFX тайминги скорректированы по видео-позициям: {', '.join(_sfx_corrections)}")
 
     # Trim клипов (stream copy, параллельно)
     # tpad генерирует freeze-frame handles синтетически — физический handle не нужен.
