@@ -56,7 +56,8 @@ PROC_KILL_MIN = {
     "python":  110,
     "py":      110,
 }
-DEFAULT_KILL_MIN = 55
+DEFAULT_KILL_MIN  = 55
+ORPHAN_KILL_MIN   = 90   # убить осиротевший pipeline/gosha старше N минут
 
 _CH_ALIAS = {
     "de": "channel_001_cosmos_de",
@@ -137,6 +138,28 @@ def _parse_wmic_date(s: str) -> datetime | None:
         return datetime.strptime(s[:14], "%Y%m%d%H%M%S")
     except Exception:
         return None
+
+
+def _wmic_list(where: str, fields: str) -> list[dict]:
+    """wmic /format:list — корректно парсит CommandLine с запятыми внутри."""
+    r = subprocess.run(
+        ["wmic", "process", "where", where, "get", fields, "/format:list"],
+        capture_output=True, text=True, errors="replace",
+    )
+    procs, cur = [], {}
+    for line in r.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            if cur:
+                procs.append(cur)
+                cur = {}
+            continue
+        if "=" in line:
+            k, _, v = line.partition("=")
+            cur[k.strip()] = v.strip()
+    if cur:
+        procs.append(cur)
+    return procs
 
 
 def get_process_info(pid: int) -> dict | None:
@@ -351,6 +374,60 @@ class BrosMon:
 
         return killed
 
+    # ── Orphan process cleanup ───────────────────────────────────────────────
+
+    def _cleanup_orphan_procs(self) -> None:
+        """Убивает осиротевшие pipeline/gosha python-процессы.
+
+        Критерии «сироты»:
+          - CommandLine содержит pipeline.py или gosha_rubchinskiy.py
+          - PID не совпадает с текущим pipeline (и не сам BrosMon)
+          - Возраст > ORPHAN_KILL_MIN минут  ИЛИ  это дубликат текущей сессии > 3 мин
+        """
+        _KEYWORDS = ("pipeline.py", "gosha_rubchinskiy.py")
+        own_pid      = os.getpid()
+        pipeline_pid = self._pipeline_pid()
+        now          = datetime.now()
+
+        try:
+            rows = _wmic_list("name='python.exe'", "ProcessId,CreationDate,CommandLine")
+        except Exception:
+            return
+
+        killed = []
+        for row in rows:
+            try:
+                pid = int(row.get("ProcessId", 0) or 0)
+            except Exception:
+                continue
+
+            if pid in (own_pid, pipeline_pid, 0):
+                continue
+
+            cmdline = row.get("CommandLine", "") or ""
+            if not any(kw in cmdline for kw in _KEYWORDS):
+                continue
+
+            created  = _parse_wmic_date(row.get("CreationDate", ""))
+            age_min  = (now - created).total_seconds() / 60.0 if created else 9999.0
+
+            # Дубликат текущей сессии (тот же channel + session в cmdline)
+            same_sess = bool(
+                self.session and self.session in cmdline
+                and (self.channel_alias in cmdline or self.channel_id in cmdline)
+            )
+
+            if age_min > ORPHAN_KILL_MIN or (same_sess and age_min > 3):
+                reason = f"дубликат сессии {age_min:.0f} мин" if same_sess else f"возраст {age_min:.0f} мин"
+                log(f"ORPHAN: python PID={pid} ({reason}) — убиваем", "KILL")
+                if _kill_pid(pid):
+                    killed.append(pid)
+                else:
+                    log(f"  Не удалось убить PID={pid}", "WARN")
+
+        if killed:
+            log(f"Очищено осиротевших процессов: {len(killed)}", "KILL")
+
     # ── Stall detection ─────────────────────────────────────────────────────
 
     def _check_progress(self) -> None:
@@ -471,20 +548,24 @@ class BrosMon:
                         log("Pipeline не обнаружен (PID dead)", "DEAD")
                         self._maybe_restart(reason="crash")
 
-            # 3. Зомби-процессы
+            # 3. Зомби-процессы в дереве текущего pipeline
             killed = self._check_processes()
             if killed:
                 log(f"Убито зомби-процессов: {len(killed)}", "KILL")
-                time.sleep(2)  # дать pipeline время среагировать
+                time.sleep(2)
 
-            # 4. Stall-детекция
+            # 4. Осиротевшие pipeline/gosha (каждые 4 итерации ~48с)
+            if iteration % 4 == 0:
+                self._cleanup_orphan_procs()
+
+            # 5. Stall-детекция
             self._check_progress()
 
-            # 5. Ресурсы (каждые 5 итераций)
+            # 6. Ресурсы (каждые 5 итераций)
             if iteration % 5 == 0:
                 self._check_resources()
 
-            # 6. Статус (каждые 3 итерации)
+            # 7. Статус (каждые 3 итерации)
             if iteration % 3 == 0:
                 self._print_status(iteration)
 
