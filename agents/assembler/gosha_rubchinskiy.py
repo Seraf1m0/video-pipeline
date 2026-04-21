@@ -1769,7 +1769,7 @@ def main() -> None:
             )
             log(f"THUMBNAIL: 📝 создан {_thumb_txt} — заполни текст, агент проверяет каждые 30с")
 
-        _thumb_agent = BASE_DIR / "agents" / "thumbnail" / "thumbnail_agent.py"
+        _thumb_agent = BASE_DIR / "agents" / "thumbnail" / "prompt_writer.py"
 
         def _poll_and_run_thumbnail(
             _channel=channel_id, _session=session,

@@ -228,14 +228,6 @@ def select_clips_for_video(
     except Exception as _ge:
         print(f"⚠ Gemini embeddings недоступны: {_ge}", flush=True)
 
-    # ── Flash reranker ────────────────────────────────────────────────────────
-    _flash_available = False
-    try:
-        from gemini_reranker import rerank_batch as _rerank_batch
-        _flash_available = True
-        print(f"✅ Flash reranker: gemini-2.5-flash", flush=True)
-    except Exception as _fe:
-        print(f"⚠ Flash reranker недоступен: {_fe}", flush=True)
 
     # Клипы из последних 5 видео канала (для блокировки недавно использованных)
     prev_clips          = get_prev_video_clips(channel_id, history, n_prev=5)
@@ -307,12 +299,6 @@ def select_clips_for_video(
 
     _lang = get_lang(channel_id)
 
-    # ── Индекс описаний клипов (для Flash reranker) ───────────────────────────
-    _clip_desc_map: dict[str, str] = {
-        cid: entry.get("keywords", "")
-        for cid, entry in library["clips"].items()
-    }
-
     # ── Gemini batch embedding всех сегментов (один API call) ─────────────────
     _gemini_seg_embs: np.ndarray | None = None
     if _gemini_ids is not None and _gemini_emb is not None:
@@ -333,13 +319,7 @@ def select_clips_for_video(
             print(f"⚠ Gemini batch embed сегментов: {_gbe}", flush=True)
             _gemini_seg_embs = None
 
-    # ── Flash rerank: буфер задач ─────────────────────────────────────────────
-    MARGIN_THRESHOLD = 0.015   # margin score[0]-score[1] ниже этого → неуверенность
-    FLASH_TOP_CANDS  = 20      # сколько кандидатов передавать Flash
-    _flash_tasks: list[dict]  = []
-    _initial_results: dict[int, str] = {}  # seg_loop_idx → initial clip_id
-    _gemini_cands_map: dict[int, list[str]] = {}  # seg_loop_idx → top candidates
-    _prev_clip_desc: str = ""   # описание последнего выбранного клипа для Flash контекста
+    _prev_clip_desc: str = ""   # описание последнего выбранного клипа (для контекста запроса)
     _last_clip_id: str | None = None  # immediately preceding selected clip — никогда не повторять подряд
 
     for i, seg in enumerate(segments):
@@ -437,7 +417,6 @@ def select_clips_for_video(
                 _gemini_margin_val = 1.0
 
             top_candidates = [cid for cid, _ in _g_cands]
-            _gemini_cands_map[i] = top_candidates[:FLASH_TOP_CANDS]
 
             if top_candidates:
                 _best_raw = _g_raw200[0][1] if _g_raw200 else 0.0
@@ -490,32 +469,14 @@ def select_clips_for_video(
                 print(f"  [TopicShift] sim_to_prev={_sim_to_prev:.3f} < {TOPIC_SHIFT_THRESHOLD} "
                       f"-> prev_clip reset", flush=True)
 
-        # ── Stage 2: Margin Sampling → собрать задачи для Flash rerank ──────────
-        if _flash_available and _gemini_seg_embs is not None and clip_id:
-            _cands_for_flash = _gemini_cands_map.get(i, [])
-            if _gemini_margin_val < MARGIN_THRESHOLD and len(_cands_for_flash) >= 2:
-                _flash_tasks.append({
-                    "seg_idx":        i,
-                    "segment_text":   seg_text,
-                    "candidates":     [(cid, _clip_desc_map.get(cid, "")) for cid in _cands_for_flash],
-                    "prev_clip_desc": "" if _topic_changed else _prev_clip_desc,
-                    "topic_changed":  _topic_changed,
-                })
-                print(f"  [Flash] queued: margin={_gemini_margin_val:.4f} "
-                      f"(threshold {MARGIN_THRESHOLD})", flush=True)
-
         if clip_id:
             if phash_map and clip_id in phash_map:
                 recent_phashes.append((seg_start, phash_map[clip_id]))
             video_used[clip_id] = video_used.get(clip_id, 0) + 1
             if clip_id not in video_used_at:
                 video_used_at[clip_id] = seg_start
-            # Обновляем контекст для Flash reranker (описание текущего клипа)
-            _prev_clip_desc = _clip_desc_map.get(clip_id, "")[:120]
+            _prev_clip_desc = library["clips"].get(clip_id, {}).get("keywords", "")[:120]
             _last_clip_id = clip_id  # хард-блок немедленного повтора в следующем сегменте
-
-        # Сохраняем начальный выбор (до Flash коррекции)
-        _initial_results[i] = clip_id
 
         entry = (seg_id, clip_id, seg_duration)
         if is_intro:
@@ -525,121 +486,25 @@ def select_clips_for_video(
             main_clips.append(entry)
             main_total += seg_duration
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    # Stage 3: Batch Flash rerank (параллельный, 16 workers)
-    # ═══════════════════════════════════════════════════════════════════════════
-    if _flash_available and _flash_tasks:
-        print(f"\n⚡ Flash rerank: {len(_flash_tasks)} неуверенных сегментов...", flush=True)
-        try:
-            _flash_results = _rerank_batch(_flash_tasks)  # {seg_idx: clip_id}
-            _flash_applied = 0
-
-            # Строим быстрый lookup: seg_idx → (seg_id, is_intro, seg_duration)
-            _seg_meta = {}
-            for _si, _seg in enumerate(segments):
-                _seg_meta[_si] = (
-                    _seg.get("id", 0),
-                    int(_seg.get("id", 0)) in intro_seg_ids,
-                    float(_seg.get("end", 0)) - float(_seg.get("start", 0)),
-                )
-
-            for _si, _new_clip_id in _flash_results.items():
-                _old_clip_id = _initial_results.get(_si)
-                if not _new_clip_id or _new_clip_id == _old_clip_id:
-                    continue
-
-                # Хард-блок: Flash не может назначить клип который уже использован 2+ раз
-                _new_uses = video_used.get(_new_clip_id, 0)
-                if _old_clip_id != _new_clip_id and _new_uses >= 2:
-                    continue
-
-                # Обновляем финальный результат
-                _seg_id_v, _is_intro_v, _seg_dur_v = _seg_meta[_si]
-                _final_clip_id = _new_clip_id
-
-                # Откатываем старый video_used
-                if _old_clip_id:
-                    _old_cnt = video_used.get(_old_clip_id, 1)
-                    if _old_cnt <= 1:
-                        video_used.pop(_old_clip_id, None)
-                    else:
-                        video_used[_old_clip_id] = _old_cnt - 1
-
-                # Обновляем video_used для нового
-                video_used[_final_clip_id] = video_used.get(_final_clip_id, 0) + 1
-                if _final_clip_id not in video_used_at:
-                    _seg_start_v = float(segments[_si].get("start", 0))
-                    video_used_at[_final_clip_id] = _seg_start_v
-
-                # Патчим intro_clips / main_clips
-                _target_list = intro_clips if _is_intro_v else main_clips
-                for _li, (_eid, _ecid, _edur) in enumerate(_target_list):
-                    if _eid == _seg_id_v:
-                        _target_list[_li] = (_eid, _final_clip_id, _edur)
-                        break
-
-                _flash_applied += 1
-                print(f"  ⚡ Flash [{_si}]: {_old_clip_id} → {_final_clip_id}", flush=True)
-
-            print(f"✅ Flash rerank: применено {_flash_applied}/{len(_flash_tasks)} замен", flush=True)
-        except Exception as _fex:
-            print(f"⚠ Flash rerank ошибка: {_fex}", flush=True)
-
-    # ── Финальный pHash-проход: убираем визуальные дубли введённые Flash reranker ──
-    # Flash мог назначить визуально похожий клип без проверки pHash.
-    # Строим recent_phashes заново по финальным клипам в порядке сегментов.
-    if phash_map:
-        _final_order = sorted(intro_clips + main_clips, key=lambda x: x[0])
-        _fp_recent: list[tuple[float, int]] = []  # (seg_start_s, hash)
-        _fp_fixed = 0
-        for _fi, (_fsid, _fcid, _fdur) in enumerate(_final_order):
-            _fseg = next((s for s in segments if s.get("id", 0) == _fsid), None)
-            _fstart = float(_fseg.get("start", 0)) if _fseg else 0.0
-            # Вычищаем устаревшие
-            while _fp_recent and (_fstart - _fp_recent[0][0]) > PHASH_WINDOW_S:
-                _fp_recent.pop(0)
-            if _fcid and _fp_recent:
-                _fh = phash_map.get(_fcid)
-                _fp_hashes = [rh for _, rh in _fp_recent]
-                if _fh is not None and any(bin(_fh ^ rh).count("1") < PHASH_THRESHOLD for rh in _fp_hashes):
-                    _fi_si = next((idx for idx, seg in enumerate(segments) if seg.get("id", 0) == _fsid), None)
-                    _fp_alts = [c for c in (_gemini_cands_map.get(_fi_si, []) if _fi_si is not None else [])
-                                if c != _fcid and video_used.get(c, 0) < 2
-                                and (not phash_map.get(c) or not any(
-                                    bin(phash_map[c] ^ rh).count("1") < PHASH_THRESHOLD for rh in _fp_hashes))]
-                    if _fp_alts:
-                        _fp_new = _fp_alts[0]
-                        _is_intro_fp = int(_fsid) in intro_seg_ids
-                        _tgt = intro_clips if _is_intro_fp else main_clips
-                        for _li, (_eid, _ecid, _edur) in enumerate(_tgt):
-                            if _eid == _fsid:
-                                _tgt[_li] = (_eid, _fp_new, _edur)
-                                _fcid = _fp_new
-                                break
-                        _fp_fixed += 1
-            if _fcid and phash_map.get(_fcid) is not None:
-                _fp_recent.append((_fstart, phash_map[_fcid]))
-        if _fp_fixed:
-            print(f"  [pHash-final] Исправлено визуальных дублей после Flash: {_fp_fixed}", flush=True)
-
-    # ── Финальный пост-процессинг: убираем оставшиеся consecutive duplicates ──
-    # Бежим по всем клипам (intro + main как один список в порядке seg_id).
-    # Если два соседних = одинаковый clip_id → меняем второй на следующего кандидата.
+    # ── Финальный пост-процессинг: убираем consecutive duplicates ──────────────
     _all_clips_merged = sorted(intro_clips + main_clips, key=lambda x: x[0])
     _consec_fixed = 0
     for _ci in range(1, len(_all_clips_merged)):
         _prev_sid, _prev_cid, _prev_dur = _all_clips_merged[_ci - 1]
         _cur_sid, _cur_cid, _cur_dur   = _all_clips_merged[_ci]
         if _cur_cid and _cur_cid == _prev_cid:
-            # Ищем альтернативу из кандидатов для этого сегмента
-            # Определяем seg_loop_idx по seg_id
             _cur_si = next((idx for idx, seg in enumerate(segments)
                             if seg.get("id", 0) == _cur_sid), None)
-            _alts = [c for c in (_gemini_cands_map.get(_cur_si, []) if _cur_si is not None else [])
-                     if c != _prev_cid]
-            if _alts:
-                _new_cid = _alts[0]
-                # Patch в нужном списке
+            _g_top = [cid for cid, _ in (
+                sorted(
+                    [(c, float(_gemini_emb[_gemini_ids.index(c)] @ _gemini_seg_embs[_cur_si]))
+                     for c in list(video_used.keys() | {_prev_cid})
+                     if c in (_gemini_ids or []) and c != _prev_cid],
+                    key=lambda x: x[1], reverse=True
+                ) if _gemini_seg_embs is not None and _gemini_ids and _cur_si is not None else []
+            )]
+            if _g_top:
+                _new_cid = _g_top[0]
                 _is_intro_ci = int(_cur_sid) in intro_seg_ids
                 _target = intro_clips if _is_intro_ci else main_clips
                 for _li, (_eid, _ecid, _edur) in enumerate(_target):

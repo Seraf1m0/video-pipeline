@@ -53,11 +53,213 @@ GEMINI_MODEL    = "gemini-2.5-flash-lite"
 CONCURRENCY     = 15           # параллельных Gemini запросов
 SAVE_EVERY      = 100          # checkpoint каждые N клипов
 FFMPEG_WORKERS  = 8            # параллельных ffmpeg при извлечении кадров
-FRAME_POSITIONS = [0.5, 2.5, 4.5]  # секунды (3 кадра)
+FRAME_POSITIONS = [0.1, 2.5, 4.9]  # секунды (3 кадра: ~0s, 2.5s, ~5s)
 FRAME_SIZE      = 512          # px (ширина), высота пропорционально
 BLACK_THRESH    = 5.0
 BLACK_MAX       = 30
 FROZEN_DIFF     = 0.5
+
+SYSTEM_INSTRUCTION = """\
+Role: Expert Space Content Archivist.
+Task: Generate dense technical visual index of 5-second video clip from three
+frames (0s, 2.5s, 5s) for high-precision matching via Gemini Embedding 2.
+
+═══════════════════════════════════════════════════════════════
+1. OUTPUT RULES
+═══════════════════════════════════════════════════════════════
+
+- Language: English only
+- Style: Nouns and participles only. No articles, no filler words, no verbs "is/are"
+- Length: 15–25 words per scene, strict
+- Separator: " | " between distinct scenes (maximum 2 scenes per clip)
+- Temperature note: intended for temperature=0.1, top_p=0.8
+
+═══════════════════════════════════════════════════════════════
+2. SCENE SEGMENTATION LOGIC
+═══════════════════════════════════════════════════════════════
+
+SPLIT into two scenes ONLY if one condition met:
+  → Object category changes (planet → spacecraft, telescope → nebula)
+  → Content type changes (CGI → Real footage)
+  → INSTANT CUT to different scale/location (not gradual zoom)
+
+DO NOT SPLIT when:
+  → Camera moves continuously (dolly, zoom, pan on same subject)
+  → Object rotates or deploys (JWST unfolding = single scene)
+  → Lighting shifts on same subject
+  → Gradual scale transition via camera movement
+
+Rule: Scale jump = hard cut between frames, NOT smooth camera motion.
+
+═══════════════════════════════════════════════════════════════
+3. CONTENT TYPE (mandatory first field)
+═══════════════════════════════════════════════════════════════
+
+[Real]    → NASA/ESA/JAXA footage, telescope imagery, ISS live feed
+[CGI]     → 3D render, full animation, artistic visualization
+[Photo]   → Single still image, composite, no motion
+[Hybrid]  → Real data + CGI processing (planetary flyovers,
+            enhanced telescope imagery, documentary reconstructions)
+
+═══════════════════════════════════════════════════════════════
+4. OBJECT IDENTIFICATION (Visual DNA)
+═══════════════════════════════════════════════════════════════
+
+CRITICAL DISTINCTION:
+  • "JWST spacecraft" / "Hubble spacecraft" = telescope AS physical object
+  • "JWST imagery" / "Hubble imagery" = deep-space photos TAKEN BY telescope
+    (nebulae, galaxies, deep field views captured through the instrument)
+
+TELESCOPES (spacecraft identification):
+  • James Webb (JWST):  18 golden hexagonal mirror segments,
+                        large silver rhombus sunshield, tennis-court scale
+  • Hubble (HST):       silver-white cylinder, open aperture door,
+                        two flat rectangular solar panels, NO sunshield
+  • Euclid (ESA):       gold MLI-wrapped cylinder, angled flat sunshield/baffle,
+                        flat top, no hexagonal mirrors
+  • Kepler/TESS:        compact cylinder with single solar panel array
+  • Unknown telescope → "unidentified space telescope"
+
+SPACECRAFT:
+  • ISS:                modular metallic truss, copper solar arrays,
+                        Cupola dome windows, multiple docked modules
+  • SpaceX Falcon 9:    slim white cylinder, grid fins, single-engine landing burn
+  • SpaceX Starship:    stainless steel silver body, flaps, Super Heavy booster
+  • Saturn V:           black-white checkered pattern, massive scale, F-1 engines
+  • Soyuz:              green-white rocket, four strap-on boosters, conical capsule
+  • Space Shuttle:      white orbiter, orange external tank, two white SRBs
+  • Dragon/Orion:       gumdrop capsule shape
+  • Unknown rocket → "unidentified launch vehicle"
+
+PLANETS (Solar System):
+  • Earth:     blue oceans, white cloud swirls, green-brown landmasses
+  • Mars:      red-orange surface, visible craters, polar ice caps, thin atmosphere
+  • Jupiter:   horizontal banded atmosphere, Great Red Spot, no rings visible
+  • Saturn:    pale yellow bands, prominent ring system, hexagonal north pole
+  • Uranus:    uniform pale cyan-blue, faint rings, no visible bands
+  • Neptune:   deep blue, faint white cloud streaks, darker than Uranus
+  • Venus:     uniform pale yellow-cream cloud cover, no surface features
+  • Mercury:   gray cratered surface, Moon-like but larger craters
+  • Moon:      gray cratered surface, distinctive maria (dark patches)
+
+DEEP SPACE OBJECTS:
+  • Spiral galaxy:       distinct arms, central bulge
+  • Elliptical galaxy:   smooth oval glow, no structure
+  • Emission nebula:     red/pink hydrogen clouds
+  • Reflection nebula:   blue scattered starlight
+  • Dark nebula:         silhouetted dust against bright background
+  • Planetary nebula:    ring/bubble structure, central star
+  • Supernova remnant:   filamentary expanding structure
+  • Star cluster:        dense grouping of stars
+  • Black hole:          accretion disk, event horizon shadow (CGI typically)
+  • Unknown → "unidentified nebula" / "unidentified galaxy"
+
+UNCERTAINTY THRESHOLD:
+If confidence <90%, use general category.
+Better "gas giant planet" than incorrect "Jupiter".
+
+═══════════════════════════════════════════════════════════════
+5. CAMERA DYNAMICS (mandatory field)
+═══════════════════════════════════════════════════════════════
+
+static / slow push-in / pull-out / orbital pan / tracking forward /
+tracking lateral / rotating / dolly / zoom-in / zoom-out / handheld /
+flyover / first-person descent
+
+═══════════════════════════════════════════════════════════════
+6. SHOT SCALE (mandatory field)
+═══════════════════════════════════════════════════════════════
+
+extreme close-up / close-up / medium shot / wide shot /
+extreme wide shot / orbital view / surface level / cockpit view
+
+═══════════════════════════════════════════════════════════════
+7. LIGHTING & COLOR
+═══════════════════════════════════════════════════════════════
+
+Lighting type: high-contrast / low-key / backlit / silhouette /
+               solar flare / glowing gas / rim-lit / ambient
+
+Color palette: dominant 2–3 colors only (e.g., "rust-orange and ochre",
+               "blue-white tones", "deep red and magenta")
+
+═══════════════════════════════════════════════════════════════
+8. MINIMAL/AMBIGUOUS SCENES (fallback patterns)
+═══════════════════════════════════════════════════════════════
+
+- Only starfield visible:
+  "Photo deep space starfield, static points of light, static shot,
+   wide shot, low-key lighting, black background scattered stars"
+
+- Nebula fills entire frame:
+  Identify by dominant color + structure type (emission/reflection/dark/planetary)
+
+- Abstract/artistic visualization:
+  "CGI abstract cosmic visualization, [describe dominant shapes/colors],
+   [camera], [scale], [lighting], [background]"
+
+- Pure black with minimal subject:
+  Describe the subject prominently, note "minimal background, deep black void"
+
+═══════════════════════════════════════════════════════════════
+9. STRICT BANS
+═══════════════════════════════════════════════════════════════
+
+✗ Subjective adjectives: beautiful, stunning, epic, majestic, breathtaking
+✗ Quality markers: 4K, HD, high-resolution, crisp, sharp
+✗ On-screen elements: text, UI, logos, watermarks, subtitles, graphics overlays
+✗ Metaphors and similes: "like a jewel", "resembling"
+✗ Speculation: "possibly Jupiter", "appears to be" — commit or generalize
+✗ Filler: "we can see", "the image shows", "there is"
+
+═══════════════════════════════════════════════════════════════
+10. OUTPUT STRUCTURE (strict field order)
+═══════════════════════════════════════════════════════════════
+
+[Content Type] [Primary Objects], [Action/Dynamics], [Camera Movement],
+[Shot Scale], [Background/Environment], [Lighting/Color Palette]
+
+Rationale: most discriminating features (objects, environment) lead
+the embedding vector; stylistic features (lighting) trail.
+
+═══════════════════════════════════════════════════════════════
+11. CALIBRATED EXAMPLES
+═══════════════════════════════════════════════════════════════
+
+Single scene, spacecraft:
+CGI James Webb spacecraft, hexagonal gold mirrors unfolding, slow orbital pan,
+medium shot, deep space starfield background, golden reflections high-contrast
+
+Single scene, telescope imagery:
+Real JWST imagery Carina Nebula region, static gas pillars, slow push-in,
+extreme wide shot, dense star field background, orange-brown glowing gas
+
+Single scene, planet:
+Hybrid Mars surface flyover, crater terrain scrolling beneath, tracking forward,
+low-altitude wide shot, thin atmospheric haze horizon, rust-orange and ochre palette
+
+Single scene, Euclid (corrected):
+Real Euclid spacecraft, gold MLI body angled baffle visible, static shot,
+medium shot, black space void background, high-contrast sunlight
+
+Two-scene clip (hard cut):
+Hybrid Saturn with ring system, static planet rotation, slow orbital pan,
+wide shot, black space background, pale yellow bands soft lighting | \
+CGI Starship booster, vertical landing burn descent, static tracking,
+medium shot, dusk sky ocean platform below, blue engine glow backlit
+
+Minimal scene (starfield only):
+Photo deep space starfield, static points of light, static shot,
+extreme wide shot, black void background, low-key scattered white stars
+
+Ambiguous object:
+CGI unidentified spacecraft, rotating along axis, orbital pan,
+medium shot, black space starfield background, rim-lit metallic silver
+"""
+
+USER_PROMPT = (
+    "Analyze this 5-second clip based on 0s, 2.5s, 5s frames according to the system rules."
+)
 
 # Паттерны визуальных дескрипторов без имени объекта → клип нужно переиндексировать
 _POOR_PATTERNS = [
@@ -321,40 +523,45 @@ def _is_frozen_bytes(frames: list[bytes]) -> bool:
 
 def _parse_gemini_response(text: str) -> tuple[str, bool]:
     """
-    Парсит ответ Gemini нового формата (PRIMARY_SUBJECT / DETAILED_DESCRIPTION / KEYWORDS / ...).
-    Возвращает (keywords_str, valid_bool).
+    Парсит ответ Gemini нового формата (системная инструкция v2).
 
-    keywords_str формат для library.json:
-      "<KEYWORDS> | <PRIMARY_SUBJECT> | <DETAILED_DESCRIPTION> | TYPE:<type> | MOTION:<motion>"
-    Это позволяет _clip_embed_text() использовать весь текст для эмбеддинга.
+    Новый формат — чистый текст без лейблов:
+      [Content Type] [Objects], [Dynamics], [Camera], [Scale], [Background], [Lighting]
+      Два сцены: разделены " | "
+
+    Старый формат (DESCRIPTION:/TYPE:/MOTION:) — обратная совместимость для уже
+    проиндексированных клипов (при re-index они придут заново в новом формате).
     """
-    description = ""
-    clip_type   = ""
-    motion      = ""
-    valid       = True
+    import re
+    text = text.strip()
+    # Убрать markdown-блоки если есть
+    text = re.sub(r"^```[^\n]*\n?", "", text, flags=re.MULTILINE)
+    text = text.strip("`").strip()
 
-    for line in text.strip().splitlines():
-        line = line.strip()
-        if line.startswith("DESCRIPTION:"):
-            description = line[len("DESCRIPTION:"):].strip()
-        elif line.startswith("TYPE:"):
-            clip_type = line[len("TYPE:"):].strip()
-        elif line.startswith("MOTION:"):
-            motion = line[len("MOTION:"):].strip()
-        elif line.startswith("VALID:"):
-            valid = line[len("VALID:"):].strip().lower().startswith("y")
+    if not text:
+        return "", False
 
-    # Богатая строка для embedding: description уже содержит entity + technical + environment + camera
-    parts = []
-    if description:
-        parts.append(description)
-    if clip_type:
-        parts.append(f"TYPE:{clip_type}")
-    if motion:
-        parts.append(f"MOTION:{motion}")
+    # Проверить, не старый ли формат (лейблы DESCRIPTION:/TYPE:/VALID:)
+    if "DESCRIPTION:" in text or "TYPE:" in text:
+        description, clip_type, motion, valid_flag = "", "", "", True
+        for line in text.splitlines():
+            line = line.strip()
+            if line.startswith("DESCRIPTION:"):
+                description = line[len("DESCRIPTION:"):].strip()
+            elif line.startswith("TYPE:"):
+                clip_type = line[len("TYPE:"):].strip()
+            elif line.startswith("MOTION:"):
+                motion = line[len("MOTION:"):].strip()
+            elif line.startswith("VALID:"):
+                valid_flag = line[len("VALID:"):].strip().lower().startswith("y")
+        parts = [p for p in [description, f"TYPE:{clip_type}" if clip_type else "", f"MOTION:{motion}" if motion else ""] if p]
+        combined = " | ".join(parts)
+        return combined, valid_flag and bool(description)
 
-    combined = " | ".join(parts)
-    return combined, valid and bool(description)
+    # Новый формат — возвращаем как есть (уже готов для embedding)
+    # Нормализуем пробелы вокруг разделителя
+    text = re.sub(r"\s*\|\s*", " | ", text)
+    return text, True
 
 
 async def _analyze_clip_async(
@@ -370,13 +577,13 @@ async def _analyze_clip_async(
 
     client = _get_client()
 
-    # Отправляем кадры с явными метками позиции — Gemini видит все три и знает порядок
-    labels = ["[FRAME 1 — clip START (0.5s)]", "[FRAME 2 — clip MIDDLE (2.5s)]", "[FRAME 3 — clip END (4.5s)]"]
+    # Кадры с метками позиции согласно системной инструкции (0s, 2.5s, 5s)
+    labels = ["[FRAME 1 — 0s]", "[FRAME 2 — 2.5s]", "[FRAME 3 — 5s]"]
     parts = []
     for label, jpeg in zip(labels, frames):
         parts.append(gtypes.Part.from_text(text=label))
         parts.append(gtypes.Part.from_bytes(data=jpeg, mime_type="image/jpeg"))
-    parts.append(gtypes.Part.from_text(text=GEMINI_PROMPT))
+    parts.append(gtypes.Part.from_text(text=USER_PROMPT))
 
     max_retries = 8
     delay       = 5.0   # начальная задержка (429: ждём retryDelay, 503: 5s)
@@ -388,7 +595,9 @@ async def _analyze_clip_async(
                     model=GEMINI_MODEL,
                     contents=parts,
                     config=gtypes.GenerateContentConfig(
+                        system_instruction=SYSTEM_INSTRUCTION,
                         temperature=0.1,
+                        top_p=0.8,
                         max_output_tokens=300,
                     ),
                 )
@@ -489,7 +698,8 @@ async def _index_async(
     verbose: bool,
 ) -> dict:
     """Асинхронный индексатор: параллельные Gemini запросы."""
-    sem   = asyncio.Semaphore(CONCURRENCY)
+    sem      = asyncio.Semaphore(CONCURRENCY)
+    task_sem = asyncio.Semaphore(CONCURRENCY * 3)  # макс задач в полёте (ffmpeg + Gemini)
     stats = {"ok": 0, "rejected": 0, "error": 0}
     t0    = time.time()
     done  = [0]
@@ -578,8 +788,12 @@ async def _index_async(
                 flush=True,
             )
 
-    # Запустить все задачи параллельно (CONCURRENCY ограничен semaphore)
-    tasks = [asyncio.create_task(process_one(cid)) for cid in todo]
+    async def process_one_throttled(clip_id: str) -> None:
+        async with task_sem:
+            await process_one(clip_id)
+
+    # Запустить все задачи параллельно (task_sem ограничивает кол-во ffmpeg + Gemini)
+    tasks = [asyncio.create_task(process_one_throttled(cid)) for cid in todo]
     await asyncio.gather(*tasks)
 
     # Финальный checkpoint

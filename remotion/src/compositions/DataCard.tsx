@@ -52,7 +52,7 @@ function gradientStyle(index: number): React.CSSProperties {
 
 function calcFontSize(items: DataItem[]): number {
   const maxLen = Math.max(...items.map(it =>
-    it.numeric !== undefined
+    it.numeric != null
       ? it.numeric.toLocaleString("de-DE").length + (it.suffix?.length ?? 0)
       : it.value.length
   ));
@@ -198,7 +198,7 @@ const AnimNum: React.FC<{
   const breathe = 1 + Math.sin(frame * 0.055 + idx) * 0.007;
 
   let display: string;
-  if (item.numeric !== undefined) {
+  if (item.numeric != null) {
     const countEnd = Math.round(totalFrames * 0.78);
     const progress = interpolate(frame, [enterFrame + 6, countEnd], [0, 1], {
       extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic),

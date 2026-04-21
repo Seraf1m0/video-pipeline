@@ -41,7 +41,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-FLASH_MODEL    = "gemini-2.5-flash"
+FLASH_MODEL    = "gemini-2.5-flash-lite"
 _NO_THINKING   = {"thinking_config": {"thinking_budget": 0}}
 N_VARIANTS     = 3       # изображений за раунд
 MAX_ROUNDS     = 4       # максимум раундов генерации+рефайна
@@ -129,13 +129,15 @@ They are curious, intelligent — but they will NOT click on something they cann
 They do NOT respond well to sci-fi movie poster aesthetics, neon colors, or chaotic designs.
 They respond to: CLEAR bold text, photorealistic imagery that matches the topic, authoritative mood.
 
-The user wants this text on the thumbnail: "{thumbnail_text}"
+The user wants EXACTLY this text on the thumbnail — nothing more, nothing less: "{thumbnail_text}"
+
+STRICT RULE: You may only use these exact words. You CANNOT add, invent, or paraphrase any other text.
 
 Your job:
 1. Analyze the script to understand the video topic and emotional hook
-2. Decide HOW to use this text for maximum CTR impact:
-   - Split into lines if needed (e.g. "DIE SONNE IST WACH" → "DIE SONNE IST" + "WACH")
-   - OR keep as one dominant line
+2. Decide HOW to display this exact text for maximum CTR impact:
+   - Split into lines if it improves readability (e.g. "DIE SONNE IST WACH" → "DIE SONNE IST" + "WACH")
+   - OR keep as one dominant line (text_line1="" in that case, text_line2=full text)
    - Main text must be MASSIVE — the kind a 65-year-old can read on a phone without glasses
    - Decide text hierarchy, size ratio, and placement
 3. Choose a PHOTOREALISTIC main object that directly represents the video topic
@@ -152,8 +154,8 @@ Your job:
 
 Return ONLY valid JSON:
 {{
-  "text_line1": "<supporting text — context/setup, or empty string if single line. Must be large and bold — NOT tiny>",
-  "text_line2": "<MAIN bold word(s) — the emotional hook, LARGEST on screen>",
+  "text_line1": "<first part of the user's text split across lines, OR empty string if single line. ONLY words from the original text — NO invented text>",
+  "text_line2": "<second part or full text if single line — ONLY words from the original text>",
   "text_hierarchy": "<BOTH lines must be large. Max ratio 1.5x. E.g. 'line2 is 1.3x larger than line1 — both are big bold headlines'>",
   "text_placement": "<upper-left | lower-left | upper-right — where text block sits>",
   "main_object": "<ONE dominant object — use EXACT real name + precise visual description (shape, color, size, markings). E.g. NOT 'space telescope' but 'Hubble Space Telescope — silver cylindrical body, gold thermal blanket, two rectangular blue solar panels, large aperture end facing viewer'. Dramatic moment, not static>",
@@ -216,80 +218,65 @@ Each prompt must be COMPLETELY DIFFERENT from previous attempts.
 
     line1 = tz.get("text_line1", "")
     line2 = tz.get("text_line2", "")
-    hierarchy = tz.get("text_hierarchy", "line2 is larger")
+    # If TZ put everything in line1 with empty line2, swap — line2 is always the hero
+    if line2 == "" and line1 != "":
+        line2, line1 = line1, line2
+
+    placement = tz.get("text_placement", "upper-left")
+    side = placement.split("-")[1] if "-" in placement else "left"
+
+    # Text suffix injected programmatically into every prompt — never lost
+    if line1:
+        text_suffix = (
+            f'Text overlay at {placement}: "{line1}" in bold condensed white (~15% frame height), '
+            f'then below it "{line2}" in ultra-bold condensed white (~28% frame height). '
+            f'Both flush to {side} edge. Impact-style font, heavy black drop shadow, '
+            f'dark semi-transparent bar behind text. No other text or logos.'
+        )
+    else:
+        text_suffix = (
+            f'Text overlay at {placement}: "{line2}" — ultra-bold condensed white Impact-style font, '
+            f'letters ~30% frame height, heavy black drop shadow, '
+            f'dark semi-transparent bar behind text. No other text or logos.'
+        )
+
+    object_name = tz.get("main_object", "").split("—")[0].strip()
+    object_detail = tz.get("main_object", "").split("—")[1].strip() if "—" in tz.get("main_object", "") else ""
 
     prompt = f"""\
-You are a master prompt engineer for AI image generation.
-You create YouTube thumbnails for a German space documentary channel targeting viewers aged 60-70+.
-These viewers use phones and tablets — text MUST be readable at thumbnail size without zooming.
+You are a prompt engineer creating YouTube thumbnails for a German space documentary channel.
 
-CREATIVE BRIEF (TZ):
-- Main object: {tz.get('main_object','')}
-- Colors: {tz.get('color_palette','')}
-- Text placement: {tz.get('text_placement','')}
-- Text style: {tz.get('text_style','')}
-- Graphic elements: {tz.get('graphic_elements','')}
-- Atmosphere: {tz.get('atmosphere','')}
+Generate {N_VARIANTS} DIFFERENT visual concepts for this thumbnail.
+Each concept = unique angle, composition, or moment. VISUAL ONLY — no text instructions.
 
-TEXT TO INCLUDE (mandatory, exact spelling):
-{f'- Supporting text (line 1): "{line1}" — LARGE AND BOLD, minimum 15% of frame height' if line1 else '- No line 1 — single dominant line only'}
-- MAIN bold text (line 2): "{line2}" — the HERO text
-- Text hierarchy: {hierarchy} — MAX size ratio 1.5x between lines, BOTH must be headline-sized
+SUBJECT: {object_name}{f" — {object_detail[:150]}" if object_detail else ""}
+MOOD: {tz.get("atmosphere", "")}
+COLORS: {tz.get("color_palette", "")}
 
-TEXT RENDERING RULES (non-negotiable):
-- "{line2}" must be ENORMOUS — letters 25-35% of frame HEIGHT, ultra-thick strokes
-- "{line1}" if present — must ALSO be large, at least 12-15% of frame HEIGHT — NOT a tiny caption
-- Both lines: ultra-bold heavy condensed, pure white, ZERO thin strokes, ZERO decorative serifs
-- MANDATORY: solid dark semi-transparent bar or heavy drop shadow behind ALL text lines
-- A 65-year-old must read BOTH lines instantly on a phone without zooming
-- Text block in: {tz.get('text_placement','')}
-- NO other text, NO logos, NO watermarks, NO digital/distressed fonts
-
-IMAGE RULES:
-- Photorealistic style — documentary/cinematic, grounded in reality
-- The image tells the story BEFORE the text is read
-- ONE dominant subject + 1-2 secondary details that add intrigue (not clutter)
-- MANDATORY dramatic lighting: strong contrast, rim light, spotlight, or atmospheric glow
-- Add SMALL DETAILS that reward attention: a subtle flag, a half-hidden object, a glowing trail, dramatic exhaust/atmosphere — things that make the viewer look closer
-- Sense of SCALE and TENSION — something is at stake, something is happening RIGHT NOW
-
-REAL OBJECT ACCURACY (critical):
-- If the topic involves a SPECIFIC real object (spacecraft, telescope, rocket, planet, person),
-  describe its EXACT real-world appearance in precise visual detail:
-  * Hubble Space Telescope → "cylindrical silver body ~13m long, gold mylar thermal blanket, two rectangular blue solar panels extending sideways, large primary mirror aperture at one end"
-  * ISS → "large modular structure, multiple cylindrical modules, large solar panel arrays in an X pattern"
-  * James Webb → "hexagonal gold mirror segments, tennis-court-sized 5-layer sunshield, silver struts"
-  * Chinese Long March rocket → "white cylindrical body, red Chinese flag markings, four strap-on boosters"
-  * Use the EXACT official name + precise description — NEVER substitute with a generic "space telescope" or "rocket"
-  * Add: "accurate to real photographs, not artistic interpretation, matches NASA/ESA imagery"
-
-GRAPHIC ELEMENTS:
-- Circle highlight: thick-border red or yellow circle (3-4px border) around a specific detail
-- Arrow: SKIP arrows in AI generation — they come out wrong direction. Use circles or glows instead.
-- PNG cutout: person/object rendered WITHOUT background, sharp edges, slightly oversized, placed in foreground
-- Split composition: left half vs right half with clear visual divide
-- Zoom inset: circular magnified detail with thick border in a corner
-- NO neon grid overlays, NO generic stock space photos, NO flat/static compositions
+RULES:
+- Photorealistic, cinematic documentary style — NOT sci-fi fantasy
+- ONE dominant subject, dramatically lit
+- Strong sense of scale and drama — something is happening NOW
+- Dark background that makes the subject pop
 
 {critique_block}{round_escalation}
-
-Generate {N_VARIANTS} DIFFERENT prompt concepts. Each must have a unique composition/angle.
-Every prompt must end with: "{IMAGE_STYLE_SUFFIX}"
 
 Return ONLY valid JSON:
 {{
   "prompts": [
     {{
       "id": 1,
-      "concept": "<one line — what makes this variant unique>",
-      "prompt": "<full generation prompt, 120-180 words, extremely detailed>"
+      "concept": "<one line — unique angle>",
+      "prompt": "<60-80 words, visual description only, no text instructions>"
     }}
   ]
 }}
 """
-    data    = _parse_json(_flash(prompt, max_tokens=3000))
+    data    = _parse_json(_flash(prompt, max_tokens=2000))
     prompts = data.get("prompts", [])
+    # Inject text + style suffix into every prompt
     for p in prompts:
+        p["prompt"] = f"{p['prompt'].rstrip('. ')}. {text_suffix} {IMAGE_STYLE_SUFFIX}"
         print(f"  [{p['id']}] {p['concept']}", flush=True)
     return prompts
 
@@ -523,6 +510,260 @@ def _collect_critiques(evaluated: list[dict]) -> list[str]:
     return critiques[:6]
 
 
+# ── Edit Pass ─────────────────────────────────────────────────────────────────
+
+ACCURACY_PASS_SCORE  = 9   # порог точности объекта (1-10) — ниже → edit pass (с реальным фото)
+
+
+def _flash_with_search(prompt: str, image_bytes: bytes | None = None) -> str:
+    """Flash с Google Search grounding."""
+    from google.genai import types as gtypes
+    client = _get_gemini()
+
+    parts = []
+    if image_bytes:
+        from PIL import Image as PILImage
+        pil = PILImage.open(io.BytesIO(image_bytes)).convert("RGB")
+        buf = io.BytesIO()
+        pil.save(buf, format="JPEG", quality=85)
+        parts.append(gtypes.Part.from_bytes(data=buf.getvalue(), mime_type="image/jpeg"))
+    parts.append(gtypes.Part.from_text(text=prompt))
+
+    attempt = 0
+    while True:
+        try:
+            resp = client.models.generate_content(
+                model=FLASH_MODEL,
+                contents=parts,
+                config=gtypes.GenerateContentConfig(
+                    tools=[gtypes.Tool(google_search=gtypes.GoogleSearch())],
+                    temperature=0.3,
+                    max_output_tokens=600,
+                    thinking_config=gtypes.ThinkingConfig(thinking_budget=0),
+                ),
+            )
+            return (resp.text or "").strip()
+        except Exception as e:
+            err = str(e)
+            if "503" in err or "UNAVAILABLE" in err or "429" in err:
+                attempt += 1
+                wait = min(15 * attempt, 60)
+                print(f"  [Flash+Search] retry #{attempt} in {wait}s...", flush=True)
+                time.sleep(wait)
+            else:
+                raise
+
+
+def _check_object_accuracy(img_result: dict, tz: dict) -> dict:
+    """
+    Строгая проверка: соответствует ли изображённый объект реальному по форме, деталям, параметрам.
+    Возвращает {"score": 1-10, "accurate": bool, "issues": str, "object_name": str}
+    """
+    main_object = tz.get("main_object", "")
+    img_bytes   = Path(img_result["path"]).read_bytes()
+
+    prompt = f"""\
+You are a strict visual fact-checker for space/science imagery.
+
+The intended main object in this thumbnail is: "{main_object}"
+
+Examine the image VERY carefully and answer:
+1. Is the depicted object ACCURATELY representing the real "{main_object.split('—')[0].strip()}"?
+   Check: exact shape, proportions, key structural details, color, distinctive markings.
+
+   Examples of what to check:
+   - James Webb Space Telescope: 18 hexagonal gold mirror segments, 5-layer sunshield (kite-shaped), silver struts — NOT a generic round telescope
+   - Hubble: cylindrical silver body, two rectangular blue solar panels — NOT hexagonal mirrors
+   - ISS: modular structure, large X-shaped solar arrays, Soyuz/Dragon docked
+   - Mars: red/orange rocky surface, thin atmosphere haze, Olympus Mons if wide shot
+   - Black hole: accretion disk (orange/yellow ring), photon ring, gravitational lensing — NOT a generic vortex
+
+2. Rate accuracy 1-10 (10 = photographic accuracy, 1 = completely wrong/generic)
+3. List the specific shape/detail errors if any
+
+Return ONLY valid JSON:
+{{"score": <1-10>, "accurate": <true if score >= {ACCURACY_PASS_SCORE}>, "issues": "<specific shape/detail errors or null>", "object_name": "<exact real name of the object>"}}"""
+
+    try:
+        raw  = _flash(prompt, images=[img_bytes], max_tokens=300)
+        data = _parse_json(raw)
+        score = data.get("score", 10)
+        print(
+            f"  [Accuracy] {data.get('object_name','')} score={score}/10 "
+            f"accurate={data.get('accurate',True)}",
+            flush=True,
+        )
+        if not data.get("accurate", True):
+            print(f"    Issues: {data.get('issues','')}", flush=True)
+        return data
+    except Exception as e:
+        print(f"  [Accuracy] check failed: {e}", flush=True)
+        return {"score": 10, "accurate": True, "issues": None, "object_name": ""}
+
+
+def _fetch_reference_image(object_name: str) -> bytes | None:
+    """
+    Flash с Google Search находит реальное фото объекта.
+    Возвращает bytes изображения или None.
+    """
+    import urllib.request
+
+    prompt = f"""\
+Search Google Images for the best official NASA or ESA photograph of "{object_name}".
+Find a high-quality photo that clearly shows its real shape and details.
+Return ONLY the direct image URL (ending in .jpg or .png). Nothing else."""
+
+    try:
+        url = _flash_with_search(prompt)
+        # Вытащить URL из ответа
+        url = url.strip().strip('"\'').split()[0]
+        if not url.startswith("http"):
+            print(f"  [RefImg] no valid URL from search", flush=True)
+            return None
+        print(f"  [RefImg] downloading: {url[:80]}", flush=True)
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = r.read()
+        if len(data) > 10000:
+            print(f"  [RefImg] got {len(data)//1024}KB", flush=True)
+            return data
+    except Exception as e:
+        print(f"  [RefImg] failed: {e}", flush=True)
+    return None
+
+
+def _build_edit_instruction(
+    tz: dict,
+    ref_image: bytes,
+) -> tuple[bytes, str]:
+    """
+    Базовое изображение = реальное фото объекта.
+    Instruction = только добавить текст сверху + лёгкая стилизация.
+    Возвращает (base_image_bytes, edit_instruction).
+    """
+    text_line1  = tz.get("text_line1", "")
+    text_line2  = tz.get("text_line2", "")
+    placement   = tz.get("text_placement", "upper-left")
+    color_palette = tz.get("color_palette", "deep space black")
+
+    if text_line1 and text_line2:
+        text_req = (
+            f'Add text overlay at {placement}: '
+            f'"{text_line1}" in large bold white condensed font with dark shadow, '
+            f'and below it "{text_line2}" in even LARGER ultra-bold white condensed font. '
+            f'Both texts must be in the same language as written — do NOT translate.'
+        )
+    else:
+        text_req = (
+            f'Add text "{text_line2}" at {placement} — '
+            f'enormous ultra-bold white condensed font, strong dark shadow.'
+        )
+
+    instruction = (
+        f"YouTube thumbnail style. {text_req} "
+        f"Enhance with dramatic space lighting and {color_palette}. "
+        f"Keep the main object clearly visible and photorealistic."
+    )
+
+    print(f"  [Edit] Instruction: {instruction}", flush=True)
+    return ref_image, instruction
+
+
+async def _edit_one(
+    session: aiohttp.ClientSession,
+    api_url: str,
+    pid: int | str,
+    base_image_bytes: bytes,
+    edit_instruction: str,
+    out_path: Path,
+) -> dict:
+    img_b64 = base64.b64encode(base_image_bytes).decode()
+    try:
+        async with session.post(
+            f"{api_url}/api/v1/image/edit",
+            json={
+                "reference_image_b64": img_b64,
+                "edit_instruction":    edit_instruction,
+                "aspect_ratio":        "16:9",
+                "generation_mode":     "quality",
+            },
+            timeout=aiohttp.ClientTimeout(total=240),
+        ) as resp:
+            if resp.status != 200:
+                text = await resp.text()
+                print(f"  ⚠ [edit {pid}] HTTP {resp.status}: {text[:80]}", flush=True)
+                return {"id": pid, "path": None}
+            data = await resp.json()
+        img_b64r = data.get("image_b64") or data.get("image")
+        if not img_b64r:
+            print(f"  ⚠ [edit {pid}] no image in response", flush=True)
+            return {"id": pid, "path": None}
+        edited_bytes = base64.b64decode(img_b64r)
+        out_path.write_bytes(edited_bytes)
+        print(f"  ✅ [edit {pid}] {out_path.name} ({len(edited_bytes)//1024}KB)", flush=True)
+        return {"id": pid, "path": out_path, "prompt": edit_instruction}
+    except Exception as e:
+        print(f"  ⚠ [edit {pid}] {e}", flush=True)
+        return {"id": pid, "path": None}
+
+
+def edit_pass(
+    evaluated: list[dict],
+    tz: dict,
+    script_topic: str,
+    round_num: int,
+    variants_dir: Path,
+) -> list[dict]:
+    """
+    Строгая проверка точности объектов → если неточно → Flash+Search находит реальное фото →
+    PixelAgent edit (на базе реального фото или текущего) → возвращает отредактированные варианты.
+    """
+    api_url = os.environ.get("PIXEL_API_URL", "").rstrip("/")
+    api_key = os.environ.get("PIXEL_API_KEY", "")
+
+    valid = [
+        r for r in evaluated
+        if r.get("path") and Path(r["path"]).exists()
+    ]
+    if not valid:
+        return []
+
+    # Проверяем точность объектов
+    print(f"\n[Edit Pass] Проверка точности объектов ({len(valid)} вариантов)...", flush=True)
+    edit_tasks = []
+    for r in valid:
+        accuracy = _check_object_accuracy(r, tz)
+        if accuracy.get("accurate", True):
+            continue  # объект точный — не трогаем
+
+        object_name = accuracy.get("object_name", "")
+        ref_image   = _fetch_reference_image(object_name) if object_name else None
+        if not ref_image:
+            print(f"  [Edit Pass] v{r['id']} — референс не найден, пропускаем", flush=True)
+            continue  # без реального фото не редактируем
+
+        base_bytes, instruction = _build_edit_instruction(tz, ref_image)
+        edit_tasks.append((r, base_bytes, instruction))
+
+    if not edit_tasks:
+        print(f"  [Edit Pass] Все объекты точные — пропускаем", flush=True)
+        return []
+
+    print(f"  [Edit Pass] {len(edit_tasks)} изображений на редактирование...", flush=True)
+
+    async def _run_all():
+        headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+        async with aiohttp.ClientSession(headers=headers) as sess:
+            tasks = []
+            for r, base_bytes, instr in edit_tasks:
+                out_path = variants_dir / f"r{round_num}_v{r['id']}_edit.png"
+                tasks.append(_edit_one(sess, api_url, r["id"], base_bytes, instr, out_path))
+            return await asyncio.gather(*tasks)
+
+    results = asyncio.run(_run_all())
+    return [r for r in results if r.get("path") and Path(r["path"]).exists()]
+
+
 # ── SEO Report ───────────────────────────────────────────────────────────────
 
 def _write_seo_report(
@@ -650,6 +891,18 @@ def run_pipeline(channel_id: str, session: str, thumbnail_text: str, out_dir: Pa
         if round_best and round_best["overall"] > best_overall:
             best_overall = round_best["overall"]
             best_image   = round_best
+
+        # ── Edit Pass: пробуем отредактировать лучших кандидатов ─────────────────
+        edited = edit_pass(evaluated, tz, script_topic, round_num, variants_dir)
+        if edited:
+            print(f"  [Edit Pass] re-evaluating {len(edited)} edited image(s)...", flush=True)
+            edited_eval = evaluate_images(edited, round_num, thumbnail_text, tz, script_topic)
+            all_results.extend(edited_eval)
+            evaluated = evaluated + edited_eval
+            round_best_edit = max(edited_eval, key=lambda x: x["overall"]) if edited_eval else None
+            if round_best_edit and round_best_edit["overall"] > best_overall:
+                best_overall = round_best_edit["overall"]
+                best_image   = round_best_edit
 
         passed = [r for r in evaluated if r["passed"]]
         if passed:
