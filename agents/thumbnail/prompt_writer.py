@@ -220,6 +220,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--channel", required=True)
     parser.add_argument("--session", default=None)
+    parser.add_argument("--text", default=None, help="Thumbnail text (skip file polling)")
     parser.add_argument("--watch", action="store_true",
                         help="Watch thumbnail_text.txt and re-run when it changes")
     args = parser.parse_args()
@@ -275,7 +276,12 @@ def main():
         print("=" * 60, flush=True)
         return True
 
-    if args.watch:
+    # If --text passed directly, write it to file and run once
+    if args.text:
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        text_file.write_text(args.text, encoding="utf-8")
+        run_once()
+    elif args.watch:
         last_mtime = 0
         print(f"Watching {text_file} ...", flush=True)
         while True:
