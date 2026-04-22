@@ -2,7 +2,7 @@ import React from "react";
 import { Composition } from "remotion";
 import { SolarParadox } from "./animations/SolarParadox";
 import { DataCard, DataCardProps }       from "./compositions/DataCard";
-import { Statement, StatementProps }     from "./compositions/Statement";
+import { Statement, StatementProps, StatementStyle }     from "./compositions/Statement";
 import { Timeline, TimelineProps }       from "./compositions/Timeline";
 import { Comparison, ComparisonProps }   from "./compositions/Comparison";
 import { Highlight, HighlightProps }     from "./compositions/Highlight";
@@ -11,7 +11,7 @@ import { BarChart, BarChartProps }       from "./compositions/BarChart";
 import { RadialChart, RadialChartProps } from "./compositions/RadialChart";
 import { LineChart, LineChartProps }     from "./compositions/LineChart";
 
-const FPS = 30;
+const FPS = 25;
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -256,6 +256,19 @@ export const RemotionRoot: React.FC = () => {
         calculateMetadata={({ props }) => ({
           durationInFrames: Math.round((props.duration_s ?? 12) * FPS),
         })}
+      />
+      {/* ── Statement style variants (test) ────────────────────────── */}
+      <Composition id="StatementGlitch" component={Statement} durationInFrames={175} fps={FPS} width={1920} height={1080}
+        defaultProps={{ text: "Das Zentrum der Sonne ist 15 Millionen Grad heiß.", accent_color: "#00FFD0", duration_s: 7, style: "glitch" } satisfies StatementProps}
+        calculateMetadata={({ props }) => ({ durationInFrames: Math.round((props.duration_s ?? 7) * FPS) })}
+      />
+      <Composition id="StatementCharReveal" component={Statement} durationInFrames={175} fps={FPS} width={1920} height={1080}
+        defaultProps={{ text: "Das Zentrum der Sonne ist 15 Millionen Grad heiß.", accent_color: "#FF6B35", duration_s: 7, style: "char_reveal" } satisfies StatementProps}
+        calculateMetadata={({ props }) => ({ durationInFrames: Math.round((props.duration_s ?? 7) * FPS) })}
+      />
+      <Composition id="StatementTypewriter" component={Statement} durationInFrames={175} fps={FPS} width={1920} height={1080}
+        defaultProps={{ text: "Das Zentrum der Sonne ist 15 Millionen Grad heiß.", sub: "Temperatur im Sonnenkern", accent_color: "#A855F7", duration_s: 7, style: "typewriter" } satisfies StatementProps}
+        calculateMetadata={({ props }) => ({ durationInFrames: Math.round((props.duration_s ?? 7) * FPS) })}
       />
     </>
   );

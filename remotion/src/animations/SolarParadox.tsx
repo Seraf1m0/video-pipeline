@@ -308,11 +308,10 @@ const MultiplierBadge: React.FC<{ frame: number; startFrame: number }> = ({ fram
     <div style={{
       opacity,
       transform: `scale(${pop}) rotate(${rotate}deg)`,
-      background: `linear-gradient(135deg, ${COLORS.gold}22, ${COLORS.gold}44)`,
+      background: `linear-gradient(135deg, ${COLORS.gold}33, ${COLORS.gold}55)`,
       border:     `2px solid ${COLORS.gold}99`,
       borderRadius: 12,
       padding:    "10px 18px",
-      backdropFilter: "blur(8px)",
     }}>
       <div style={{
         fontFamily:    FONT_MONO,
