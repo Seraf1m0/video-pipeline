@@ -1636,19 +1636,14 @@ def thread_a_image_prompts(script: str) -> dict:
 
 # ── Gemini Flash: image prompts with baked-in text (religion style) ───────────
 
-_RELIGION_STYLE = """Oil painting style with fine brushstrokes in the manner of Old Masters (Rembrandt, Raphael, Caravaggio).
-Photorealistic human anatomy and proportions. Skin texture realistic, facial features anatomically correct.
-BRIGHT LUMINOUS palette: brilliant whites, warm golds, soft sky blues, radiant ambers. Light and heavenly, NOT dark.
-Atmosphere: celestial, divine, glowing with heavenly light. Background: bright heavenly sky, soft glowing clouds, golden light rays, ethereal mist.
-Jesus Christ appearance: long brown wavy hair, short trimmed beard, deep kind eyes, white or light blue flowing robes.
-Recognizable as Jesus Christ from classical Renaissance religious paintings. NOT a generic man.
-Composition: waist-up or full body. Jesus's face and body in the TOP 60% of the image."""
+_RELIGION_STYLE = """Old Masters oil painting — the chiaroscuro warmth of Rembrandt, the luminous serenity of Raphael, the sacred gravity of Caravaggio.
+Palette of ivory, warm gold, molten amber and heavenly rose. Divine light pours from above, catching every fold of cloth, every strand of hair.
+Jesus Christ — the face known from centuries of Renaissance icons: wavy chestnut hair, compassionate eyes that hold the weight of the world, flowing white robes that seem to breathe.
+The figure radiates a presence that makes the viewer feel both small and deeply seen. Sacred stillness. The silence before a revelation."""
 
-_TEXT_STYLE = """The overlay text must appear in the LOWER 30% of the image.
-Text style: ultra-bold condensed white letters, slightly golden or warm tint, massive (25-35% of frame width).
-Add subtle dark atmospheric haze behind text zone (soft vignette at bottom, NOT a hard rectangle).
-Text must appear as if PAINTED or ENGRAVED into the scene — part of the composition, not a sticker.
-The text itself should have a subtle warm golden glow/aura around the letters."""
+_TEXT_STYLE = """The Spanish words are inscribed directly into the lower canvas — as if the painter's own hand lettered them in thick impasto strokes.
+Warm amber light catches the raised edges of each letter. The words glow from within, lit by the same divine source as Christ himself.
+The text is part of the painting, born from it, not placed on top."""
 
 
 def build_image_prompts_with_text(preview_texts: list[str], script: str) -> list[str]:
@@ -1662,32 +1657,34 @@ def build_image_prompts_with_text(preview_texts: list[str], script: str) -> list
     excerpt = script[:400]
 
     prompts_block = "\n".join(
-        f'{i+1}. Text for image: "{txt}"'
+        f'{i+1}. "{txt}"'
         for i, txt in enumerate(preview_texts[:5])
     )
 
-    system = f"""You are an expert image prompt writer for PixelAgent (an AI image generator).
-You create photorealistic image prompts for a warm Christian spiritual YouTube channel in Spanish.
+    system = f"""You write image prompts for an AI image generator (PixelAgent).
+Each prompt must conjure a specific emotional and visual experience — not describe a design specification.
+Write in the language of sensation, atmosphere, and painterly observation.
 
-VISUAL STYLE (always follow):
+VISUAL WORLD:
 {_RELIGION_STYLE}
 
-TEXT INTEGRATION (always follow):
+HOW THE TEXT LIVES IN THE IMAGE:
 {_TEXT_STYLE}
 
-SCRIPT EXCERPT (for thematic context):
+THEMATIC CONTEXT (for atmosphere only):
 {excerpt}"""
 
-    user = f"""Create exactly 5 image prompts. Each prompt corresponds to one preview text that must appear in the image.
+    user = f"""Write exactly 5 image prompts. Each one is built around a different Spanish phrase that appears painted into the lower canvas.
 
+Phrases:
 {prompts_block}
 
 RULES:
-- Each prompt must be a single dense paragraph (no newlines inside), 80-120 words
-- Include the EXACT Spanish text from each entry — spelled out verbatim — as it should appear in the image (lower portion, large baked-in text)
-- Vary the composition: waist-up, full body, side-lit, arms open, looking at viewer, etc.
-- All prompts must include: Jesus Christ traditional appearance, oil painting Old Masters style, bright heavenly light, celestial atmosphere
-- Output exactly 5 prompts, one per line, no numbering, no labels, no extra text"""
+- Each prompt is one dense paragraph, 70-100 words, no line breaks inside
+- Spell the Spanish phrase exactly as given — it must appear verbatim in the prompt as the painted text
+- Vary the mood and composition across the 5 images: intimate close-up, arms outstretched, gazing downward at viewer, silhouetted against radiance, turning toward the light
+- Write purely in visual and sensory language — no design instructions, no measurements, no font names
+- Output exactly 5 prompts, one per line, no numbering, no labels"""
 
     try:
         raw = _flash(f"{system}\n\n{user}", max_tokens=2000)
@@ -1697,10 +1694,10 @@ RULES:
         while len(prompts) < 5:
             txt = preview_texts[len(prompts) % len(preview_texts)] if preview_texts else "DIOS TE VE"
             prompts.append(
-                f'Jesus Christ waist-up traditional appearance long brown hair beard white robes, '
-                f'oil painting Old Masters style, bright heavenly golden light, celestial clouds, '
-                f'warm divine atmosphere, large bold text "{txt}" in lower portion of image, '
-                f'baked into scene with warm golden glow around letters'
+                f'Jesus Christ in flowing white robes, wavy chestnut hair, compassionate eyes, '
+                f'Old Masters oil painting, Rembrandt chiaroscuro, warm gold and ivory palette, '
+                f'divine light pouring from above, sacred stillness, the Spanish words "{txt}" '
+                f'inscribed in the lower canvas in thick impasto letters glowing with amber warmth'
             )
         log(f"Gemini Flash prompts done in {time.time()-t0:.1f}s — {len(prompts)} prompts")
         return prompts
@@ -1709,9 +1706,10 @@ RULES:
         fallbacks = []
         for txt in (preview_texts[:5] or ["DIOS TE VE"] * 5):
             fallbacks.append(
-                f'Jesus Christ waist-up traditional appearance long brown hair beard white robes, '
-                f'oil painting Old Masters style, bright heavenly golden light, celestial atmosphere, '
-                f'large ultra-bold white text "{txt}" baked into lower portion of image with warm glow'
+                f'Jesus Christ in flowing white robes, wavy chestnut hair, compassionate eyes, '
+                f'Old Masters oil painting, Rembrandt chiaroscuro, warm gold and ivory palette, '
+                f'divine light pouring from above, sacred stillness, the Spanish words "{txt}" '
+                f'inscribed in the lower canvas in thick impasto letters glowing with amber warmth'
             )
         return fallbacks
 
