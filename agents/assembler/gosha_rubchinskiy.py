@@ -1205,6 +1205,8 @@ def _fix_zone_durations(
         key=lambda x: x[0],
     )
 
+    _SNAP_THRESHOLD = 2.0  # поглощаем предшествующий сегмент если он короче этого порога
+
     result = []
     for z in zones:
         comp    = z.get("composition", "Statement")
@@ -1215,6 +1217,16 @@ def _fix_zone_durations(
         if not covered:
             result.append(z)
             continue
+
+        # Снаппим z_start назад если сегмент перед зоной короче порога.
+        # Это устраняет паттерн [огрызок 0.8s] → [МГ]: зона поглощает короткий сег.
+        preceding = [(s, e, sid) for (s, e, sid) in seg_times if e <= z_start + 0.05 and (z_start - s) < _SNAP_THRESHOLD]
+        if preceding:
+            pre_s, pre_e, pre_sid = max(preceding, key=lambda x: x[1])
+            covered = [(pre_s, pre_e, pre_sid)] + covered
+            z_start = pre_s
+            log(f"  [MG] Zone {z['zone_id']}: снапп start {z['start_time']:.2f}s → {z_start:.2f}s "
+                f"(поглощён сег {pre_sid}, {pre_e - pre_s:.2f}s)")
 
         # Суммируем реальные длительности клипов
         total_actual = 0.0
@@ -1227,17 +1239,17 @@ def _fix_zone_durations(
         max_dur = COMPOSITION_MAX_DURATION.get(comp, 12.0)
         min_dur = COMPOSITION_MIN_DURATION.get(comp, 5.0)
         orig_dur = float(z.get("duration", max_dur))
-        # Не расширяем зону за пределы оригинального плана — только сжимаем если нужно.
-        # Расширение end_time захватывает лишние сегменты → тёмный фон без анимации.
-        new_dur = round(max(min_dur, min(total_actual, orig_dur)), 2)
+        # При снаппе total_actual может быть больше orig_dur — позволяем расшириться
+        new_dur = round(max(min_dur, min(total_actual, max_dur)), 2)
 
         if abs(new_dur - z.get("duration", 0)) > 0.1:
             log(f"  [MG] Zone {z['zone_id']} {comp}: duration {z.get('duration'):.1f}s → {new_dur:.1f}s "
                 f"(actual clips={total_actual:.1f}s)")
 
         z = dict(z)
-        z["duration"]  = new_dur
-        z["end_time"]  = round(z["start_time"] + new_dur, 2)
+        z["start_time"] = round(z_start, 3)
+        z["duration"]   = new_dur
+        z["end_time"]   = round(z_start + new_dur, 2)
         if "props" in z:
             z["props"] = dict(z["props"])
             z["props"]["duration_s"] = new_dur
@@ -1316,9 +1328,9 @@ def _inject_mg_into_lib_clips(
     Встраивает MG-клипы прямо в temp/lib_clips/ до финального рендера:
       - Fullscreen: нарезаем MG по сегментам и relink каждый clip_NNN.mp4
       - Panel (List): bake(lib_clip + panel_overlay) → clip_NNN.mp4
-    Возвращает (injected_count, mg_sfx_events, intra_mg_seg_ids).
-    intra_mg_seg_ids — сегменты 2..N каждой зоны (не первый): на этих стыках
-    нужен cut-переход чтобы не разрывать непрерывную Remotion-анимацию.
+    Возвращает (injected_count, mg_sfx_events, intra_mg_seg_ids, entry_mg_seg_ids).
+    intra_mg_seg_ids — сегменты 2..N каждой зоны: cut-переход (непрерывная анимация).
+    entry_mg_seg_ids — первый сегмент каждой зоны: cut-вход (МГ сам делает entrance).
     """
     if not zones:
         return 0, [], set()
@@ -1333,6 +1345,7 @@ def _inject_mg_into_lib_clips(
     injected = 0
     sfx_events: list[dict] = []
     intra_mg_seg_ids: set[int] = set()
+    entry_mg_seg_ids: set[int] = set()  # первый сегмент каждой зоны → cut-вход
 
     for zone in zones:
         rendered = zone.get("rendered_path")
@@ -1351,15 +1364,19 @@ def _inject_mg_into_lib_clips(
             closest = min(seg_times, key=lambda x: abs(x[0] - z_start))
             covered = [(closest[0], closest[1], closest[2])]
 
+        first_seg_id = covered[0][2] if covered else None
+        if first_seg_id is not None:
+            entry_mg_seg_ids.add(first_seg_id)
+
         if comp in _MG_PANEL_COMPS:
             seg_ids = [sid for (_, _, sid) in covered]
             baked_pairs = _bake_panel_zone(seg_ids, anim, covered, lib_dir, temp_dir, zone_a_end_s)
             log(f"  [MG] Zone {zone['zone_id']} (List/panel): {len(baked_pairs)}/{len(seg_ids)} сег бекнуто")
             injected += (1 if baked_pairs else 0)
             intra_mg_seg_ids.update(seg_ids[1:])
-            # Аудио из бейков — каждый слайс уже содержит правильный отрезок
-            for sid, baked_path in baked_pairs:
-                sfx_events.append({"file": str(baked_path), "time_s": z_start, "seg_id": sid})
+            # Один SFX-event на зону — весь zone_NN.mp4, adelay = video-позиция первого сегмента
+            if baked_pairs and first_seg_id is not None:
+                sfx_events.append({"file": str(anim), "time_s": z_start, "seg_id": first_seg_id})
         else:
             # Fullscreen: нарезаем MG-клип с аудио по каждому сегменту зоны.
             sliced_pairs = _slice_mg_into_segs(anim, covered, z_start, lib_dir, temp_dir, zone_a_end_s)
@@ -1367,11 +1384,11 @@ def _inject_mg_into_lib_clips(
             injected += (1 if sliced_pairs else 0)
             all_sids = [sid for (_, _, sid) in covered]
             intra_mg_seg_ids.update(all_sids[1:])
-            # Аудио из слайсов — каждый слайс уже нарезан с правильным смещением
-            for sid, slice_path in sliced_pairs:
-                sfx_events.append({"file": str(slice_path), "time_s": z_start, "seg_id": sid})
+            # Один SFX-event на зону — весь zone_NN.mp4, adelay = video-позиция первого сегмента
+            if sliced_pairs and first_seg_id is not None:
+                sfx_events.append({"file": str(anim), "time_s": z_start, "seg_id": first_seg_id})
 
-    return injected, sfx_events, intra_mg_seg_ids
+    return injected, sfx_events, intra_mg_seg_ids, entry_mg_seg_ids
 
 
 def _probe_dur(path: Path) -> float:
@@ -1896,6 +1913,7 @@ def main() -> None:
     _mg_sfx_events:       list[dict]               = []
     _mg_fullscreen_zones: list[tuple[float, float]] = []
     _mg_intra_seg_ids:    set[int]                  = set()
+    _mg_entry_seg_ids:    set[int]                  = set()
 
     if _fut_mg_render is not None:
         log("MG: ожидание Remotion...")
@@ -1910,7 +1928,7 @@ def main() -> None:
                 _mg_render_executor.shutdown(wait=False)
         log(f"[⏱] MG render wait: {time.time()-t_mg_wait:.1f}s")
 
-        n_mg, _mg_sfx_events, _mg_intra_seg_ids = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments, zone_a_end_s)
+        n_mg, _mg_sfx_events, _mg_intra_seg_ids, _mg_entry_seg_ids = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments, zone_a_end_s)
         if n_mg:
             log(f"MG: ✅ {n_mg} зон внедрено в видеоряд")
         # Собираем fullscreen-зоны для подавления субтитров
@@ -2022,6 +2040,10 @@ def main() -> None:
 
     _au_ok, _au_dur = ffprobe_check(mixed_audio_path, total_dur, "audio (cached)") \
         if mixed_audio_path.exists() else (False, 0.0)
+    # MG SFX должны быть подмешаны в аудио — инвалидируем кеш если они есть
+    if _mg_sfx_events and _au_ok:
+        log("MG: SFX events → сбрасываем кеш аудио для подмешивания SFX")
+        _au_ok = False
 
     # Определяем путь рендера ДО запуска параллельных задач
     # GPU single-pass: timeline.json + GPU compositor (нет videotrack encode)
@@ -2063,7 +2085,7 @@ def main() -> None:
             audio_ok = fut_audio.result()
 
         # Подмешиваем MG SFX-аудио поверх готового трека
-        if audio_ok and _mg_sfx_events and not _au_ok:
+        if audio_ok and _mg_sfx_events:
             _mix_mg_audio_into_track(mixed_audio_path, _mg_sfx_events, temp_dir)
 
         ass_ok, drawtext_filter = fut_subs.result()

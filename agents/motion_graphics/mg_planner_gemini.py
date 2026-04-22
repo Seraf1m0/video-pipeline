@@ -131,6 +131,8 @@ Zone A  (0 – 300 s):  pick 4-5 zones, first must start between 15-45 s, gap be
 Zone B  (300 s – end): pick 1-3 zones ONLY for truly exceptional moments, gap ≥ 90 s
 Never place a zone in the first 10 s or last 10 s of the video.
 Zone duration: min 5 s, max 14 s.
+CRITICAL: start_time MUST exactly match a segment start_s from the transcript (e.g. if segments are
+14.2s and 15.0s, use 14.2 or 15.0 — never 14.8 or 15.3). end_time must also match a segment end_s.
 Only use animations where content is DATA-RICH (numbers, stats, steps, comparisons)
 or EMOTIONALLY KEY (central thesis the viewer must not miss).
 
@@ -299,10 +301,11 @@ list_enumeration → green tones
 ══════════════════════════════════════════
 
 OUTPUT FORMAT — return ONLY a valid JSON array, no markdown fences, no explanation:
+start_time/end_time must be exact segment start_s/end_s values from the transcript above.
 [
   {
-    "start_time": 18.5,
-    "end_time": 26.0,
+    "start_time": 18.2,
+    "end_time": 25.8,
     "composition": "Highlight",
     "semantic": "wow_fact_record",
     "props": {
