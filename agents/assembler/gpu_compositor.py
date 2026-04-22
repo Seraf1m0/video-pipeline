@@ -785,7 +785,7 @@ def _probe(path: Path) -> tuple[int, float, float]:
     return nb or int(dur * fps), fps, dur
 
 
-def _open_decoder(path: Path) -> subprocess.Popen:
+def _open_decoder(path: Path, use_hwaccel: bool = False) -> subprocess.Popen:
     """FFmpeg → rawvideo rgb24 stdout (software decode для frame-accurate output)"""
     return subprocess.Popen(
         ["ffmpeg", "-hide_banner", "-loglevel", "error",
@@ -1016,7 +1016,7 @@ def _iter_timeline_frames(tl: dict, skip_intro: bool = False):
             yield raw, None, 1.0, ""
 
         if intro_trans_frames > 0 and n > 0:
-            first_dec = _open_decoder(Path(clips[0]["path"]))
+            first_dec = _open_decoder(Path(clips[0]["path"]), use_hwaccel=False)
 
             # Читаем clips[0][0] для freeze в первой половине
             rb_frz = first_dec.stdout.read(FRAME_BYTES)
@@ -1093,7 +1093,7 @@ def _iter_timeline_frames(tl: dict, skip_intro: bool = False):
 
         if trans_out_frames > 0 and ci < n - 1:
             trans_type = trans_out.get("type", "dissolve")
-            next_dec = _open_decoder(Path(clips[ci + 1]["path"]))
+            next_dec = _open_decoder(Path(clips[ci + 1]["path"]), use_hwaccel=False)
 
             # Первый кадр clip[i+1] — freeze для первой половины blend
             rb_frz = next_dec.stdout.read(FRAME_BYTES)

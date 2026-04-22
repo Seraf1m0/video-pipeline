@@ -751,6 +751,7 @@ def build_timeline_json(
     intro_trans_dur: float,
     fps:           float,
     output_path:   Path,
+    total_dur:     float = 0.0,
 ) -> Path:
     """
     Строит timeline.json — декларативное описание монтажа.
@@ -764,6 +765,16 @@ def build_timeline_json(
         except Exception:
             dur = 0.0
         clips.append({"path": str(p), "duration": round(dur, 6)})
+
+    # Компенсируем накопление ошибок округления кадров: корректируем последний клип
+    # так чтобы round(sum) == round(total_dur * fps). Без этого видео может быть на
+    # несколько кадров короче озвучки.
+    if clips and total_dur > 0:
+        actual_frames   = sum(round(c["duration"] * fps) for c in clips)
+        expected_frames = round(total_dur * fps)
+        deficit = expected_frames - actual_frames
+        if deficit > 0:
+            clips[-1]["duration"] = round(clips[-1]["duration"] + deficit / fps, 6)
 
     # Приводим trans_plan к нужному формату (может содержать лишние поля)
     transitions = [
@@ -1182,7 +1193,7 @@ def _fix_zone_durations(
     Это устраняет расхождение между Whisper-таймингами (на которых план строился)
     и фактическим видеорядом ДО старта Remotion — анимация рендерится правильной длины.
     """
-    from agents.motion_graphics.mg_planner_gemini import (
+    from mg_planner_gemini import (
         COMPOSITION_MAX_DURATION, COMPOSITION_MIN_DURATION,
     )
     ZONE_B_CLIP_DUR = 5.0
@@ -1215,7 +1226,10 @@ def _fix_zone_durations(
 
         max_dur = COMPOSITION_MAX_DURATION.get(comp, 12.0)
         min_dur = COMPOSITION_MIN_DURATION.get(comp, 5.0)
-        new_dur = round(max(min_dur, min(total_actual, max_dur)), 2)
+        orig_dur = float(z.get("duration", max_dur))
+        # Не расширяем зону за пределы оригинального плана — только сжимаем если нужно.
+        # Расширение end_time захватывает лишние сегменты → тёмный фон без анимации.
+        new_dur = round(max(min_dur, min(total_actual, orig_dur)), 2)
 
         if abs(new_dur - z.get("duration", 0)) > 0.1:
             log(f"  [MG] Zone {z['zone_id']} {comp}: duration {z.get('duration'):.1f}s → {new_dur:.1f}s "
@@ -1292,10 +1306,11 @@ def _mix_mg_audio_into_track(
 
 
 def _inject_mg_into_lib_clips(
-    zones:    list[dict],
-    lib_dir:  Path,
-    temp_dir: Path,
-    segments: list[dict],
+    zones:        list[dict],
+    lib_dir:      Path,
+    temp_dir:     Path,
+    segments:     list[dict],
+    zone_a_end_s: float = 9999.0,
 ) -> tuple[int, list[dict], set[int]]:
     """
     Встраивает MG-клипы прямо в temp/lib_clips/ до финального рендера:
@@ -1338,7 +1353,7 @@ def _inject_mg_into_lib_clips(
 
         if comp in _MG_PANEL_COMPS:
             seg_ids = [sid for (_, _, sid) in covered]
-            baked_pairs = _bake_panel_zone(seg_ids, anim, covered, lib_dir, temp_dir)
+            baked_pairs = _bake_panel_zone(seg_ids, anim, covered, lib_dir, temp_dir, zone_a_end_s)
             log(f"  [MG] Zone {zone['zone_id']} (List/panel): {len(baked_pairs)}/{len(seg_ids)} сег бекнуто")
             injected += (1 if baked_pairs else 0)
             intra_mg_seg_ids.update(seg_ids[1:])
@@ -1347,7 +1362,7 @@ def _inject_mg_into_lib_clips(
                 sfx_events.append({"file": str(baked_path), "time_s": z_start, "seg_id": sid})
         else:
             # Fullscreen: нарезаем MG-клип с аудио по каждому сегменту зоны.
-            sliced_pairs = _slice_mg_into_segs(anim, covered, z_start, lib_dir, temp_dir)
+            sliced_pairs = _slice_mg_into_segs(anim, covered, z_start, lib_dir, temp_dir, zone_a_end_s)
             log(f"  [MG] Zone {zone['zone_id']} ({comp}): fullscreen {len(sliced_pairs)}/{len(covered)} сег")
             injected += (1 if sliced_pairs else 0)
             all_sids = [sid for (_, _, sid) in covered]
@@ -1372,17 +1387,22 @@ def _probe_dur(path: Path) -> float:
         return 0.0
 
 
+_ZONE_B_CLIP_DUR = 5.0  # Zone B clips are always exactly 5.000s
+
+
 def _slice_mg_into_segs(
-    anim_mp4:   Path,
-    covered:    list[tuple[float, float, int]],  # (start, end, seg_id) в порядке возрастания
-    zone_start: float,
-    lib_dir:    Path,
-    temp_dir:   Path,
+    anim_mp4:     Path,
+    covered:      list[tuple[float, float, int]],  # (start, end, seg_id) в порядке возрастания
+    zone_start:   float,
+    lib_dir:      Path,
+    temp_dir:     Path,
+    zone_a_end_s: float = 9999.0,
 ) -> list[tuple[int, Path]]:
     """
     Нарезает fullscreen MG-клип на части по длительности каждого сегмента.
-    anim_offset строится накопительно по реальным длительностям lib-клипов,
-    а не по Whisper-таймингам — иначе скейл Zone A смещает всю нарезку.
+    Использует ту же логику длительностей что и _fix_zone_durations:
+      Zone A → Whisper длина сегмента (seg_end - seg_start)
+      Zone B → фиксированные 5.000s
     """
     slice_dir = temp_dir / "mg_slices"
     slice_dir.mkdir(parents=True, exist_ok=True)
@@ -1392,9 +1412,11 @@ def _slice_mg_into_segs(
 
     anim_offset = 0.0
     for seg_start, seg_end, seg_id in covered:
-        src = lib_dir / f"clip_{seg_id:03d}.mp4"
-        # Реальная длительность клипа (может отличаться от Whisper-сегмента из-за Zone A скейла)
-        actual_dur = _probe_dur(src) if src.exists() else (seg_end - seg_start)
+        # Длительность сегмента — та же логика что в _fix_zone_durations
+        if seg_start < zone_a_end_s:
+            actual_dur = seg_end - seg_start   # Zone A: Whisper тайминг
+        else:
+            actual_dur = _ZONE_B_CLIP_DUR       # Zone B: строго 5.000s
         if actual_dur <= 0:
             actual_dur = seg_end - seg_start
 
@@ -1443,11 +1465,12 @@ def _slice_mg_into_segs(
 
 
 def _bake_panel_zone(
-    seg_ids:  list[int],
-    anim_mp4: Path,
-    covered:  list[tuple[float, float, int]],  # (start, end, seg_id) упорядоченные
-    lib_dir:  Path,
-    temp_dir: Path,
+    seg_ids:      list[int],
+    anim_mp4:     Path,
+    covered:      list[tuple[float, float, int]],  # (start, end, seg_id) упорядоченные
+    lib_dir:      Path,
+    temp_dir:     Path,
+    zone_a_end_s: float = 9999.0,
 ) -> list[tuple[int, Path]]:
     """
     List-режим: панель Remotion выезжает слева поверх каждого lib-клипа.
@@ -1474,7 +1497,10 @@ def _bake_panel_zone(
     for i, seg_id in enumerate(seg_ids):
         src = lib_dir / f"clip_{seg_id:03d}.mp4"
         seg_s, seg_e, _ = covered[i]
-        dur = _probe_dur(src) if src.exists() else (seg_e - seg_s)
+        if seg_s < zone_a_end_s:
+            dur = seg_e - seg_s   # Zone A: Whisper тайминг
+        else:
+            dur = _ZONE_B_CLIP_DUR  # Zone B: строго 5.000s
         if dur <= 0:
             dur = seg_e - seg_s
         actual_durs.append(dur)
@@ -1884,7 +1910,7 @@ def main() -> None:
                 _mg_render_executor.shutdown(wait=False)
         log(f"[⏱] MG render wait: {time.time()-t_mg_wait:.1f}s")
 
-        n_mg, _mg_sfx_events, _mg_intra_seg_ids = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments)
+        n_mg, _mg_sfx_events, _mg_intra_seg_ids = _inject_mg_into_lib_clips(_mg_zones_rendered, lib_dir, temp_dir, segments, zone_a_end_s)
         if n_mg:
             log(f"MG: ✅ {n_mg} зон внедрено в видеоряд")
         # Собираем fullscreen-зоны для подавления субтитров
@@ -2093,6 +2119,7 @@ def main() -> None:
             intro_trans_dur = intro_trans_dur,
             fps             = 25.0,
             output_path     = timeline_path,
+            total_dur       = total_dur,
         )
 
         # ── CTA timestamps для GPU compositor ────────────────────────────────

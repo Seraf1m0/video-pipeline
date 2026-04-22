@@ -187,10 +187,11 @@ const TextBlock: React.FC<{
       textAlign: "center",
       display: "flex", flexWrap: "wrap",
       justifyContent: "center",
-      gap: "0.22em", lineHeight: 1.15,
+      rowGap: "0.18em", lineHeight: 1.15,
     }}>
       {words.map((word, i) => {
         const isHl = hlIdx !== -1 && i === hlIdx;
+        const isLast = i === words.length - 1;
         if (isHl) {
           return (
             <span key={i} style={{
@@ -203,7 +204,8 @@ const TextBlock: React.FC<{
                 0 0 ${55 * glowPulse}px ${accentColor}BB,
                 0 0 ${110 * glowPulse}px ${accentColor}44
               `,
-              letterSpacing: "-0.03em",
+              letterSpacing: "0em",
+              marginRight: isLast ? 0 : "0.26em",
             }}>{word}</span>
           );
         }
@@ -211,7 +213,8 @@ const TextBlock: React.FC<{
           <span key={i} style={{
             display: "inline-block",
             fontFamily: MANROPE, fontSize, fontWeight: "600",
-            color: "#FFFFFF", letterSpacing: "-0.02em",
+            color: "#FFFFFF", letterSpacing: "0em",
+            marginRight: isLast ? 0 : "0.26em",
           }}>{word}</span>
         );
       })}

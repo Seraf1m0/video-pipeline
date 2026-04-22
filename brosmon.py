@@ -282,11 +282,13 @@ class BrosMon:
         channel_alias: str,
         session: str | None,
         no_restart: bool,
+        daemon: bool = False,
     ) -> None:
         self.channel_alias  = channel_alias
         self.channel_id     = _CH_ALIAS.get(channel_alias, channel_alias)
         self.session        = session
         self.no_restart     = no_restart
+        self.daemon         = daemon
 
         self.retry_count    = 0
         self.pipeline_proc: subprocess.Popen | None = None
@@ -430,6 +432,65 @@ class BrosMon:
         if killed:
             log(f"Очищено осиротевших процессов: {len(killed)}", "KILL")
 
+    # ── Post-render full cleanup ────────────────────────────────────────────
+
+    def _kill_all_pipeline_procs(self) -> None:
+        """Убивает все зависшие процессы пайплайна после завершения рендера."""
+        _KEYWORDS = (
+            "pipeline.py", "gosha_rubchinskiy.py", "thumbnail_agent.py",
+            "prompt_writer.py", "meta_generator.py", "mg_planner_gemini.py",
+            "mg_renderer.py", "thumbnail_editor",
+        )
+        _PROC_NAMES = ("ffmpeg.exe", "node.exe", "npx.cmd")
+        own_pid = os.getpid()
+        killed = []
+
+        # Python processes
+        try:
+            rows = _wmic_list("name='python.exe'", "ProcessId,CommandLine")
+            for row in rows:
+                try:
+                    pid = int(row.get("ProcessId", 0) or 0)
+                except Exception:
+                    continue
+                if pid == own_pid or pid == 0:
+                    continue
+                cmdline = row.get("CommandLine", "") or ""
+                if any(kw in cmdline for kw in _KEYWORDS):
+                    log(f"POST-RENDER kill python PID={pid}", "KILL")
+                    if _kill_pid(pid):
+                        killed.append(pid)
+        except Exception:
+            pass
+
+        # ffmpeg / node
+        for proc_name in _PROC_NAMES:
+            try:
+                rows = _wmic_list(f"name='{proc_name}'", "ProcessId")
+                for row in rows:
+                    try:
+                        pid = int(row.get("ProcessId", 0) or 0)
+                    except Exception:
+                        continue
+                    if pid and pid != own_pid:
+                        log(f"POST-RENDER kill {proc_name} PID={pid}", "KILL")
+                        if _kill_pid(pid):
+                            killed.append(pid)
+            except Exception:
+                pass
+
+        if killed:
+            log(f"POST-RENDER: убито {len(killed)} процессов", "KILL")
+        else:
+            log("POST-RENDER: зависших процессов нет", "OK")
+
+        # Удалить pipeline.pid
+        try:
+            if PIPELINE_PID_FILE.exists():
+                PIPELINE_PID_FILE.unlink()
+        except Exception:
+            pass
+
     # ── Stall detection ─────────────────────────────────────────────────────
 
     def _check_progress(self) -> None:
@@ -529,49 +590,88 @@ class BrosMon:
 
     # ── Main loop ────────────────────────────────────────────────────────────
 
-    def run(self) -> None:
-        log(f"BrosMon запущен: {self.channel_id}  {'(no-restart)' if self.no_restart else ''}", "OK")
+    def _reset_state(self) -> None:
+        """Сбрасывает состояние для нового цикла в daemon-режиме."""
+        self.retry_count      = 0
+        self.pipeline_proc    = None
+        self.started_at       = time.time()
+        self.last_progress    = time.time()
+        self.last_stall_warn  = 0.0
+        self.session          = None
+        self._proc_first_seen.clear()
 
-        iteration = 0
+    def _wait_for_new_pipeline(self) -> None:
+        """Ждёт появления нового pipeline.pid (daemon-режим)."""
+        log("DAEMON: жду новый запуск pipeline... (Ctrl+C для выхода)", "INFO")
+        last_seen = None
         while True:
-            iteration += 1
+            if PIPELINE_PID_FILE.exists():
+                try:
+                    pid = int(PIPELINE_PID_FILE.read_text(encoding="utf-8").strip())
+                    if pid != last_seen and _pid_alive(pid):
+                        log(f"DAEMON: обнаружен новый pipeline PID={pid}", "OK")
+                        return
+                    last_seen = pid
+                except Exception:
+                    pass
+            time.sleep(5)
 
-            # 1. Проверить финальное видео — всё готово?
-            if self._check_final_video():
-                log("Pipeline завершён успешно — BrosMon выходит", "OK")
+    def run(self) -> None:
+        mode = "daemon" if self.daemon else ("no-restart" if self.no_restart else "watchdog")
+        log(f"BrosMon запущен: {self.channel_id}  [{mode}]", "OK")
+
+        while True:  # внешний цикл — в daemon-режиме повторяется для каждого нового пайплайна
+            iteration = 0
+            done = False
+
+            while not done:
+                iteration += 1
+
+                # 1. Проверить финальное видео — всё готово?
+                if self._check_final_video():
+                    log("Pipeline завершён успешно — чистим процессы...", "OK")
+                    self._kill_all_pipeline_procs()
+                    done = True
+                    break
+
+                # 2. Жив ли pipeline?
+                if not self._pipeline_alive():
+                    time.sleep(3)
+                    if not self._pipeline_alive():
+                        if not self._check_final_video():
+                            log("Pipeline не обнаружен (PID dead)", "DEAD")
+                            self._maybe_restart(reason="crash")
+
+                # 3. Зомби-процессы в дереве текущего pipeline
+                killed = self._check_processes()
+                if killed:
+                    log(f"Убито зомби-процессов: {len(killed)}", "KILL")
+                    time.sleep(2)
+
+                # 4. Осиротевшие pipeline/gosha (каждые 4 итерации ~48с)
+                if iteration % 4 == 0:
+                    self._cleanup_orphan_procs()
+
+                # 5. Stall-детекция
+                self._check_progress()
+
+                # 6. Ресурсы (каждые 5 итераций)
+                if iteration % 5 == 0:
+                    self._check_resources()
+
+                # 7. Статус (каждые 3 итерации)
+                if iteration % 3 == 0:
+                    self._print_status(iteration)
+
+                time.sleep(POLL_INTERVAL)
+
+            # После завершения: daemon ждёт новый пайплайн, иначе выходим
+            if not self.daemon:
+                log("BrosMon завершён", "OK")
                 break
 
-            # 2. Жив ли pipeline?
-            if not self._pipeline_alive():
-                # Проверяем ещё раз через 3с (защита от ложного срабатывания при старте)
-                time.sleep(3)
-                if not self._pipeline_alive():
-                    if not self._check_final_video():
-                        log("Pipeline не обнаружен (PID dead)", "DEAD")
-                        self._maybe_restart(reason="crash")
-
-            # 3. Зомби-процессы в дереве текущего pipeline
-            killed = self._check_processes()
-            if killed:
-                log(f"Убито зомби-процессов: {len(killed)}", "KILL")
-                time.sleep(2)
-
-            # 4. Осиротевшие pipeline/gosha (каждые 4 итерации ~48с)
-            if iteration % 4 == 0:
-                self._cleanup_orphan_procs()
-
-            # 5. Stall-детекция
-            self._check_progress()
-
-            # 6. Ресурсы (каждые 5 итераций)
-            if iteration % 5 == 0:
-                self._check_resources()
-
-            # 7. Статус (каждые 3 итерации)
-            if iteration % 3 == 0:
-                self._print_status(iteration)
-
-            time.sleep(POLL_INTERVAL)
+            self._reset_state()
+            self._wait_for_new_pipeline()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -587,12 +687,14 @@ def main() -> None:
   py brosmon.py --channel de                       # наблюдать + авто-рестарт
   py brosmon.py --channel de --session Video_xxx   # конкретная сессия
   py brosmon.py --channel de --no-restart          # только наблюдение
+  py brosmon.py --channel de --daemon              # режим демона: после завершения ждать новый pipeline
   py brosmon.py --stop                             # остановить brosmon
 """,
     )
     parser.add_argument("--channel",    help="Канал: de | fr | es")
     parser.add_argument("--session",    help="Конкретная сессия (иначе последняя)")
     parser.add_argument("--no-restart", action="store_true", help="Не перезапускать упавший pipeline")
+    parser.add_argument("--daemon",     action="store_true", help="Режим демона — не выходить после завершения, ждать новый pipeline")
     parser.add_argument("--stop",       action="store_true", help="Остановить запущенный brosmon")
     args = parser.parse_args()
 
@@ -639,6 +741,7 @@ def main() -> None:
         channel_alias=args.channel,
         session=args.session,
         no_restart=args.no_restart,
+        daemon=args.daemon,
     )
     try:
         mon.run()

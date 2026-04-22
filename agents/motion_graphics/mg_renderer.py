@@ -71,8 +71,27 @@ def render_zone(zone: dict, out_dir: Path) -> Path | None:
 
     out_path   = out_dir / f"zone_{zone_id:02d}.mp4"
     if out_path.exists():
-        print(f"  [zone {zone_id}] already rendered, skipping")
-        return out_path
+        # Проверяем что длительность совпадает с требуемой (±0.5s)
+        expected_dur = float(props.get("duration_s", zone.get("duration", 0)))
+        if expected_dur > 0:
+            try:
+                r = subprocess.run(
+                    ["ffprobe", "-v", "error", "-select_streams", "v",
+                     "-show_entries", "format=duration",
+                     "-of", "csv=p=0", str(out_path)],
+                    capture_output=True, text=True
+                )
+                actual_dur = float(r.stdout.strip()) if r.stdout.strip() else 0.0
+                if abs(actual_dur - expected_dur) < 0.5:
+                    print(f"  [zone {zone_id}] already rendered ({actual_dur:.1f}s), skipping")
+                    return out_path
+                print(f"  [zone {zone_id}] duration mismatch: {actual_dur:.1f}s vs {expected_dur:.1f}s → re-rendering")
+                out_path.unlink()
+            except Exception:
+                pass
+        else:
+            print(f"  [zone {zone_id}] already rendered, skipping")
+            return out_path
 
     # Props записываем в temp-файл — избегаем интерпретации < > | в cmd.exe
     # (npx.cmd на Windows запускается через cmd.exe, где < = stdin redirection)

@@ -280,7 +280,7 @@ const Panel: React.FC<{
   const glow    = 0.45 + Math.sin(settled * 0.048 + (from === "left" ? 0 : 1.5)) * 0.45;
 
   const len  = side.value.length;
-  const size = len > 10 ? 96 : len > 6 ? 124 : len > 3 ? 158 : 196;
+  const size = len > 18 ? 56 : len > 14 ? 72 : len > 10 ? 96 : len > 6 ? 124 : len > 3 ? 158 : 196;
 
   return (
     <div style={{
@@ -288,13 +288,14 @@ const Panel: React.FC<{
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center",
       gap: 26,
+      overflow: "hidden",
     }}>
       <div style={{
         opacity: op,
         transform: `translateX(${x}px) scale(${breathe})`,
         fontFamily: SYNE,
         fontSize: size, fontWeight: "800",
-        letterSpacing: "-0.035em", lineHeight: 1,
+        letterSpacing: "-0.035em", lineHeight: 1.1,
         color: "#FFFFFF",
         textShadow: `
           0 0 ${38 * glow}px ${color}EE,
@@ -302,7 +303,8 @@ const Panel: React.FC<{
           0 0 ${130 * glow}px ${color}33,
           0 3px 8px rgba(0,0,0,0.95)
         `,
-        textAlign: "center", whiteSpace: "nowrap",
+        textAlign: "center", wordBreak: "break-word",
+        maxWidth: "100%",
       }}>
         {side.value}
       </div>

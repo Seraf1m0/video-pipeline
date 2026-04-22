@@ -158,9 +158,9 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
    When to use: one powerful KEY thesis, dramatic claim, or emotional peak.
    Props:
    {
-     "text": "the main sentence (max 80 chars)",
-     "highlight": "one word from text to accent (omit if none obvious)",
-     "sub": "optional subtitle/source (max 60 chars) or null",
+     "text": "one punchy sentence (max 60 chars, ≤8 words — shorter is bigger font)",
+     "highlight": "one word from text to accent (must exist verbatim in text, omit if none)",
+     "sub": "optional short source or context (max 50 chars) or null",
      "duration_s": 6.0
    }
 
@@ -180,8 +180,8 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
    Props:
    {
      "title": "optional section label or null",
-     "left":  { "label": "name (max 15 chars)", "value": "value string", "sub": "optional note or null" },
-     "right": { "label": "name (max 15 chars)", "value": "value string", "sub": "optional note or null" },
+     "left":  { "label": "name (max 15 chars)", "value": "short keyword or number (max 12 chars, NOT a sentence)", "sub": "optional note or null" },
+     "right": { "label": "name (max 15 chars)", "value": "short keyword or number (max 12 chars, NOT a sentence)", "sub": "optional note or null" },
      "duration_s": 8.0
    }
 
@@ -250,14 +250,15 @@ If the natural phrasing is too long → REPHRASE, abbreviate, use numerals inste
 of words, drop articles. The viewer reads the animation in 1-2 seconds maximum.
 A shorter, punchier phrase is always better than an overflowing one.
 
-  Statement   text          → 80 chars max  (rephrase to one punchy sentence)
-  Statement   sub           → 60 chars max
-  Statement   highlight     → 1 word only
+  Statement   text          → 60 chars max  (one punchy sentence, ≤8 words ideally — shorter = bigger font = more impact)
+  Statement   sub           → 50 chars max
+  Statement   highlight     → 1 word only (must appear verbatim in text)
   Timeline    title         → 40 chars max
   Timeline    steps[].label → 30 chars max  (verb + noun, no filler)
   Timeline    steps[].desc  → 50 chars max
   Comparison  title         → 40 chars max
   Comparison  left/right.label → 15 chars max  (abbreviate: "Planck-Teleskop" → "Planck")
+  Comparison  left/right.value → 12 chars max  (short keyword or number ONLY: "Chaos", "15 Mio.", "×1.000" — NEVER a phrase or sentence)
   Comparison  left/right.sub   → 50 chars max
   Highlight   value         → 12 chars max  (e.g. "15 Mio." "×1.000" "99,8 %")
   Highlight   label         → 40 chars max
@@ -452,7 +453,7 @@ def _trunc(s: str | None, n: int) -> str | None:
 
 
 _LIMITS: dict[str, dict[str, int]] = {
-    "Statement":  {"text": 80, "sub": 60, "highlight": 20},
+    "Statement":  {"text": 60, "sub": 50, "highlight": 20},
     "Timeline":   {"title": 40},
     "Comparison": {"title": 40},
     "Highlight":  {"value": 12, "label": 40, "sub": 80},
@@ -465,8 +466,8 @@ _LIMITS: dict[str, dict[str, int]] = {
 
 _LIST_LIMITS: dict[str, dict[str, dict[str, int]]] = {
     "Timeline":   {"steps":    {"label": 30, "desc": 50}},
-    "Comparison": {"left":     {"label": 15, "sub": 50},
-                   "right":    {"label": 15, "sub": 50}},
+    "Comparison": {"left":     {"label": 15, "value": 12, "sub": 50},
+                   "right":    {"label": 15, "value": 12, "sub": 50}},
     "List":       {"items":    {"text": 50, "sub": 60}},
     "DataCard":   {"items":    {"label": 30, "suffix": 8}},
     "BarChart":   {"bars":     {"label": 10}},
