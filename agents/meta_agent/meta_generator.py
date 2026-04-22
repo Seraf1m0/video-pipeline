@@ -76,7 +76,7 @@ except ImportError:
     print("[META] WARNING: requests not installed — image generation will be skipped", flush=True)
 
 # ── Gemini Flash (image prompt generation with baked-in text) ─────────────────
-_FLASH_MODEL    = "gemini-2.5-flash"
+_FLASH_MODEL    = "gemini-2.5-flash-lite-preview-06-17"
 _NO_THINKING    = {"thinking_config": {"thinking_budget": 0}}
 _gemini_client  = None
 
