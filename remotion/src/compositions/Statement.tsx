@@ -320,7 +320,9 @@ const TextBlockTypewriter: React.FC<{
   text: string; sub?: string; accentColor: string;
   frame: number; exitStart: number; totalFrames: number;
 }> = ({ text, sub, accentColor, frame, exitStart, totalFrames }) => {
+  const typeStart   = 8;
   const typeEnd     = Math.round(totalFrames * 0.52);
+  const typeDur     = typeEnd - typeStart;
   const visibleChars = Math.floor(
     interpolate(frame, [8, typeEnd], [0, text.length], {
       extrapolateLeft: "clamp", extrapolateRight: "clamp",
@@ -341,6 +343,10 @@ const TextBlockTypewriter: React.FC<{
   const fontSize = text.length > 55 ? 64 : text.length > 35 ? 80 : 96;
 
   return (
+    <>
+    <Sequence from={typeStart} durationInFrames={typeDur}>
+      <Audio src={staticFile("sfx/keyboard.wav")} volume={0.28} />
+    </Sequence>
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center",
       gap: 28, padding: "0 140px", opacity: exitOp,
@@ -368,6 +374,7 @@ const TextBlockTypewriter: React.FC<{
         }}>{sub}</div>
       )}
     </div>
+    </>
   );
 };
 
