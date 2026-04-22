@@ -157,18 +157,20 @@ def generate_prompts(tz: dict, thumbnail_text: str) -> list[str]:
     placement = tz.get("text_placement", "upper-left")
     side = placement.split("-")[1] if "-" in placement else "left"
 
+    text_words = f'"{line1} {line2}"'.strip() if line1 else f'"{line2}"'
     if line1:
         text_suffix = (
-            f'Text overlay at {placement}: "{line1}" bold condensed white (~15% frame height) '
-            f'then below it "{line2}" ultra-bold condensed white (~28% frame height), '
-            f'both flush {side}, Impact-style font, heavy black drop shadow, '
-            f'dark semi-transparent bar behind text. No other text.'
+            f'The words {text_words} are embedded into the image as powerful white typography — '
+            f'massive, bold, glowing slightly against the dark background, '
+            f'positioned in the {placement.replace("-", " ")} of the frame. '
+            f'The text feels part of the scene, lit by the same light source as the subject. '
+            f'No bars, no overlays — the words breathe with the image. No other text.'
         )
     else:
         text_suffix = (
-            f'Text overlay at {placement}: "{line2}" — ultra-bold condensed white Impact-style, '
-            f'letters ~30% frame height, heavy black drop shadow, '
-            f'dark semi-transparent bar behind. No other text.'
+            f'The words {text_words} appear as massive, commanding white typography — '
+            f'bold, cinematic, integrated into the {placement.replace("-", " ")} of the frame. '
+            f'Lit by the dramatic scene lighting, no bars or overlays. No other text.'
         )
 
     obj       = tz.get("main_object", "")

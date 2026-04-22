@@ -718,8 +718,25 @@ def main() -> None:
     if not args.channel:
         parser.error("--channel обязателен")
 
-    # Пишем PID
-    BROSMON_PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
+    # Channel-specific PID file (allows multiple channels to run simultaneously)
+    channel_pid_file = BASE_DIR / f"brosmon_{args.channel}.pid"
+
+    # Singleton check — refuse to start if same channel already running
+    if channel_pid_file.exists():
+        try:
+            existing_pid = int(channel_pid_file.read_text(encoding="utf-8").strip())
+            if _pid_alive(existing_pid):
+                print(f"⚠  BrosMon для канала '{args.channel}' уже запущен (PID={existing_pid}). Выход.")
+                sys.exit(0)
+            else:
+                print(f"  (Удалён устаревший brosmon PID={existing_pid} для канала '{args.channel}')")
+                channel_pid_file.unlink(missing_ok=True)
+        except Exception:
+            channel_pid_file.unlink(missing_ok=True)
+
+    # Пишем PID (channel-specific)
+    channel_pid_file.write_text(str(os.getpid()), encoding="utf-8")
+    BROSMON_PID_FILE.write_text(str(os.getpid()), encoding="utf-8")  # legacy compat
 
     # Лог-файл рядом с pipeline.pid
     global _LOG_FILE
@@ -727,9 +744,11 @@ def main() -> None:
 
     import atexit, signal
     atexit.register(lambda: BROSMON_PID_FILE.unlink(missing_ok=True))
+    atexit.register(lambda: channel_pid_file.unlink(missing_ok=True))
 
     def _sig(s, f):
         BROSMON_PID_FILE.unlink(missing_ok=True)
+        channel_pid_file.unlink(missing_ok=True)
         sys.exit(0)
     signal.signal(signal.SIGTERM, _sig)
     try:

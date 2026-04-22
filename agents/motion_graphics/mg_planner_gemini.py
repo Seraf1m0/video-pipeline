@@ -43,7 +43,7 @@ CHANNEL_LANG = {
     "channel_003_religion_es": "Spanish",
 }
 
-GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # ─── Zone A/B constants ───────────────────────────────────────────────────────
 
