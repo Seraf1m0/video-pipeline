@@ -1145,7 +1145,21 @@ def _plan_motion_graphics(channel_id: str, session: str, segments: list) -> list
         }
         lang  = _LANG.get(channel_id, "German")
         log(f"MG: планирование Gemini  (lang={lang}, {len(segments)} сегментов)...")
-        zones = _mgp.plan_zones(segments, lang=lang)
+        zones = None
+        for _attempt in range(5):
+            try:
+                zones = _mgp.plan_zones(segments, lang=lang)
+                break
+            except Exception as _retry_e:
+                _msg = str(_retry_e)
+                if "503" in _msg or "overload" in _msg.lower() or "unavailable" in _msg.lower():
+                    _wait = 15 * (2 ** _attempt)
+                    log(f"[MG] Gemini 503, retry {_attempt+1}/5 через {_wait}s...")
+                    import time as _t; _t.sleep(_wait)
+                else:
+                    raise
+        if zones is None:
+            raise RuntimeError("Gemini недоступен после 5 попыток")
 
         plan_path.write_text(
             json.dumps({"channel_id": channel_id, "session": session, "zones": zones},
