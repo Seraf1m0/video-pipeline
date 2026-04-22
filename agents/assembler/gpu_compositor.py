@@ -1336,7 +1336,7 @@ def run(
                 break
             try:
                 encoder.stdin.write(data)
-            except BrokenPipeError:
+            except (BrokenPipeError, ValueError):
                 break
 
     writer_thread = threading.Thread(target=_writer, daemon=True)
