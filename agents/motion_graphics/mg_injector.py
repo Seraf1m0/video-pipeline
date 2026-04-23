@@ -19,6 +19,7 @@ CHANNEL_MAP = {
     "fr": "channel_002_cosmos_fr",
     "de": "channel_001_cosmos_de",
     "es": "channel_003_religion_es",
+    "us": "channel_004_cosmos_us",
 }
 
 

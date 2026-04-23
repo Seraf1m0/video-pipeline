@@ -35,12 +35,14 @@ CHANNEL_MAP = {
     "fr": "channel_002_cosmos_fr",
     "de": "channel_001_cosmos_de",
     "es": "channel_003_religion_es",
+    "us": "channel_004_cosmos_us",
 }
 
 CHANNEL_LANG = {
     "channel_001_cosmos_de": "German",
     "channel_002_cosmos_fr": "French",
     "channel_003_religion_es": "Spanish",
+    "channel_004_cosmos_us": "English",
 }
 
 GEMINI_MODEL = "gemini-2.5-flash"
@@ -79,41 +81,71 @@ SEMANTIC_PALETTE = {
 }
 
 COMPOSITION_DEFAULT_PALETTE = {
-    "DataCard":    "cosmic_blue",
-    "Statement":   "hot_pink",
-    "Timeline":    "purple",
-    "Comparison":  "electric_cyan",
-    "Highlight":   "orange_fire",
-    "List":        "neon_green",
-    "BarChart":    "cosmic_blue",
-    "RadialChart": "gold",
-    "LineChart":   "neon_green",
+    "DataCard":     "cosmic_blue",
+    "Statement":    "hot_pink",
+    "Timeline":     "purple",
+    "Comparison":   "electric_cyan",
+    "Highlight":    "orange_fire",
+    "List":         "neon_green",
+    "BarChart":     "cosmic_blue",
+    "RadialChart":  "gold",
+    "LineChart":    "neon_green",
+    "ChapterTitle": "purple",
+    "DateStamp":    "cosmic_blue",
+    "Quote":        "hot_pink",
+    "BigNumber":    "orange_fire",
+    "Countdown":    "deep_pink",
+    "Scorecard":    "cosmic_blue",
+    "WordReveal":   "neon_green",
+    "Terminal":     "electric_cyan",
+    "ProCon":       "neon_green",
+    "Ranking":      "gold",
 }
 
 COMPOSITION_MAX_DURATION = {
-    "DataCard":    10.0,
-    "Statement":    8.0,
-    "Timeline":    14.0,
-    "Comparison":  10.0,
-    "Highlight":    9.0,
-    "List":        14.0,
-    "BarChart":    14.0,
-    "RadialChart": 14.0,
-    "LineChart":   14.0,
+    "DataCard":     10.0,
+    "Statement":     8.0,
+    "Timeline":     14.0,
+    "Comparison":   10.0,
+    "Highlight":     9.0,
+    "List":         14.0,
+    "BarChart":     14.0,
+    "RadialChart":  14.0,
+    "LineChart":    14.0,
+    "ChapterTitle":  8.0,
+    "DateStamp":     8.0,
+    "Quote":        12.0,
+    "BigNumber":     8.0,
+    "Countdown":    12.0,
+    "Scorecard":    14.0,
+    "WordReveal":   10.0,
+    "Terminal":     14.0,
+    "ProCon":       14.0,
+    "Ranking":      14.0,
 }
 
 # Минимальная длительность — чтобы многоэлементные композиции
 # не выглядели смятыми и не ломали ритм основного ряда
 COMPOSITION_MIN_DURATION = {
-    "DataCard":   6.0,
-    "Statement":  5.0,
-    "Timeline":   8.0,
-    "Comparison": 6.0,
-    "Highlight":  5.0,
-    "List":       8.0,
-    "BarChart":   8.0,
-    "RadialChart":8.0,
-    "LineChart":  8.0,
+    "DataCard":    6.0,
+    "Statement":   5.0,
+    "Timeline":    8.0,
+    "Comparison":  6.0,
+    "Highlight":   5.0,
+    "List":        8.0,
+    "BarChart":    8.0,
+    "RadialChart": 8.0,
+    "LineChart":   8.0,
+    "ChapterTitle":5.0,
+    "DateStamp":   5.0,
+    "Quote":       6.0,
+    "BigNumber":   5.0,
+    "Countdown":   8.0,
+    "Scorecard":   8.0,
+    "WordReveal":  6.0,
+    "Terminal":    8.0,
+    "ProCon":      8.0,
+    "Ranking":     8.0,
 }
 
 VALID_COMPOSITIONS = set(COMPOSITION_DEFAULT_PALETTE.keys())
@@ -244,6 +276,115 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
      "duration_s": 12.0
    }
 
+10. ChapterTitle
+    When to use: major topic shift — when the video moves to a completely new section/theme.
+    Props:
+    {
+      "chapter": "short chapter label e.g. 'Chapter 2' or 'Part II' (max 30 chars)",
+      "title": "the new section heading (max 50 chars)",
+      "sub": "optional one-liner subtitle or null (max 70 chars)",
+      "duration_s": 6.0
+    }
+
+11. DateStamp
+    When to use: anchoring a historical event to a specific date — "on X date, Y happened".
+    Props:
+    {
+      "date": "the date string e.g. 'July 20, 1969' or '1969' (max 20 chars)",
+      "event": "what happened on that date (max 60 chars)",
+      "sub": "optional context sentence or null (max 80 chars)",
+      "duration_s": 7.0
+    }
+
+12. Quote
+    When to use: a powerful direct quote from a scientist, official, or document.
+    Props:
+    {
+      "text": "the quoted text (max 150 chars — shorter is better for legibility)",
+      "author": "who said it (max 40 chars) or null",
+      "source": "publication/context (max 40 chars) or null",
+      "duration_s": 8.0
+    }
+
+13. BigNumber
+    When to use: ONE extraordinary stat with a unit — similar to Highlight but more structured.
+      Use BigNumber when there is a meaningful unit (km/s, years, tonnes) and extra context.
+      Avoid duplicating Highlight in the same video — pick one.
+    Props:
+    {
+      "value": "the number only (max 12 chars, e.g. '4.2', '380,000')",
+      "unit": "the unit (max 10 chars, e.g. 'km/s', 'years', 'km')",
+      "description": "what this measures (max 50 chars)",
+      "context": "optional comparative note (max 80 chars) or null",
+      "duration_s": 7.0
+    }
+
+14. Countdown
+    When to use: building dramatic tension before a reveal — "3... 2... 1... launch/impact/discovery".
+      Only use at genuine climax moments. Maximum 1 per video.
+    Props:
+    {
+      "from": 3,               // integer, 2 or 3 (default 3)
+      "label": "optional text shown AFTER countdown (max 40 chars) or null",
+      "duration_s": 9.0
+    }
+
+15. Scorecard
+    When to use: 2-4 related metrics shown as a dashboard/scoreboard — multiple numbers for one topic.
+      Better than DataCard when values have different units. Avoid if DataCard already covers it.
+    Props:
+    {
+      "title": "scorecard heading (max 40 chars)",
+      "metrics": [
+        { "label": "metric name (max 20 chars)", "value": "display value (max 10 chars)", "unit": "optional unit (max 8 chars) or null" }
+      ],  // 2-4 metrics
+      "duration_s": 10.0
+    }
+
+16. WordReveal
+    When to use: revealing a key term, concept, or phrase word-by-word for impact.
+      Best for 3-7 word phrases that are central to the video's thesis.
+    Props:
+    {
+      "words": ["word1", "word2", "word3"],  // 3-7 words of the phrase
+      "accent_words": ["word2"],             // optional — words to highlight (must exist in words[])
+      "duration_s": 8.0
+    }
+
+17. Terminal
+    When to use: technical/scientific data presented as a computer terminal readout.
+      Great for showing raw numbers, coordinates, mission logs, or decoded signals.
+    Props:
+    {
+      "title": "optional terminal window title (max 30 chars) or null",
+      "lines": [
+        "output line 1 (max 60 chars)",
+        "output line 2 (max 60 chars)"
+      ],  // 3-8 lines
+      "duration_s": 10.0
+    }
+
+18. ProCon
+    When to use: explicit two-sided analysis — advantages vs disadvantages, for vs against.
+    Props:
+    {
+      "title": "optional heading (max 40 chars) or null",
+      "pros": ["pro item 1 (max 40 chars)", "pro item 2"],  // 2-4 items
+      "cons": ["con item 1 (max 40 chars)", "con item 2"],  // 2-4 items
+      "duration_s": 10.0
+    }
+
+19. Ranking
+    When to use: ordered list — top N by size, importance, distance, mass, etc.
+    Props:
+    {
+      "title": "ranking heading (max 40 chars)",
+      "items": [
+        { "label": "item name (max 30 chars)", "value": "optional display value (max 10 chars) or null" }
+      ],  // 3-8 items (will be shown ranked #1 at top)
+      "duration_s": 10.0
+    }
+
 ══════════════════════════════════════════
 CHARACTER LIMITS — MANDATORY, NEVER EXCEED:
 ══════════════════════════════════════════
@@ -280,6 +421,32 @@ A shorter, punchier phrase is always better than an overflowing one.
   LineChart   title         → 40 chars max
   LineChart   points[].label → 8 chars max  (years: "2024", short: "Jan")
   LineChart   unit          → 8 chars max
+  ChapterTitle chapter       → 30 chars max  (e.g. "Chapter 2", "Part II", "Phase 3")
+  ChapterTitle title         → 50 chars max
+  ChapterTitle sub           → 70 chars max
+  DateStamp   date           → 20 chars max  (e.g. "July 20, 1969", "1969")
+  DateStamp   event          → 60 chars max
+  DateStamp   sub            → 80 chars max
+  Quote       text           → 150 chars max (shorter = bigger = more impact)
+  Quote       author         → 40 chars max
+  Quote       source         → 40 chars max
+  BigNumber   value          → 12 chars max  (number only: "4.2", "380,000")
+  BigNumber   unit           → 10 chars max  (e.g. "km/s", "years", "tonnes")
+  BigNumber   description    → 50 chars max
+  BigNumber   context        → 80 chars max
+  Countdown   label          → 40 chars max  (text shown after count)
+  Scorecard   title          → 40 chars max
+  Scorecard   metrics[].label → 20 chars max
+  Scorecard   metrics[].value → 10 chars max
+  Scorecard   metrics[].unit  → 8 chars max
+  WordReveal  words[]        → each word max 20 chars, 3-7 words total
+  Terminal    title          → 30 chars max
+  Terminal    lines[]        → each line max 60 chars, 3-8 lines
+  ProCon      title          → 40 chars max
+  ProCon      pros[]/cons[]  → each item max 40 chars, 2-4 items each
+  Ranking     title          → 40 chars max
+  Ranking     items[].label  → 30 chars max
+  Ranking     items[].value  → 10 chars max
 
 REWRITING RULES:
 - Count characters mentally before writing each field.
@@ -456,15 +623,24 @@ def _trunc(s: str | None, n: int) -> str | None:
 
 
 _LIMITS: dict[str, dict[str, int]] = {
-    "Statement":  {"text": 60, "sub": 50, "highlight": 20},
-    "Timeline":   {"title": 40},
-    "Comparison": {"title": 40},
-    "Highlight":  {"value": 12, "label": 40, "sub": 80},
-    "List":       {"title": 40},
-    "DataCard":   {"title": 40},
-    "BarChart":   {"title": 40, "unit": 8},
-    "RadialChart":{"title": 40, "center_text": 10},
-    "LineChart":  {"title": 40, "unit": 8},
+    "Statement":    {"text": 60, "sub": 50, "highlight": 20},
+    "Timeline":     {"title": 40},
+    "Comparison":   {"title": 40},
+    "Highlight":    {"value": 12, "label": 40, "sub": 80},
+    "List":         {"title": 40},
+    "DataCard":     {"title": 40},
+    "BarChart":     {"title": 40, "unit": 8},
+    "RadialChart":  {"title": 40, "center_text": 10},
+    "LineChart":    {"title": 40, "unit": 8},
+    "ChapterTitle": {"chapter": 30, "title": 50, "sub": 70},
+    "DateStamp":    {"date": 20, "event": 60, "sub": 80},
+    "Quote":        {"text": 150, "author": 40, "source": 40},
+    "BigNumber":    {"value": 12, "unit": 10, "description": 50, "context": 80},
+    "Countdown":    {"label": 40},
+    "Scorecard":    {"title": 40},
+    "Terminal":     {"title": 30},
+    "ProCon":       {"title": 40},
+    "Ranking":      {"title": 40},
 }
 
 _LIST_LIMITS: dict[str, dict[str, dict[str, int]]] = {
@@ -476,6 +652,8 @@ _LIST_LIMITS: dict[str, dict[str, dict[str, int]]] = {
     "BarChart":   {"bars":     {"label": 10}},
     "RadialChart":{"segments": {"label": 20}},
     "LineChart":  {"points":   {"label": 8}},
+    "Scorecard":  {"metrics":  {"label": 20, "value": 10, "unit": 8}},
+    "Ranking":    {"items":    {"label": 30, "value": 10}},
 }
 
 
@@ -511,6 +689,26 @@ def _clamp_props(comp: str, props: dict) -> dict:
                 for f, lim in _LIST_LIMITS["Comparison"].get(side, {}).items():
                     if f in obj and obj[f] is not None:
                         obj[f] = _trunc(obj[f], lim)
+
+    # WordReveal: words/accent_words are plain string lists
+    if comp == "WordReveal":
+        for field in ("words", "accent_words"):
+            lst = props.get(field)
+            if isinstance(lst, list):
+                props[field] = [_trunc(w, 20) for w in lst if isinstance(w, str)]
+
+    # Terminal: lines are plain string list
+    if comp == "Terminal":
+        lst = props.get("lines")
+        if isinstance(lst, list):
+            props["lines"] = [_trunc(ln, 60) for ln in lst if isinstance(ln, str)]
+
+    # ProCon: pros/cons are plain string lists
+    if comp == "ProCon":
+        for field in ("pros", "cons"):
+            lst = props.get(field)
+            if isinstance(lst, list):
+                props[field] = [_trunc(item, 40) for item in lst if isinstance(item, str)]
 
     return props
 

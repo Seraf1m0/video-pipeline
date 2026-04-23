@@ -1,15 +1,25 @@
 import React from "react";
 import { Composition } from "remotion";
 import { SolarParadox } from "./animations/SolarParadox";
-import { DataCard, DataCardProps }       from "./compositions/DataCard";
-import { Statement, StatementProps, StatementStyle }     from "./compositions/Statement";
-import { Timeline, TimelineProps }       from "./compositions/Timeline";
-import { Comparison, ComparisonProps }   from "./compositions/Comparison";
-import { Highlight, HighlightProps }     from "./compositions/Highlight";
-import { List, ListProps }               from "./compositions/List";
-import { BarChart, BarChartProps }       from "./compositions/BarChart";
-import { RadialChart, RadialChartProps } from "./compositions/RadialChart";
-import { LineChart, LineChartProps }     from "./compositions/LineChart";
+import { DataCard, DataCardProps }             from "./compositions/DataCard";
+import { Statement, StatementProps, StatementStyle } from "./compositions/Statement";
+import { Timeline, TimelineProps }             from "./compositions/Timeline";
+import { Comparison, ComparisonProps }         from "./compositions/Comparison";
+import { Highlight, HighlightProps }           from "./compositions/Highlight";
+import { List, ListProps }                     from "./compositions/List";
+import { BarChart, BarChartProps }             from "./compositions/BarChart";
+import { RadialChart, RadialChartProps }       from "./compositions/RadialChart";
+import { LineChart, LineChartProps }           from "./compositions/LineChart";
+import { ChapterTitle, ChapterTitleProps }     from "./compositions/ChapterTitle";
+import { DateStamp, DateStampProps }           from "./compositions/DateStamp";
+import { Quote, QuoteProps }                   from "./compositions/Quote";
+import { BigNumber, BigNumberProps }           from "./compositions/BigNumber";
+import { Countdown, CountdownProps }           from "./compositions/Countdown";
+import { Scorecard, ScorecardProps }           from "./compositions/Scorecard";
+import { WordReveal, WordRevealProps }         from "./compositions/WordReveal";
+import { Terminal, TerminalProps }             from "./compositions/Terminal";
+import { ProCon, ProConProps }                 from "./compositions/ProCon";
+import { Ranking, RankingProps }               from "./compositions/Ranking";
 
 const FPS = 25;
 
@@ -269,6 +279,250 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="StatementTypewriter" component={Statement} durationInFrames={175} fps={FPS} width={1920} height={1080}
         defaultProps={{ text: "Das Zentrum der Sonne ist 15 Millionen Grad heiß.", sub: "Temperatur im Sonnenkern", accent_color: "#A855F7", duration_s: 7, style: "typewriter" } satisfies StatementProps}
         calculateMetadata={({ props }) => ({ durationInFrames: Math.round((props.duration_s ?? 7) * FPS) })}
+      />
+
+      {/*
+        ChapterTitle — topic/chapter transition with chapter label, bold title, optional sub
+        Props: { chapter, title, sub?, accent_color?, duration_s? = 8, bg_color?, seed? }
+      */}
+      <Composition
+        id="ChapterTitle"
+        component={ChapterTitle}
+        durationInFrames={200}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          chapter: "Chapter I",
+          title: "The Beginning",
+          sub: "How it all started",
+          accent_color: "#00C8FF",
+          duration_s: 8,
+        } satisfies ChapterTitleProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 8) * FPS),
+        })}
+      />
+
+      {/*
+        DateStamp — historical date badge with huge date, event text, newspaper lines
+        Props: { date, event, sub?, accent_color?, duration_s? = 8, bg_color?, seed? }
+      */}
+      <Composition
+        id="DateStamp"
+        component={DateStamp}
+        durationInFrames={200}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          date: "July 20, 1969",
+          event: "First Moon Landing",
+          sub: "Apollo 11 mission",
+          accent_color: "#FFD700",
+          duration_s: 8,
+        } satisfies DateStampProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 8) * FPS),
+        })}
+      />
+
+      {/*
+        Quote — citation with decorative quote mark, author, source
+        Props: { text, author?, source?, accent_color?, duration_s? = 9, bg_color?, seed? }
+      */}
+      <Composition
+        id="Quote"
+        component={Quote}
+        durationInFrames={225}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          text: "That's one small step for man, one giant leap for mankind.",
+          author: "Neil Armstrong",
+          source: "Apollo 11, 1969",
+          accent_color: "#A855F7",
+          duration_s: 9,
+        } satisfies QuoteProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 9) * FPS),
+        })}
+      />
+
+      {/*
+        BigNumber — stat with value, unit, description, context — different from Highlight
+        Props: { value, unit, description, context?, accent_color?, duration_s? = 8, bg_color?, seed? }
+      */}
+      <Composition
+        id="BigNumber"
+        component={BigNumber}
+        durationInFrames={200}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          value: "384",
+          unit: "Mio. km",
+          description: "Entfernung zum Mond",
+          context: "Gemessen vom Erdmittelpunkt",
+          accent_color: "#00C8FF",
+          duration_s: 8,
+        } satisfies BigNumberProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 8) * FPS),
+        })}
+      />
+
+      {/*
+        Countdown — dramatic 3...2...1 countdown with particles and rings
+        Props: { from? = 3, label?, accent_color_str?, duration_s? = 6, bg_color?, seed? }
+      */}
+      <Composition
+        id="Countdown"
+        component={Countdown}
+        durationInFrames={150}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          from: 3,
+          label: "Launch!",
+          accent_color_str: "#FF3CAC",
+          duration_s: 6,
+        } satisfies CountdownProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 6) * FPS),
+        })}
+      />
+
+      {/*
+        Scorecard — grid of 3-6 metric cards with staggered appearance
+        Props: { title, metrics: [{label, value, unit?, color?}], accent_color?, duration_s? = 10, bg_color?, seed? }
+      */}
+      <Composition
+        id="Scorecard"
+        component={Scorecard}
+        durationInFrames={250}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          title: "Mission Stats",
+          metrics: [
+            { label: "Distanz", value: "384", unit: "Mio. km", color: "#00C8FF" },
+            { label: "Dauer", value: "8", unit: "Tage", color: "#FF6B35" },
+            { label: "Besatzung", value: "3", unit: "Mann", color: "#4DFFB4" },
+            { label: "Geschwindigkeit", value: "39.000", unit: "km/h", color: "#A855F7" },
+          ],
+          accent_color: "#00C8FF",
+          duration_s: 10,
+        } satisfies ScorecardProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 10) * FPS),
+        })}
+      />
+
+      {/*
+        WordReveal — words appearing one by one, accent_words glow in accent color
+        Props: { words, accent_words?, accent_color?, duration_s? = 10, bg_color?, seed? }
+      */}
+      <Composition
+        id="WordReveal"
+        component={WordReveal}
+        durationInFrames={250}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          words: ["Silence.", "Darkness.", "Then", "Everything", "Changed."],
+          accent_words: ["Everything", "Changed."],
+          accent_color: "#FF3CAC",
+          duration_s: 10,
+        } satisfies WordRevealProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 10) * FPS),
+        })}
+      />
+
+      {/*
+        Terminal — console-style text reveal with typing animation
+        Props: { lines, title?, accent_color? = "#00FF88", duration_s? = 10, bg_color?, seed? }
+      */}
+      <Composition
+        id="Terminal"
+        component={Terminal}
+        durationInFrames={250}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          title: "mission-log.sh",
+          lines: [
+            "Initiating launch sequence...",
+            "All systems nominal",
+            "T-minus 10 seconds",
+            "Main engine start",
+            "We have liftoff.",
+          ],
+          accent_color: "#00FF88",
+          duration_s: 10,
+        } satisfies TerminalProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 10) * FPS),
+        })}
+      />
+
+      {/*
+        ProCon — two-column pros/cons with staggered item appearance
+        Props: { title?, pros, cons, pro_color?, con_color?, duration_s? = 10, bg_color?, seed? }
+      */}
+      <Composition
+        id="ProCon"
+        component={ProCon}
+        durationInFrames={250}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          title: "Raumfahrt — Eine Abwägung",
+          pros: ["Wissenschaftlicher Fortschritt", "Technologische Innovation", "Internationaler Ruhm"],
+          cons: ["Extreme Kosten", "Lebensrisiko", "Ressourcenaufwand"],
+          pro_color: "#00FF88",
+          con_color: "#FF4444",
+          duration_s: 10,
+        } satisfies ProConProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 10) * FPS),
+        })}
+      />
+
+      {/*
+        Ranking — animated top-N list, rank #1 gets gold treatment
+        Props: { title, items: [{rank?, label, value?, color?}], accent_color?, duration_s? = 12, bg_color?, seed? }
+      */}
+      <Composition
+        id="Ranking"
+        component={Ranking}
+        durationInFrames={300}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          title: "Größte Weltraummissionen",
+          items: [
+            { label: "Apollo 11", value: "1969" },
+            { label: "Voyager 1", value: "1977" },
+            { label: "Hubble Teleskop", value: "1990" },
+            { label: "Mars Curiosity", value: "2012" },
+            { label: "James Webb", value: "2021" },
+          ],
+          accent_color: "#00C8FF",
+          duration_s: 12,
+        } satisfies RankingProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 12) * FPS),
+        })}
       />
     </>
   );
