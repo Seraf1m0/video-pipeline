@@ -106,6 +106,15 @@ _CH_ALIAS = {
     "de":  "channel_001_cosmos_de",
     "fr":  "channel_002_cosmos_fr",
     "es":  "channel_003_religion_es",
+    "us":  "channel_004_cosmos_us",
+}
+
+# Нишa и имя — для отображения в заголовке
+_CH_META = {
+    "channel_001_cosmos_de":  ("Cosmos DE",    "Cosmos"),
+    "channel_002_cosmos_fr":  ("Cosmos FR",    "Cosmos"),
+    "channel_003_religion_es":("Religion ES",  "Religion"),
+    "channel_004_cosmos_us":  ("Cosmos US",    "Cosmos"),
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -602,7 +611,7 @@ def trim_clips(
     return ordered
 
 
-_COSMOS_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr"}
+_COSMOS_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr", "channel_004_cosmos_us"}
 
 
 def build_transition_plan(
@@ -1139,11 +1148,12 @@ def _plan_motion_graphics(channel_id: str, session: str, segments: list) -> list
     try:
         import mg_planner_gemini as _mgp
         _LANG = {
-            "channel_001_cosmos_de": "German",
-            "channel_002_cosmos_fr": "French",
-            "channel_003_religion_es": "Spanish",
+            "channel_001_cosmos_de":  "German",
+            "channel_002_cosmos_fr":  "French",
+            "channel_003_religion_es":"Spanish",
+            "channel_004_cosmos_us":  "English",
         }
-        lang  = _LANG.get(channel_id, "German")
+        lang  = _LANG.get(channel_id, "English")
         log(f"MG: планирование Gemini  (lang={lang}, {len(segments)} сегментов)...")
         zones = None
         for _attempt in range(5):
@@ -1740,7 +1750,8 @@ def main() -> None:
     zone_b_count  = int(style.get("zone_b_transitions", 35))
     trans_name    = style.get("clip_transition",          "crossfade")
     trans_dur     = float(style.get("clip_transition_duration", 0.5))
-    log(f"Канал:   {channel_id}")
+    _ch_name, _ch_niche = _CH_META.get(channel_id, (channel_id, "—"))
+    log(f"Канал:   {channel_id}  [{_ch_name} · {_ch_niche}]")
     log(f"Сессия:  {session}")
     log(f"Стиль:   trans={trans_name}({trans_dur}s)  zone_a={zone_a_end_s}s  zone_b={zone_b_count}")
 
@@ -1796,7 +1807,7 @@ def main() -> None:
     _fut_mg_render: "concurrent.futures.Future | None" = None
     _mg_render_executor: "concurrent.futures.ThreadPoolExecutor | None" = None
 
-    _MG_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr"}
+    _MG_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr", "channel_004_cosmos_us"}
 
     if not args.skip_mg and channel_id in _MG_CHANNELS:
         _mg_zones = _plan_motion_graphics(channel_id, session, segments)
@@ -1811,8 +1822,8 @@ def main() -> None:
     # ── 1c. THUMBNAIL (фоновый поллер) ───────────────────────────────────────
     # Запускается параллельно с clip selection и рендером.
     # Если thumbnail_text.txt пустой — ждёт каждые 30с пока пользователь не заполнит.
-    # Только для cosmos DE/FR.
-    _THUMBNAIL_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr"}
+    # Только для cosmos DE/FR/US.
+    _THUMBNAIL_CHANNELS = {"channel_001_cosmos_de", "channel_002_cosmos_fr", "channel_004_cosmos_us"}
     _fut_thumb: "concurrent.futures.Future | None" = None
     _thumb_executor: "concurrent.futures.ThreadPoolExecutor | None" = None
 

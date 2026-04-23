@@ -2,15 +2,18 @@
 paths.py — централизованное управление путями Video Pipeline.
 
 Структура сессии:
-  data/channels/{lang}/{session}/input/
-  data/channels/{lang}/{session}/transcripts/
-  data/channels/{lang}/{session}/intro_clips/
-  data/channels/{lang}/{session}/intro.mp4
-  data/channels/{lang}/{session}/output/
+  data/channels/{subdir}/{session}/input/
+  data/channels/{subdir}/{session}/transcripts/
+  data/channels/{subdir}/{session}/intro_clips/
+  data/channels/{subdir}/{session}/intro.mp4
+  data/channels/{subdir}/{session}/output/
+
+Поддиректории каналов (subdir):
+  cosmos_de / cosmos_fr / religion_es / cosmos_us
 
 Библиотеки:
-  C:/Projects/Video-pipeline/library_cosmos   — cosmos-ниша (DE, FR)
-  C:/Projects/Video-pipeline/library_religion — religion-ниша (ES)
+  D:/Video-pipeline-library/library_cosmos   — cosmos-ниша (DE, FR, US)
+  D:/Video-pipeline-library/library_religion — religion-ниша (ES)
 """
 
 from pathlib import Path
@@ -33,16 +36,25 @@ NICHE_MAP = {
     "channel_001_cosmos_de":   "cosmos",
     "channel_002_cosmos_fr":   "cosmos",
     "channel_003_religion_es": "religion",
-    "channel_004_cosmos_fr":   "cosmos",
+    "channel_004_cosmos_us":   "cosmos",
 }
 
-# ── Привязка каналов к языкам ─────────────────────────────────────────────────
+# ── Привязка каналов к языкам (используется для имён файлов) ──────────────────
 
 LANG_MAP = {
     "channel_001_cosmos_de":   "de",
     "channel_002_cosmos_fr":   "fr",
     "channel_003_religion_es": "es",
-    "channel_004_cosmos_fr":   "fr2",
+    "channel_004_cosmos_us":   "us",
+}
+
+# ── Привязка каналов к папкам на диске ────────────────────────────────────────
+
+SUBDIR_MAP = {
+    "channel_001_cosmos_de":   "cosmos_de",
+    "channel_002_cosmos_fr":   "cosmos_fr",
+    "channel_003_religion_es": "religion_es",
+    "channel_004_cosmos_us":   "cosmos_us",
 }
 
 
@@ -51,7 +63,7 @@ def get_niche(channel_id: str) -> str:
 
 
 def get_lang(channel_id: str) -> str:
-    # Поддержка коротких форм "de"/"fr"/"es"
+    # Поддержка коротких форм "de"/"fr"/"es"/"us"
     if channel_id in LANG_MAP.values():
         return channel_id
     return LANG_MAP.get(
@@ -59,7 +71,18 @@ def get_lang(channel_id: str) -> str:
         "de" if "_de" in channel_id
         else "fr" if "_fr" in channel_id
         else "es" if "_es" in channel_id
+        else "us" if "_us" in channel_id
         else "de",
+    )
+
+
+def get_channel_subdir(channel_id: str) -> str:
+    """Имя папки канала на диске (cosmos_de, religion_es и т.д.)."""
+    if channel_id in SUBDIR_MAP.values():
+        return channel_id
+    return SUBDIR_MAP.get(
+        channel_id,
+        f"cosmos_{get_lang(channel_id)}",
     )
 
 
@@ -85,7 +108,7 @@ def get_usage_history(channel_id: str) -> Path:
 
 
 def get_channel_dir(channel_id: str) -> Path:
-    return CHANNELS_DIR / get_lang(channel_id)
+    return CHANNELS_DIR / get_channel_subdir(channel_id)
 
 
 def get_session_dir(channel_id: str, session: str) -> Path:

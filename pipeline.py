@@ -93,6 +93,14 @@ _CH_ALIAS = {
     "de": "channel_001_cosmos_de",
     "fr": "channel_002_cosmos_fr",
     "es": "channel_003_religion_es",
+    "us": "channel_004_cosmos_us",
+}
+
+_CH_META = {
+    "channel_001_cosmos_de":  ("Cosmos DE",    "Cosmos"),
+    "channel_002_cosmos_fr":  ("Cosmos FR",    "Cosmos"),
+    "channel_003_religion_es":("Religion ES",  "Religion"),
+    "channel_004_cosmos_us":  ("Cosmos US",    "Cosmos"),
 }
 
 _SYSTEM_PYTHON = r"C:\Users\Serafim\AppData\Local\Programs\Python\Python313\python.exe"
@@ -146,8 +154,9 @@ def run_pipeline(
     channel_id = _CH_ALIAS.get(channel_alias, channel_alias)
     t_total = time.time()
 
+    _ch_name, _ch_niche = _CH_META.get(channel_id, (channel_id, "—"))
     print(f"\n{'═'*60}")
-    print(f"  VIDEO PIPELINE — {channel_id}")
+    print(f"  VIDEO PIPELINE — {_ch_name}  [{_ch_niche}]")
     print(f"{'═'*60}")
 
     if session and _check_final(channel_id, session):

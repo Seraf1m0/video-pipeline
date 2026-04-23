@@ -551,11 +551,11 @@ def select_clips_for_video(
     try:
         import json as _json
         from pathlib import Path as _Path
-        from paths import CHANNELS_DIR as _CHANNELS_DIR, get_lang as _get_lang
-        cs_dir = _CHANNELS_DIR / _get_lang(channel_id) / session
+        from paths import CHANNELS_DIR as _CHANNELS_DIR, get_channel_subdir as _get_subdir
+        cs_dir = _CHANNELS_DIR / _get_subdir(channel_id) / session
         if not cs_dir.exists():
-            for _ch in ("de", "fr", "en", "es"):
-                _p = _CHANNELS_DIR / _ch / session
+            for _sub in ("cosmos_de", "cosmos_fr", "religion_es", "cosmos_us", "de", "fr", "es"):
+                _p = _CHANNELS_DIR / _sub / session
                 if _p.exists():
                     cs_dir = _p
                     break

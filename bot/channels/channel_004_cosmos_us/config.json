@@ -1,0 +1,30 @@
+{
+  "id": "channel_004_cosmos_us",
+  "name": "Cosmos US",
+  "data_subdir": "channels/us",
+  "emoji": "🚀",
+  "language": "en",
+  "niche": "cosmos",
+  "tg_channel": "",
+  "transcriber": {
+    "language": "en",
+    "task": "transcribe"
+  },
+  "prompt_generator": {
+    "language": "en",
+    "source_language": "en",
+    "system_context": "Scientific space documentary in English",
+    "photo_master": "photo_master_prompt_de.txt",
+    "video_master": "master_video_grok.txt"
+  },
+  "assembler": {
+    "subtitle_language": "en",
+    "music_dir": "",
+    "intro_enabled": true
+  },
+  "validator": {
+    "niche": "cosmos",
+    "stock_query_language": "en"
+  },
+  "library": "D:/Video-pipeline-library/library_cosmos"
+}

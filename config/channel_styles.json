@@ -63,5 +63,28 @@
     "cta_mov": "D:/Video-pipeline-temp/test_cta_es.mov",
     "cta_min_gap_s": 90,
     "cta_max_gap_s": 120
+  },
+  "channel_004_cosmos_us": {
+    "name": "Cosmos US",
+    "intro_transition": "none",
+    "clip_transition": "random",
+    "clip_transition_duration": 0.35,
+    "zone_a_end_s": 300,
+    "zone_b_transitions": 35,
+    "sfx_enabled": true,
+    "music_vol_db": -32.0,
+    "intro_audio_vol_db": -34.0,
+    "subtitle_style": "default",
+    "subtitle_font": "Impact",
+    "subtitle_size_offset": 20,
+    "subtitle_rise_extra_px": 25,
+    "subtitle_border_style": 1,
+    "subtitle_max_words": 3,
+    "color_grade": "cool_cinematic",
+    "subtitle_anim": "pop",
+    "lufs_target": -16.0,
+    "cta_mov": "D:/Video-pipeline-temp/test_cta_de.mov",
+    "cta_min_gap_s": 90,
+    "cta_max_gap_s": 120
   }
 }

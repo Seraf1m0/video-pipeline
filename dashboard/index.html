@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Video Pipeline HQ</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #07090f; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="hq"></canvas>
+<script>
+(function(){
+  const cv = document.getElementById('hq');
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+  const ctx = cv.getContext('2d');
+
+  const W = cv.width, H = cv.height;
+  const OX = W*0.44, OY = H*0.38;
+  const TW=100, TH=50, WH=56;
+  const GW=10, GD=9, GH=3;
+
+  const iso = (gx,gy,gz=0) => [OX+(gx-gy)*TW/2, OY+(gx+gy)*TH/2-gz*WH];
+
+  function poly(pts, fill, stroke, lw=1){
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0],pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+    ctx.closePath();
+    if(fill!==null){ ctx.fillStyle=fill; ctx.fill(); }
+    if(stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.stroke(); }
+  }
+
+  function tile(gx,gy,fill,stroke){
+    const [tx,ty]=iso(gx,gy,0);
+    poly([[tx,ty],[tx+TW/2,ty+TH/2],[tx,ty+TH],[tx-TW/2,ty+TH/2]],fill,stroke||'#141e28');
+  }
+
+  function box3d(gx,gy,w,d,h,topC,rightC,frontC){
+    const T=(gz)=>iso(gx,gy,gz), TR=(gz)=>iso(gx+w,gy,gz),
+          BR=(gz)=>iso(gx+w,gy+d,gz), BL=(gz)=>iso(gx,gy+d,gz);
+    const sC='#0c1218';
+    poly([T(h),TR(h),BR(h),BL(h)],topC,sC);
+    poly([TR(h),BR(h),BR(0),TR(0)],rightC,sC);
+    poly([BL(h),BR(h),BR(0),BL(0)],frontC,sC);
+  }
+
+  function agentFigure(gx,gy,gz,color,label){
+    const [sx,sy]=iso(gx,gy,gz);
+    ctx.shadowColor=color; ctx.shadowBlur=14;
+    ctx.fillStyle=color; ctx.fillRect(sx-5,sy-22,10,9);
+    ctx.fillStyle='#000'; ctx.fillRect(sx-3,sy-20,2,2); ctx.fillRect(sx+1,sy-20,2,2);
+    ctx.fillStyle=color+'99'; ctx.fillRect(sx-6,sy-13,12,9);
+    ctx.fillStyle=color+'77'; ctx.fillRect(sx-5,sy-4,4,5); ctx.fillRect(sx+1,sy-4,4,5);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#b0c8d8'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
+    ctx.fillText(label,sx,sy+10);
+  }
+
+  function agentScreen(gx,gy,gz,color,label){
+    const [sx,sy]=iso(gx,gy,gz);
+    ctx.shadowColor=color; ctx.shadowBlur=14;
+    ctx.fillStyle=color+'1a'; ctx.fillRect(sx-22,sy-16,44,26);
+    ctx.strokeStyle=color+'cc'; ctx.lineWidth=1.5; ctx.strokeRect(sx-22,sy-16,44,26);
+    ctx.fillStyle=color; ctx.font='bold 7px monospace'; ctx.textAlign='center';
+    ctx.fillText(label,sx,sy-3);
+    ctx.shadowBlur=0;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // Background
+    ctx.fillStyle='#07090f'; ctx.fillRect(0,0,W,H);
+    for(let y=0;y<H;y+=4){ ctx.fillStyle='rgba(0,0,0,0.07)'; ctx.fillRect(0,y,W,1); }
+
+    // Stars
+    for(let i=0;i<80;i++){
+      const sx=(i*173.7%W), sy=(i*97.3%(H*0.22));
+      ctx.fillStyle='rgba(255,255,255,'+(0.1+i%5*0.1)+')'; ctx.fillRect(sx,sy,1,1);
+    }
+
+    // ── NORTH WALL (y=0) ──
+    {
+      const tl=iso(0,0,GH), tr=iso(GW,0,GH), br=iso(GW,0,0), bl=iso(0,0,0);
+      poly([tl,tr,br,bl],'#101b2e',null);
+      ctx.strokeStyle='#182540'; ctx.lineWidth=0.5;
+      for(let z=1;z<=GH;z++){
+        const [x1,y1]=iso(0,0,z),[x2,y2]=iso(GW,0,z);
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      }
+      for(let x=1;x<GW;x++){
+        const [x1,y1]=iso(x,0,0),[x2,y2]=iso(x,0,GH);
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      }
+    }
+
+    // ── WEST WALL (x=0) ──
+    {
+      const tl=iso(0,0,GH), tr=iso(0,GD,GH), br=iso(0,GD,0), bl=iso(0,0,0);
+      poly([tl,tr,br,bl],'#0c1525',null);
+      ctx.strokeStyle='#162036'; ctx.lineWidth=0.5;
+      for(let y=1;y<GD;y++){
+        const [x1,y1]=iso(0,y,0),[x2,y2]=iso(0,y,GH);
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      }
+      for(let z=1;z<=GH;z++){
+        const [x1,y1]=iso(0,0,z),[x2,y2]=iso(0,GD,z);
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      }
+    }
+
+    // ── RIGHT WALL close ──
+    poly([iso(GW,0,GH),iso(GW,GD,GH),iso(GW,GD,0),iso(GW,0,0)],'#0a1222',null);
+
+    // ── YouTube screen on north wall ──
+    {
+      const a=iso(4,0,2.4), b=iso(7,0,2.4), c=iso(7,0,0.9), d=iso(4,0,0.9);
+      poly([a,b,c,d],'#1a0808','#cc0000',1.5);
+      const cx=(a[0]+b[0])/2, cy=(a[1]+c[1])/2+4;
+      ctx.shadowColor='#ff2200'; ctx.shadowBlur=20;
+      ctx.fillStyle='#cc0000'; ctx.fillRect(cx-18,cy-10,36,20);
+      ctx.shadowBlur=0; ctx.fillStyle='#fff';
+      ctx.beginPath(); ctx.moveTo(cx-5,cy-7); ctx.lineTo(cx+9,cy); ctx.lineTo(cx-5,cy+7); ctx.fill();
+      ctx.fillStyle='#ff5555'; ctx.font='bold 7px monospace'; ctx.textAlign='center';
+      ctx.fillText('YouTube',cx,cy+16);
+    }
+
+    // ── FLOOR ──
+    for(let x=0;x<GW;x++) for(let y=0;y<GD;y++){
+      tile(x,y,(x+y)%2===0?'#0d1520':'#101c28');
+    }
+    // subtle center glow
+    for(let x=2;x<8;x++) tile(x,4,'rgba(0,130,220,0.04)','rgba(0,160,255,0.07)');
+
+    // ── AGENT WORKSTATIONS ──
+    // Gosha — Orchestrator
+    box3d(1,0.5,2,1,0.6,'#243224','#18241a','#121c12');
+    agentScreen(2,1.2,0.8,'#ff4400','GOSHA');
+    agentFigure(2,1.5,0.6,'#ff4400','Gosha');
+
+    // Whisper
+    box3d(4,0.5,1.5,1,0.6,'#1a2c3c','#12202e','#0f1828');
+    agentScreen(4.75,1.2,0.8,'#00d4ff','WHISPER');
+    agentFigure(4.75,1.5,0.6,'#00d4ff','Whisper');
+
+    // MG Plan
+    box3d(6.5,0.5,1.5,1,0.6,'#24163a','#18102c','#120c22');
+    agentScreen(7.25,1.2,0.8,'#aa44ff','MG PLAN');
+    agentFigure(7.25,1.5,0.6,'#aa44ff','MG Plan');
+
+    // Thumb
+    box3d(1,2.5,1.5,1,0.6,'#163028','#10221c','#0c1c16');
+    agentScreen(1.75,3.2,0.8,'#00ff88','THUMB');
+    agentFigure(1.75,3.5,0.6,'#00ff88','Thumb');
+
+    // Meta
+    box3d(3.5,2.5,1.5,1,0.6,'#2a1610','#1c1008','#160c06');
+    agentScreen(4.25,3.2,0.8,'#ff6644','META');
+    agentFigure(4.25,3.5,0.6,'#ff6644','Meta');
+
+    // GPU server (taller box)
+    box3d(6,2.5,2,1.5,1.2,'#242400','#181800','#121200');
+    agentScreen(7,3.5,1.4,'#ffdd00','GPU');
+    agentFigure(7,3.9,1.2,'#ffdd00','GPU');
+
+    // ── ROUND TABLE (center) ──
+    {
+      const [tx,ty]=iso(4.5,6,0.4);
+      ctx.fillStyle='#5a3c20';
+      ctx.beginPath(); ctx.ellipse(tx,ty-3,46,24,0,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#7a5030'; ctx.lineWidth=1.5; ctx.stroke();
+      const [lx,ly]=iso(4.5,6,0);
+      ctx.fillStyle='#3a2810'; ctx.fillRect(lx-2,ly,4,ty-3-ly+2);
+    }
+
+    // ── CHANNEL MONITORS ──
+    [{gx:8.2,gy:0.5,color:'#4488ff',flag:'🇩🇪',name:'DE',niche:'Cosmos'},
+     {gx:8.2,gy:3.0,color:'#cc44ff',flag:'🇫🇷',name:'FR',niche:'Cosmos'},
+     {gx:8.2,gy:5.5,color:'#ff8844',flag:'🇪🇸',name:'ES',niche:'Relig'},
+     {gx:8.2,gy:8.0,color:'#00ffcc',flag:'🇺🇸',name:'US',niche:'Cosmos'}
+    ].forEach(ch=>{
+      box3d(ch.gx,ch.gy,1.2,1,0.8,'#141e32','#0e182a','#0a1020');
+      const [sx,sy]=iso(ch.gx+0.6,ch.gy+0.5,1.0);
+      ctx.shadowColor=ch.color; ctx.shadowBlur=18;
+      ctx.fillStyle=ch.color+'22'; ctx.fillRect(sx-22,sy-15,44,24);
+      ctx.strokeStyle=ch.color; ctx.lineWidth=1.5; ctx.strokeRect(sx-22,sy-15,44,24);
+      ctx.shadowBlur=0;
+      ctx.fillStyle=ch.color; ctx.shadowColor=ch.color; ctx.shadowBlur=8;
+      ctx.beginPath(); ctx.arc(sx,sy-22,4,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+      ctx.fillStyle=ch.color; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+      ctx.fillText(ch.name,sx,sy-4);
+      ctx.fillStyle='#8899aa'; ctx.font='7px monospace'; ctx.fillText(ch.niche,sx,sy+14);
+      ctx.fillStyle='#fff'; ctx.font='12px serif'; ctx.fillText(ch.flag,sx,sy-28);
+    });
+
+    // ── SERVER RACK ──
+    box3d(8.2,7,1.5,1.5,2,'#09101a','#060d16','#050a12');
+    for(let r=0;r<6;r++){
+      const [rx,ry]=iso(8.95,7.75,0.2+r*0.3);
+      const rc=r%2===0?'#00ff55':'#ff4422';
+      ctx.fillStyle=rc; ctx.shadowColor=rc; ctx.shadowBlur=5;
+      ctx.fillRect(rx-9,ry-2,5,2); ctx.shadowBlur=0;
+    }
+
+    // ── TITLE ──
+    {
+      const [tx,ty]=iso(4.5,0,GH+0.2);
+      ctx.shadowColor='#00bbee'; ctx.shadowBlur=30;
+      ctx.fillStyle='#00ddff'; ctx.font='bold 15px monospace'; ctx.textAlign='center';
+      ctx.fillText('VIDEO  PIPELINE', tx+TW*1.5, ty+4);
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#336688'; ctx.font='8px monospace';
+      ctx.fillText('AI · RENDER · PUBLISH', tx+TW*1.5, ty+17);
+    }
+
+    // ── PIPELINE STATUS HUD ──
+    {
+      const hx=W*0.69, hy=H*0.62, hw=315, hh=195;
+      ctx.fillStyle='rgba(5,10,20,0.96)'; ctx.strokeStyle='#00aabb';
+      ctx.lineWidth=1.5; ctx.shadowColor='#00aabb'; ctx.shadowBlur=10;
+      ctx.beginPath();
+      ctx.moveTo(hx+10,hy); ctx.lineTo(hx+hw,hy); ctx.lineTo(hx+hw,hy+hh);
+      ctx.lineTo(hx,hy+hh); ctx.lineTo(hx,hy+10); ctx.closePath();
+      ctx.fill(); ctx.stroke(); ctx.shadowBlur=0;
+      ctx.fillStyle='#00ccdd'; ctx.font='bold 10px monospace'; ctx.textAlign='left';
+      ctx.fillText('▶  PIPELINE STATUS', hx+14, hy+16);
+      ctx.strokeStyle='#1a3a4a'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(hx+10,hy+22); ctx.lineTo(hx+hw-10,hy+22); ctx.stroke();
+      window._pipelineRows = window._pipelineRows || [
+        ['Whisper','IDLE','#4a7a99'],
+        ['MG Planner','READY','#00ee88'],
+        ['GPU Render','DE ▶ 74fps','#ffdd00'],
+        ['Meta Agent','ES ✓','#00ee88'],
+        ['Thumbnail','ES ✓ 9/10','#00ee88'],
+      ];
+      window._pipelineRows.forEach((r,i)=>{
+        const ry=hy+38+i*28;
+        if(i%2===0){ctx.fillStyle='rgba(255,255,255,0.025)';ctx.fillRect(hx+8,ry-12,hw-16,24);}
+        ctx.fillStyle='#557799'; ctx.font='9px monospace'; ctx.textAlign='left';
+        ctx.fillText(r[0],hx+16,ry);
+        ctx.shadowColor=r[2]; ctx.shadowBlur=5;
+        ctx.fillStyle=r[2]; ctx.font='bold 9px monospace'; ctx.textAlign='right';
+        ctx.fillText(r[1],hx+hw-16,ry); ctx.shadowBlur=0;
+      });
+    }
+
+    // ── CORNER BRACKETS ──
+    [[0,0],[1,0],[0,1],[1,1]].forEach(([sx,sy])=>{
+      const px=sx*(W-2)+1, py=sy*(H-2)+1, len=28;
+      ctx.strokeStyle='rgba(0,170,220,0.35)'; ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(px+(sx?-len:len),py); ctx.lineTo(px,py); ctx.lineTo(px,py+(sy?-len:len));
+      ctx.stroke();
+    });
+  }
+
+  draw();
+
+  // Animate: subtle idle pulse on agents
+  let frame=0;
+  function animate(){
+    frame++;
+    // Redraw every 90 frames (~1.5s at 60fps) to allow future live data
+    if(frame%90===0) draw();
+    requestAnimationFrame(animate);
+  }
+  animate();
+
+  window.addEventListener('resize',()=>{
+    cv.width=window.innerWidth; cv.height=window.innerHeight; draw();
+  });
+})();
+</script>
+</body>
+</html>
