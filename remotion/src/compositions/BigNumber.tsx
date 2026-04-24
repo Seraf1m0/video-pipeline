@@ -229,7 +229,7 @@ export const BigNumber: React.FC<BigNumberProps> = ({
               fontSize: 260,
               letterSpacing: "0.02em",
               color: "#FFFFFF",
-              lineHeight: 0.88,
+              lineHeight: 1.05,
               textShadow: `0 0 80px ${accent_color}44`,
             }}>
               {value}

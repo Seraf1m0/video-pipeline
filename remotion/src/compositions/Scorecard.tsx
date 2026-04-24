@@ -150,25 +150,27 @@ const MetricCard: React.FC<{
     <div style={{
       opacity: op,
       transform: `translateY(${y}px)`,
-      background: "rgba(255,255,255,0.04)",
-      border: `1px solid ${accentColor}22`,
-      borderRadius: 10,
-      padding: "20px 24px",
+      background: "rgba(255,255,255,0.05)",
+      border: `1px solid ${accentColor}33`,
+      borderRadius: 12,
+      padding: "28px 32px",
       display: "flex",
       flexDirection: "column",
+      justifyContent: "center",
       alignItems: "flex-start",
-      gap: 4,
+      gap: 6,
       flex: 1,
       minWidth: 0,
+      boxShadow: `inset 0 1px 0 ${accentColor}11, 0 0 30px ${color}0A`,
     }}>
       {/* Label */}
       <div style={{
         fontFamily: SYNE,
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: "800",
-        letterSpacing: "0.14em",
+        letterSpacing: "0.18em",
         textTransform: "uppercase",
-        color: "#FFFFFF55",
+        color: "#FFFFFF66",
       }}>
         {metric.label}
       </div>
@@ -176,11 +178,12 @@ const MetricCard: React.FC<{
       {/* Value */}
       <div style={{
         fontFamily: BEBAS,
-        fontSize: 90,
-        letterSpacing: "0.01em",
+        fontSize: 110,
+        letterSpacing: "0.02em",
         color: color,
-        lineHeight: 0.9,
-        textShadow: `0 0 40px ${color}66`,
+        lineHeight: 1.0,
+        textShadow: `0 0 50px ${color}77`,
+        paddingTop: 4,
       }}>
         {metric.value}
       </div>
@@ -189,10 +192,10 @@ const MetricCard: React.FC<{
       {metric.unit && (
         <div style={{
           fontFamily: SYNE,
-          fontSize: 14,
-          fontWeight: "600",
-          color: "#FFFFFF44",
-          letterSpacing: "0.08em",
+          fontSize: 15,
+          fontWeight: "700",
+          color: `${color}99`,
+          letterSpacing: "0.10em",
           textTransform: "uppercase",
         }}>
           {metric.unit}
@@ -287,9 +290,9 @@ export const Scorecard: React.FC<ScorecardProps> = ({
           </div>
 
           {/* Metric grid rows */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {rows.map((row, rowIdx) => (
-              <div key={rowIdx} style={{ display: "flex", gap: 16, flex: 1 }}>
+              <div key={rowIdx} style={{ display: "flex", gap: 16, minHeight: 200 }}>
                 {row.map((metric, colIdx) => {
                   const globalIdx = rowIdx * cols + colIdx;
                   return (
