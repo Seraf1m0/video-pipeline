@@ -5,12 +5,12 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
 import { noise2D } from "@remotion/noise";
 import { seededShuffle } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
 
 export interface TimelineStep {
   label: string;
@@ -116,7 +116,7 @@ const StepText: React.FC<{
       {desc && (
         <div style={{
           opacity: descOp, transform: `translateY(${descY}px)`,
-          fontFamily: MANROPE, fontSize: descFontSize, fontWeight: "400",
+          fontFamily: MONTSERRAT, fontSize: descFontSize, fontWeight: "600",
           color: "#FFFFFF66", letterSpacing: "0.04em", lineHeight: 1.4,
           maxWidth: 160,
         }}>

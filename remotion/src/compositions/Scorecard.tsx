@@ -5,12 +5,14 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
+import { loadFont as loadBebasNeue } from "@remotion/google-fonts/BebasNeue";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
+const { fontFamily: BEBAS   } = loadBebasNeue();
 
 export interface ScorecardMetric {
   label: string;
@@ -28,8 +30,7 @@ export interface ScorecardProps {
   seed?: number;
 }
 
-const EXIT_DUR  = 44;
-const CARD_STEP = 8;
+const EXIT_DUR = 44;
 
 // ─── BACKGROUND ───────────────────────────────────────────────────────────────
 const Bg: React.FC<{ frame: number; color: string; total: number }> = ({ frame, color, total }) => {
@@ -39,8 +40,8 @@ const Bg: React.FC<{ frame: number; color: string; total: number }> = ({ frame, 
   });
   const op = inOp * outOp;
   const s1 = 1 + Math.sin(frame * 0.020) * 0.07;
-  const nx  = noise2D("scbx", frame * 0.0014, 0) * 5;
-  const ny  = noise2D("scby", 0, frame * 0.0014) * 4;
+  const nx  = noise2D("scbx", frame * 0.0015, 0) * 5;
+  const ny  = noise2D("scby", 0, frame * 0.0015) * 4;
 
   return (
     <AbsoluteFill>
@@ -123,88 +124,80 @@ const ExitScan: React.FC<{ frame: number; total: number; color: string }> = ({ f
 // ─── METRIC CARD ─────────────────────────────────────────────────────────────
 const MetricCard: React.FC<{
   metric: ScorecardMetric;
-  enterFrame: number;
   frame: number;
+  enterFrame: number;
   exitStart: number;
   accentColor: string;
-}> = ({ metric, enterFrame, frame, exitStart, accentColor }) => {
-  const { fps } = useVideoConfig();
+  fps: number;
+}> = ({ metric, frame, enterFrame, exitStart, accentColor, fps }) => {
   const color = metric.color ?? accentColor;
 
-  // Slide up spring
-  const spr  = spring({ frame: frame - enterFrame, fps, config: { damping: 22, stiffness: 280 } });
+  const spr  = spring({ frame: frame - enterFrame, fps, config: { damping: 24, stiffness: 260 } });
   const yIn  = interpolate(spr, [0, 1], [40, 0]);
-  const opIn = interpolate(frame, [enterFrame, enterFrame + 12], [0, 1], { extrapolateRight: "clamp" });
+  const opIn = interpolate(frame, [enterFrame, enterFrame + 14], [0, 1], { extrapolateRight: "clamp" });
 
-  // Exit fade
-  const opOut = interpolate(frame, [exitStart + 4, exitStart + 24], [1, 0], {
+  const exitOp = interpolate(frame, [exitStart + 4, exitStart + 24], [1, 0], {
     extrapolateLeft: "clamp", extrapolateRight: "clamp",
   });
-  const yOut  = interpolate(frame, [exitStart + 4, exitStart + 24], [0, 20], {
-    extrapolateLeft: "clamp", extrapolateRight: "clamp",
+  const exitY  = interpolate(frame, [exitStart + 4, exitStart + 24], [0, 40], {
+    extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.in(Easing.cubic),
   });
 
-  const op = opIn * (frame >= exitStart + 4 ? opOut : 1);
-  const y  = yIn + yOut;
-
-  // Panel highlight on entry
-  const panelGlow = interpolate(frame, [enterFrame, enterFrame + 20], [0.04, 0.08], {
-    extrapolateRight: "clamp",
-  });
-
-  const valLen  = metric.value.length;
-  const valSize = valLen > 8 ? 52 : valLen > 5 ? 64 : 80;
+  const op = opIn * (frame >= exitStart + 4 ? exitOp : 1);
+  const y  = yIn  + (frame >= exitStart + 4 ? exitY : 0);
 
   return (
     <div style={{
       opacity: op,
       transform: `translateY(${y}px)`,
-      background: `rgba(255,255,255,${panelGlow})`,
-      border: `1px solid ${color}22`,
-      borderRadius: 12,
-      padding: "28px 32px",
+      background: "rgba(255,255,255,0.04)",
+      border: `1px solid ${accentColor}22`,
+      borderRadius: 10,
+      padding: "20px 24px",
       display: "flex",
       flexDirection: "column",
-      gap: 8,
-      boxShadow: `0 0 30px ${color}11, inset 0 1px 0 ${color}18`,
+      alignItems: "flex-start",
+      gap: 4,
+      flex: 1,
+      minWidth: 0,
     }}>
-      {/* Value + unit */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 6, lineHeight: 1 }}>
-        <span style={{
-          fontFamily: SYNE,
-          fontSize: valSize,
-          fontWeight: "800",
-          letterSpacing: "-0.03em",
-          color: color,
-          textShadow: `0 0 40px ${color}88`,
-        }}>
-          {metric.value}
-        </span>
-        {metric.unit && (
-          <span style={{
-            fontFamily: MANROPE,
-            fontSize: 22,
-            fontWeight: "600",
-            color: "#FFFFFFAA",
-            paddingBottom: 6,
-            letterSpacing: "-0.01em",
-          }}>
-            {metric.unit}
-          </span>
-        )}
-      </div>
-
       {/* Label */}
       <div style={{
         fontFamily: SYNE,
         fontSize: 11,
-        fontWeight: "700",
-        letterSpacing: "0.28em",
+        fontWeight: "800",
+        letterSpacing: "0.14em",
         textTransform: "uppercase",
         color: "#FFFFFF55",
       }}>
         {metric.label}
       </div>
+
+      {/* Value */}
+      <div style={{
+        fontFamily: BEBAS,
+        fontSize: 90,
+        letterSpacing: "0.01em",
+        color: color,
+        lineHeight: 0.9,
+        textShadow: `0 0 40px ${color}66`,
+      }}>
+        {metric.value}
+      </div>
+
+      {/* Unit */}
+      {metric.unit && (
+        <div style={{
+          fontFamily: SYNE,
+          fontSize: 14,
+          fontWeight: "600",
+          color: "#FFFFFF44",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+        }}>
+          {metric.unit}
+        </div>
+      )}
     </div>
   );
 };
@@ -231,23 +224,22 @@ export const Scorecard: React.FC<ScorecardProps> = ({
     extrapolateLeft: "clamp", extrapolateRight: "clamp",
   });
 
-  // Clamp metrics 3-6
-  const items = metrics.slice(0, 6);
-  const cols  = items.length <= 4 ? 2 : 3;
+  const titleEnter = 6;
+  const cardsBase  = titleEnter + 18;
+  const CARD_STEP  = 12;
 
-  // Title enters
-  const titleEnter = 8;
-  const titleSpr   = spring({ frame: frame - titleEnter, fps, config: { damping: 28, stiffness: 240 } });
-  const titleY     = interpolate(titleSpr, [0, 1], [-18, 0]);
-  const titleOp    = interpolate(frame, [titleEnter, titleEnter + 14], [0, 1], { extrapolateRight: "clamp" }) *
-                     interpolate(frame, [exitStart + 4, exitStart + 22], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Title
+  const titleSpr = spring({ frame: frame - titleEnter, fps, config: { damping: 28, stiffness: 240 } });
+  const titleY   = interpolate(titleSpr, [0, 1], [-16, 0]);
+  const titleOp  = interpolate(frame, [titleEnter, titleEnter + 14], [0, 1], { extrapolateRight: "clamp" })
+                 * interpolate(frame, [exitStart + 4, exitStart + 20], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  const titleLineW = interpolate(frame, [titleEnter + 4, titleEnter + 32], [0, 100], {
-    extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.exp),
-  });
-
-  // Card enter frames: staggered
-  const cardBase = titleEnter + 20;
+  // Divide metrics into rows of 2 (or all in one row if ≤ 2)
+  const cols = metrics.length <= 2 ? metrics.length : 2;
+  const rows: ScorecardMetric[][] = [];
+  for (let i = 0; i < metrics.length; i += cols) {
+    rows.push(metrics.slice(i, i + cols));
+  }
 
   return (
     <AbsoluteFill style={{ background: bg_color, overflow: "hidden" }}>
@@ -261,57 +253,58 @@ export const Scorecard: React.FC<ScorecardProps> = ({
         <Sequence from={0} durationInFrames={20}>
           <Audio src={staticFile("sfx/rise.wav")} volume={0.18} />
         </Sequence>
-        {items.map((_, i) => (
-          <Sequence key={i} from={cardBase + i * CARD_STEP + 4} durationInFrames={20}>
-            <Audio src={staticFile("sfx/ping.wav")} volume={0.12 - i * 0.005} />
+        <Sequence from={titleEnter} durationInFrames={24}>
+          <Audio src={staticFile("sfx/whoosh_in.wav")} volume={0.12} />
+        </Sequence>
+        {metrics.map((_, i) => (
+          <Sequence key={i} from={cardsBase + i * CARD_STEP + 4} durationInFrames={20}>
+            <Audio src={staticFile("sfx/ping.wav")} volume={0.10 - i * 0.003} />
           </Sequence>
         ))}
-        <Sequence from={exitStart + 8} durationInFrames={28}>
-          <Audio src={staticFile("sfx/whoosh_out_3.wav")} volume={0.18} />
+        <Sequence from={exitStart + 6} durationInFrames={28}>
+          <Audio src={staticFile("sfx/whoosh_out_3.wav")} volume={0.20} />
         </Sequence>
 
         <AbsoluteFill style={{
-          display: "flex", flexDirection: "column",
+          display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
-          gap: 36, padding: "60px 100px",
+          padding: "60px 100px",
+          gap: 24,
         }}>
           {/* Title */}
           <div style={{
             opacity: titleOp,
             transform: `translateY(${titleY}px)`,
-            display: "flex", flexDirection: "column", gap: 10,
+            fontFamily: SYNE,
+            fontSize: 13,
+            fontWeight: "800",
+            letterSpacing: "0.40em",
+            textTransform: "uppercase",
+            color: "#FFFFFF55",
           }}>
-            <div style={{
-              fontFamily: SYNE,
-              fontSize: 13,
-              fontWeight: "800",
-              letterSpacing: "0.40em",
-              textTransform: "uppercase",
-              color: "#FFFFFF55",
-            }}>
-              {title}
-            </div>
-            <div style={{
-              width: `${titleLineW}%`, maxWidth: 200, height: 1,
-              background: `linear-gradient(to right, ${accent_color}88, transparent)`,
-            }} />
+            {title}
           </div>
 
-          {/* Grid of cards */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gap: 20,
-          }}>
-            {items.map((metric, i) => (
-              <MetricCard
-                key={i}
-                metric={metric}
-                enterFrame={cardBase + i * CARD_STEP}
-                frame={frame}
-                exitStart={exitStart}
-                accentColor={accent_color}
-              />
+          {/* Metric grid rows */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
+            {rows.map((row, rowIdx) => (
+              <div key={rowIdx} style={{ display: "flex", gap: 16, flex: 1 }}>
+                {row.map((metric, colIdx) => {
+                  const globalIdx = rowIdx * cols + colIdx;
+                  return (
+                    <MetricCard
+                      key={globalIdx}
+                      metric={metric}
+                      frame={frame}
+                      enterFrame={cardsBase + globalIdx * CARD_STEP}
+                      exitStart={exitStart}
+                      accentColor={accent_color}
+                      fps={fps}
+                    />
+                  );
+                })}
+              </div>
             ))}
           </div>
         </AbsoluteFill>

@@ -5,12 +5,12 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
 
 export interface HighlightProps {
   value: string;
@@ -322,9 +322,9 @@ export const Highlight: React.FC<HighlightProps> = ({
             {sub && (
               <div style={{
                 opacity: subOp,
-                fontFamily: MANROPE,
+                fontFamily: MONTSERRAT,
                 fontSize: 15,
-                fontWeight: "400",
+                fontWeight: "600",
                 color: "#FFFFFF55",
                 textAlign: "center",
                 letterSpacing: "0.05em",

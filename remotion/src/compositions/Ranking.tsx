@@ -5,12 +5,12 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
 
 export interface RankingItem {
   rank?: number;
@@ -205,7 +205,7 @@ const RankRow: React.FC<{
       {/* Value (right-aligned) */}
       {item.value && (
         <div style={{
-          fontFamily: MANROPE,
+          fontFamily: MONTSERRAT,
           fontSize: isFirst ? fontSize - 2 : fontSize - 4,
           fontWeight: "600",
           color: `${rowColor}CC`,

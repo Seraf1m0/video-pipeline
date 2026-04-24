@@ -5,12 +5,12 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
 
 export interface ComparisonSide {
   label: string;
@@ -328,7 +328,7 @@ const Panel: React.FC<{
         {side.sub && (
           <div style={{
             opacity: subOp,
-            fontFamily: MANROPE, fontSize: 14, fontWeight: "400",
+            fontFamily: MONTSERRAT, fontSize: 14, fontWeight: "600",
             color: "#FFFFFF66", textAlign: "center",
             letterSpacing: "0.04em", lineHeight: 1.5, maxWidth: 280,
           }}>

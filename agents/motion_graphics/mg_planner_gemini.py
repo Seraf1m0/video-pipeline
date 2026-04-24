@@ -94,9 +94,7 @@ COMPOSITION_DEFAULT_PALETTE = {
     "DateStamp":    "cosmic_blue",
     "Quote":        "hot_pink",
     "BigNumber":    "orange_fire",
-    "Countdown":    "deep_pink",
     "Scorecard":    "cosmic_blue",
-    "WordReveal":   "neon_green",
     "Terminal":     "electric_cyan",
     "ProCon":       "neon_green",
     "Ranking":      "gold",
@@ -116,9 +114,7 @@ COMPOSITION_MAX_DURATION = {
     "DateStamp":     8.0,
     "Quote":        12.0,
     "BigNumber":     8.0,
-    "Countdown":    12.0,
     "Scorecard":    14.0,
-    "WordReveal":   10.0,
     "Terminal":     14.0,
     "ProCon":       14.0,
     "Ranking":      14.0,
@@ -140,9 +136,7 @@ COMPOSITION_MIN_DURATION = {
     "DateStamp":   5.0,
     "Quote":       6.0,
     "BigNumber":   5.0,
-    "Countdown":   8.0,
     "Scorecard":   8.0,
-    "WordReveal":  6.0,
     "Terminal":    8.0,
     "ProCon":      8.0,
     "Ranking":     8.0,
@@ -319,17 +313,7 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
       "duration_s": 7.0
     }
 
-14. Countdown
-    When to use: building dramatic tension before a reveal — "3... 2... 1... launch/impact/discovery".
-      Only use at genuine climax moments. Maximum 1 per video.
-    Props:
-    {
-      "from": 3,               // integer, 2 or 3 (default 3)
-      "label": "optional text shown AFTER countdown (max 40 chars) or null",
-      "duration_s": 9.0
-    }
-
-15. Scorecard
+14. Scorecard
     When to use: 2-4 related metrics shown as a dashboard/scoreboard — multiple numbers for one topic.
       Better than DataCard when values have different units. Avoid if DataCard already covers it.
     Props:
@@ -341,17 +325,7 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
       "duration_s": 10.0
     }
 
-16. WordReveal
-    When to use: revealing a key term, concept, or phrase word-by-word for impact.
-      Best for 3-7 word phrases that are central to the video's thesis.
-    Props:
-    {
-      "words": ["word1", "word2", "word3"],  // 3-7 words of the phrase
-      "accent_words": ["word2"],             // optional — words to highlight (must exist in words[])
-      "duration_s": 8.0
-    }
-
-17. Terminal
+16. Terminal
     When to use: technical/scientific data presented as a computer terminal readout.
       Great for showing raw numbers, coordinates, mission logs, or decoded signals.
     Props:
@@ -434,12 +408,10 @@ A shorter, punchier phrase is always better than an overflowing one.
   BigNumber   unit           → 10 chars max  (e.g. "km/s", "years", "tonnes")
   BigNumber   description    → 50 chars max
   BigNumber   context        → 80 chars max
-  Countdown   label          → 40 chars max  (text shown after count)
   Scorecard   title          → 40 chars max
   Scorecard   metrics[].label → 20 chars max
   Scorecard   metrics[].value → 10 chars max
   Scorecard   metrics[].unit  → 8 chars max
-  WordReveal  words[]        → each word max 20 chars, 3-7 words total
   Terminal    title          → 30 chars max
   Terminal    lines[]        → each line max 60 chars, 3-8 lines
   ProCon      title          → 40 chars max
@@ -636,7 +608,6 @@ _LIMITS: dict[str, dict[str, int]] = {
     "DateStamp":    {"date": 20, "event": 60, "sub": 80},
     "Quote":        {"text": 150, "author": 40, "source": 40},
     "BigNumber":    {"value": 12, "unit": 10, "description": 50, "context": 80},
-    "Countdown":    {"label": 40},
     "Scorecard":    {"title": 40},
     "Terminal":     {"title": 30},
     "ProCon":       {"title": 40},

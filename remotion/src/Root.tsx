@@ -14,9 +14,7 @@ import { ChapterTitle, ChapterTitleProps }     from "./compositions/ChapterTitle
 import { DateStamp, DateStampProps }           from "./compositions/DateStamp";
 import { Quote, QuoteProps }                   from "./compositions/Quote";
 import { BigNumber, BigNumberProps }           from "./compositions/BigNumber";
-import { Countdown, CountdownProps }           from "./compositions/Countdown";
 import { Scorecard, ScorecardProps }           from "./compositions/Scorecard";
-import { WordReveal, WordRevealProps }         from "./compositions/WordReveal";
 import { Terminal, TerminalProps }             from "./compositions/Terminal";
 import { ProCon, ProConProps }                 from "./compositions/ProCon";
 import { Ranking, RankingProps }               from "./compositions/Ranking";
@@ -375,28 +373,6 @@ export const RemotionRoot: React.FC = () => {
       />
 
       {/*
-        Countdown — dramatic 3...2...1 countdown with particles and rings
-        Props: { from? = 3, label?, accent_color_str?, duration_s? = 6, bg_color?, seed? }
-      */}
-      <Composition
-        id="Countdown"
-        component={Countdown}
-        durationInFrames={150}
-        fps={FPS}
-        width={1920}
-        height={1080}
-        defaultProps={{
-          from: 3,
-          label: "Launch!",
-          accent_color_str: "#FF3CAC",
-          duration_s: 6,
-        } satisfies CountdownProps}
-        calculateMetadata={({ props }) => ({
-          durationInFrames: Math.round((props.duration_s ?? 6) * FPS),
-        })}
-      />
-
-      {/*
         Scorecard — grid of 3-6 metric cards with staggered appearance
         Props: { title, metrics: [{label, value, unit?, color?}], accent_color?, duration_s? = 10, bg_color?, seed? }
       */}
@@ -418,28 +394,6 @@ export const RemotionRoot: React.FC = () => {
           accent_color: "#00C8FF",
           duration_s: 10,
         } satisfies ScorecardProps}
-        calculateMetadata={({ props }) => ({
-          durationInFrames: Math.round((props.duration_s ?? 10) * FPS),
-        })}
-      />
-
-      {/*
-        WordReveal — words appearing one by one, accent_words glow in accent color
-        Props: { words, accent_words?, accent_color?, duration_s? = 10, bg_color?, seed? }
-      */}
-      <Composition
-        id="WordReveal"
-        component={WordReveal}
-        durationInFrames={250}
-        fps={FPS}
-        width={1920}
-        height={1080}
-        defaultProps={{
-          words: ["Silence.", "Darkness.", "Then", "Everything", "Changed."],
-          accent_words: ["Everything", "Changed."],
-          accent_color: "#FF3CAC",
-          duration_s: 10,
-        } satisfies WordRevealProps}
         calculateMetadata={({ props }) => ({
           durationInFrames: Math.round((props.duration_s ?? 10) * FPS),
         })}

@@ -5,12 +5,14 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
+import { loadFont as loadBebasNeue } from "@remotion/google-fonts/BebasNeue";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
+const { fontFamily: BEBAS   } = loadBebasNeue();
 
 export interface QuoteProps {
   text: string;
@@ -32,26 +34,18 @@ const Bg: React.FC<{ frame: number; color: string; total: number }> = ({ frame, 
   });
   const op = inOp * outOp;
   const s1 = 1 + Math.sin(frame * 0.020) * 0.07;
-  const s2 = 1 + Math.sin(frame * 0.016 + 2.0) * 0.05;
-  const nx  = noise2D("qbx", frame * 0.0015, 0) * 5;
-  const ny  = noise2D("qby", 0, frame * 0.0015) * 4;
+  const nx  = noise2D("qtbx", frame * 0.0015, 0) * 5;
+  const ny  = noise2D("qtby", 0, frame * 0.0015) * 4;
 
   return (
     <AbsoluteFill>
       <div style={{
         position: "absolute",
         left: `${50 + nx}%`, top: `${50 + ny}%`,
-        transform: `translate(-50%,-50%) scale(${s2})`,
+        transform: `translate(-50%,-50%) scale(${s1})`,
         width: 1000, height: 700, borderRadius: "50%",
         background: `radial-gradient(ellipse, ${color} 0%, transparent 65%)`,
-        filter: "blur(120px)", opacity: op * 0.10,
-      }} />
-      <div style={{
-        position: "absolute",
-        left: `${50 - nx * 0.5}%`, top: `${50 - ny * 0.5}%`,
-        transform: `translate(-50%,-50%) scale(${s1})`,
-        width: 480, height: 480, borderRadius: "50%",
-        background: color, filter: "blur(85px)", opacity: op * 0.13,
+        filter: "blur(130px)", opacity: op * 0.10,
       }} />
       <div style={{
         position: "absolute", inset: 0,
@@ -126,8 +120,8 @@ export const Quote: React.FC<QuoteProps> = ({
   text,
   author,
   source,
-  accent_color = "#A855F7",
-  duration_s   = 9,
+  accent_color = "#00C8FF",
+  duration_s   = 8,
   bg_color     = "#020218",
   seed         = 0,
 }) => {
@@ -137,56 +131,39 @@ export const Quote: React.FC<QuoteProps> = ({
   const exitStart   = totalFrames - EXIT_DUR;
 
   const rand = seededRand(seed);
-  const _unused = rand();
+  const _u = rand();
 
   const fadeIn    = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: "clamp" });
   const finalFade = interpolate(frame, [totalFrames - 6, totalFrames], [1, 0], {
     extrapolateLeft: "clamp", extrapolateRight: "clamp",
   });
 
-  // Big decorative quote mark fades in early
-  const quoteMrkEnter = 4;
-  const quoteMrkOp    = interpolate(frame, [quoteMrkEnter, quoteMrkEnter + 20], [0, 1], { extrapolateRight: "clamp" }) *
-                        interpolate(frame, [exitStart + 6, exitStart + 28], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const quotePulse    = 0.85 + Math.sin(frame * 0.04) * 0.15;
+  // Adaptive text size
+  const textFontSize = text.length > 120 ? 18 : text.length > 80 ? 21 : text.length > 50 ? 24 : 28;
 
-  // Text slides up from below
-  const textEnter = 14;
-  const textSpr   = spring({ frame: frame - textEnter, fps, config: { damping: 14, stiffness: 280, mass: 0.9 } });
-  const textY     = interpolate(textSpr, [0, 1], [80, 0]);
-  const textOp    = interpolate(frame, [textEnter, textEnter + 14], [0, 1], { extrapolateRight: "clamp" });
+  // Giant quote mark — pulsing opacity
+  const quoteBaseOp = interpolate(frame, [4, 18], [0, 1], { extrapolateRight: "clamp" })
+                    * interpolate(frame, [exitStart + 4, exitStart + 20], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const quotePulse  = 0.15 + Math.sin(frame * 0.06) * 0.10;
+  const quoteOp     = quoteBaseOp * (quotePulse / 0.25); // normalize to 0.15-0.35 range
 
-  // Text exit: fades + slides left
-  const textExitOp = interpolate(frame, [exitStart + 4, exitStart + 26], [1, 0], {
-    extrapolateLeft: "clamp", extrapolateRight: "clamp",
-  });
-  const textExitX  = interpolate(frame, [exitStart + 4, exitStart + 26], [0, -180], {
-    extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.in(Easing.cubic),
-  });
+  // Text slides up
+  const textSpr = spring({ frame: frame - 10, fps, config: { damping: 24, stiffness: 220 } });
+  const textY   = interpolate(textSpr, [0, 1], [30, 0]);
+  const textOp  = interpolate(frame, [10, 24], [0, 1], { extrapolateRight: "clamp" })
+                * interpolate(frame, [exitStart + 4, exitStart + 22], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  // After text settles — accent line appears
-  const lineEnter = textEnter + 30;
-  const lineW     = interpolate(frame, [lineEnter, lineEnter + 28], [0, 100], {
+  // Author fades in after text
+  const authorOp = interpolate(frame, [26, 40], [0, 1], { extrapolateRight: "clamp" })
+                 * interpolate(frame, [exitStart + 4, exitStart + 22], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // Accent line between text and author
+  const lineW = interpolate(frame, [28, 42], [0, 60], {
     extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.exp),
   });
-  const lineOp    = interpolate(frame, [exitStart, exitStart + 14], [1, 0], {
+  const lineOp = interpolate(frame, [exitStart, exitStart + 16], [1, 0], {
     extrapolateLeft: "clamp", extrapolateRight: "clamp",
   });
-
-  // Author slides in
-  const authorEnter = lineEnter + 10;
-  const authorSpr   = spring({ frame: frame - authorEnter, fps, config: { damping: 24, stiffness: 220 } });
-  const authorY     = interpolate(authorSpr, [0, 1], [18, 0]);
-  const authorOp    = interpolate(frame, [authorEnter, authorEnter + 14], [0, 1], { extrapolateRight: "clamp" }) *
-                      interpolate(frame, [exitStart + 2, exitStart + 20], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-
-  // Source fades in last
-  const sourceEnter = authorEnter + 12;
-  const sourceOp    = interpolate(frame, [sourceEnter, sourceEnter + 14], [0, 1], { extrapolateRight: "clamp" }) *
-                      interpolate(frame, [exitStart, exitStart + 16], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-
-  const textLen  = text.length;
-  const textSize = textLen > 120 ? 48 : textLen > 80 ? 58 : textLen > 50 ? 66 : 72;
 
   return (
     <AbsoluteFill style={{ background: bg_color, overflow: "hidden" }}>
@@ -198,29 +175,27 @@ export const Quote: React.FC<QuoteProps> = ({
 
         {/* SFX */}
         <Sequence from={0} durationInFrames={20}>
-          <Audio src={staticFile("sfx/rise.wav")} volume={0.16} />
+          <Audio src={staticFile("sfx/rise.wav")} volume={0.18} />
         </Sequence>
-        <Sequence from={textEnter} durationInFrames={22}>
-          <Audio src={staticFile("sfx/whoosh_in.wav")} volume={0.14} />
-        </Sequence>
-        <Sequence from={authorEnter} durationInFrames={26}>
-          <Audio src={staticFile("sfx/ping.wav")} volume={0.14} />
+        <Sequence from={10} durationInFrames={24}>
+          <Audio src={staticFile("sfx/whoosh_in.wav")} volume={0.12} />
         </Sequence>
         <Sequence from={exitStart + 6} durationInFrames={28}>
-          <Audio src={staticFile("sfx/whoosh_out_3.wav")} volume={0.18} />
+          <Audio src={staticFile("sfx/whoosh_out_3.wav")} volume={0.20} />
         </Sequence>
 
-        {/* Decorative quotation mark */}
+        {/* Giant decorative quote mark */}
         <div style={{
           position: "absolute",
-          left: 100, top: "50%",
+          left: 80,
+          top: "50%",
           transform: "translateY(-50%)",
-          fontFamily: MANROPE,
-          fontSize: 300,
-          fontWeight: "800",
+          fontFamily: BEBAS,
+          fontSize: 280,
           color: accent_color,
-          opacity: quoteMrkOp * 0.08 * quotePulse,
+          opacity: Math.max(0, Math.min(0.35, quoteOp)),
           lineHeight: 1,
+          textShadow: `0 0 60px ${accent_color}`,
           userSelect: "none",
           pointerEvents: "none",
         }}>
@@ -228,21 +203,34 @@ export const Quote: React.FC<QuoteProps> = ({
         </div>
 
         <AbsoluteFill style={{
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          gap: 0, padding: "0 180px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          padding: "80px 120px 80px 180px",
+          gap: 0,
         }}>
+          {/* Left border on text block */}
+          <div style={{
+            position: "absolute",
+            left: 120,
+            top: "20%",
+            bottom: "20%",
+            width: 3,
+            background: accent_color,
+            opacity: textOp * 0.8,
+            borderRadius: 2,
+          }} />
+
           {/* Quote text */}
           <div style={{
-            opacity: textOp * (frame >= exitStart + 4 ? textExitOp : 1),
-            transform: `translate(${textExitX}px, ${textY}px)`,
-            fontFamily: MANROPE,
-            fontSize: textSize,
-            fontWeight: "600",
+            opacity: textOp,
+            transform: `translateY(${textY}px)`,
+            fontFamily: MONTSERRAT,
+            fontSize: textFontSize,
+            fontWeight: "700",
             fontStyle: "italic",
             color: "#FFFFFF",
-            textAlign: "center",
-            lineHeight: 1.35,
+            lineHeight: 1.55,
             letterSpacing: "0.01em",
           }}>
             {text}
@@ -251,10 +239,12 @@ export const Quote: React.FC<QuoteProps> = ({
           {/* Accent line */}
           {(author || source) && (
             <div style={{
-              width: `${lineW}%`, maxWidth: 200, height: 1.5,
-              background: `linear-gradient(to right, transparent, ${accent_color}88, transparent)`,
-              opacity: frame >= exitStart ? lineOp : 1,
-              marginTop: 32, marginBottom: 20,
+              width: lineW,
+              height: 2,
+              background: accent_color,
+              marginTop: 24,
+              marginBottom: 16,
+              opacity: lineOp,
             }} />
           )}
 
@@ -262,31 +252,28 @@ export const Quote: React.FC<QuoteProps> = ({
           {author && (
             <div style={{
               opacity: authorOp,
-              transform: `translateY(${authorY}px)`,
               fontFamily: SYNE,
               fontSize: 15,
               fontWeight: "700",
-              letterSpacing: "0.32em",
-              textTransform: "uppercase",
               fontVariant: "small-caps",
-              color: `${accent_color}CC`,
-              textAlign: "center",
+              letterSpacing: "0.08em",
+              color: accent_color,
+              textTransform: "lowercase",
             }}>
-              {author}
+              — {author}
             </div>
           )}
 
           {/* Source */}
           {source && (
             <div style={{
-              opacity: sourceOp,
-              fontFamily: MANROPE,
-              fontSize: 14,
-              fontWeight: "400",
-              color: "#FFFFFF44",
-              textAlign: "center",
-              letterSpacing: "0.06em",
-              marginTop: 8,
+              opacity: authorOp,
+              fontFamily: MONTSERRAT,
+              fontSize: 13,
+              fontWeight: "600",
+              color: "#FFFFFF55",
+              letterSpacing: "0.02em",
+              marginTop: 4,
             }}>
               {source}
             </div>

@@ -5,12 +5,12 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
 
 export interface ProConProps {
   title?: string;
@@ -206,9 +206,9 @@ const ListItem: React.FC<{
         {isPro ? "✓" : "✗"}
       </span>
       <span style={{
-        fontFamily: MANROPE,
+        fontFamily: MONTSERRAT,
         fontSize,
-        fontWeight: "500",
+        fontWeight: "600",
         color: "#FFFFFFCC",
         lineHeight: 1.4,
         letterSpacing: "0.01em",

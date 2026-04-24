@@ -5,12 +5,12 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
 
 export type StatementStyle = "default" | "glitch" | "char_reveal" | "typewriter";
 
@@ -215,7 +215,7 @@ const TextBlock: React.FC<{
         return (
           <span key={i} style={{
             display: "inline-block",
-            fontFamily: MANROPE, fontSize, fontWeight: "600",
+            fontFamily: MONTSERRAT, fontSize, fontWeight: "600",
             color: "#FFFFFF", letterSpacing: "0em",
             marginRight: isLast ? 0 : "0.26em",
           }}>{word}</span>
@@ -352,11 +352,11 @@ const TextBlockTypewriter: React.FC<{
       gap: 28, padding: "0 140px", opacity: exitOp,
     }}>
       <div style={{ textAlign: "center" }}>
-        <span style={{ fontFamily: MANROPE, fontSize, fontWeight: "800", color: "#FFFFFF" }}>
+        <span style={{ fontFamily: MONTSERRAT, fontSize, fontWeight: "800", color: "#FFFFFF" }}>
           {text.slice(0, visibleChars)}
         </span>
         <span style={{
-          fontFamily: MANROPE, fontSize, fontWeight: "300",
+          fontFamily: MONTSERRAT, fontSize, fontWeight: "300",
           color: accentColor, opacity: cursorOp, marginLeft: 4,
         }}>▌</span>
       </div>
@@ -368,7 +368,7 @@ const TextBlockTypewriter: React.FC<{
 
       {sub && (
         <div style={{
-          fontFamily: MANROPE, fontSize: 22, fontWeight: "600",
+          fontFamily: MONTSERRAT, fontSize: 22, fontWeight: "600",
           letterSpacing: "0.14em", textTransform: "uppercase",
           color: `${accentColor}AA`, opacity: subOp, textAlign: "center",
         }}>{sub}</div>

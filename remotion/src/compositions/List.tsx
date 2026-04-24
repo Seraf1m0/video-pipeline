@@ -5,12 +5,12 @@ import {
   Easing, Sequence,
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
-import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
 import { noise2D } from "@remotion/noise";
 import { seededShuffle } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
-const { fontFamily: MANROPE } = loadManrope();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
 
 export interface ListItem {
   text: string;
@@ -248,7 +248,7 @@ const Item: React.FC<{
         {item.sub && (
           <div style={{
             opacity: subOp,
-            fontFamily: MANROPE, fontSize: 14, fontWeight: "400",
+            fontFamily: MONTSERRAT, fontSize: 14, fontWeight: "600",
             color: "#FFFFFF55", letterSpacing: "0.02em", lineHeight: 1.4,
           }}>
             {item.sub}
