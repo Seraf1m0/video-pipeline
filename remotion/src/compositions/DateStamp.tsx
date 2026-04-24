@@ -11,7 +11,7 @@ import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE      } = loadSyne();
-const { fontFamily: MONTSERRAT   } = loadManrope();
+const { fontFamily: MONTSERRAT   } = loadMontserrat();
 const { fontFamily: SPACEMONO } = loadSpaceMono();
 
 export interface DateStampProps {

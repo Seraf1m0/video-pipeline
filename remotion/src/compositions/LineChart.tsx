@@ -303,7 +303,7 @@ export const LineChart: React.FC<LineChartProps> = ({
               position:"absolute", left:CHART_L - 14, top:gy,
               transform:"translate(-100%,-50%)",
               opacity:gridOp,
-              fontFamily:MANROPE, fontSize:13, fontWeight:"500",
+              fontFamily:MONTSERRAT, fontSize:13, fontWeight:"600",
               color:"#FFFFFF30", letterSpacing:"0.01em", textAlign:"right",
             }}>
               {val}{unit}
@@ -331,7 +331,7 @@ export const LineChart: React.FC<LineChartProps> = ({
                 position:"absolute", left:px, top:CHART_BOT + 22,
                 transform:"translateX(-50%)",
                 opacity:labOp,
-                fontFamily:MANROPE, fontSize:14, fontWeight:"500",
+                fontFamily:MONTSERRAT, fontSize:14, fontWeight:"600",
                 color:"#FFFFFF38", letterSpacing:"0.04em",
                 whiteSpace:"nowrap",
               }}>

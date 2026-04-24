@@ -300,7 +300,7 @@ const TextBlockCharReveal: React.FC<{
         return (
           <span key={i} style={{
             display: "inline-block",
-            fontFamily: isWordStart ? SYNE : MANROPE,
+            fontFamily: isWordStart ? SYNE : MONTSERRAT,
             fontSize, fontWeight: "800",
             color: isWordStart ? accentColor : "#FFFFFF",
             opacity: op,
@@ -356,7 +356,7 @@ const TextBlockTypewriter: React.FC<{
           {text.slice(0, visibleChars)}
         </span>
         <span style={{
-          fontFamily: MONTSERRAT, fontSize, fontWeight: "300",
+          fontFamily: MONTSERRAT, fontSize, fontWeight: "600",
           color: accentColor, opacity: cursorOp, marginLeft: 4,
         }}>▌</span>
       </div>

@@ -148,7 +148,7 @@ const Bar: React.FC<{
         width:barW,
         textAlign:"center",
         opacity:labelOp,
-        fontFamily:MANROPE,fontSize:labelFontSize,fontWeight:"500",
+        fontFamily:MONTSERRAT,fontSize:labelFontSize,fontWeight:"600",
         color:"#FFFFFF55",letterSpacing:"0.02em",lineHeight:1.3,
       }}>
         {bar.label}

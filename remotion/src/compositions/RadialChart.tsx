@@ -201,7 +201,7 @@ const Label: React.FC<{
       <div style={{fontFamily:SYNE,fontSize:26,fontWeight:"800",color:"#FFFFFF",letterSpacing:"-0.02em",lineHeight:1}}>
         {Math.round(pct*100)}<span style={{fontSize:18,color:color}}>%</span>
       </div>
-      <div style={{fontFamily:MANROPE,fontSize:13,fontWeight:"500",color:"#FFFFFF55",letterSpacing:"0.02em"}}>
+      <div style={{fontFamily:MONTSERRAT,fontSize:13,fontWeight:"600",color:"#FFFFFF55",letterSpacing:"0.02em"}}>
         {label}
       </div>
     </div>
