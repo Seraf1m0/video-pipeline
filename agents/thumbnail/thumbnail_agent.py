@@ -27,10 +27,11 @@ import time
 from pathlib import Path
 
 import aiohttp
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "agents" / "utils"))
+sys.path.insert(0, str(ROOT / "agents" / "media_generator"))
 
 load_dotenv(ROOT / "config" / ".env")
 
@@ -43,9 +44,9 @@ if hasattr(sys.stdout, "reconfigure"):
 
 FLASH_MODEL    = "gemini-2.5-flash-lite"
 _NO_THINKING   = {"thinking_config": {"thinking_budget": 0}}
-N_VARIANTS     = 3       # изображений за раунд
-MAX_ROUNDS     = 4       # максимум раундов генерации+рефайна
-PASS_THRESHOLD = 8       # минимальный overall score чтобы принять
+N_VARIANTS     = 3       # три варианта превью за раунд (пользователь выбирает лучший)
+MAX_ROUNDS     = 1       # один раунд — без eval loop
+PASS_THRESHOLD = 8       # минимальный overall score (не используется при MAX_ROUNDS=1)
 
 # ── Gemini ────────────────────────────────────────────────────────────────────
 
@@ -112,173 +113,641 @@ def _parse_json(raw: str) -> dict | list:
         raise
 
 
-# ── Stage 1: Creative TZ ──────────────────────────────────────────────────────
+# ── Genre aesthetic templates ─────────────────────────────────────────────────
 
-def write_tz(segments: list[dict], thumbnail_text: str) -> dict:
-    """Flash пишет визуальное ТЗ — сам решает иерархию и расположение текста."""
-    print("\n[1/3] Writing creative brief (TZ)...", flush=True)
+_GENRE_TEMPLATES = {
+    "A": {
+        "name": "Intelligence-thriller",
+        "description": "Military satellites, classified missions, GSSAP, NRO, black projects",
+        "aesthetic": "Deakins/Sicario shadow work + declassified KH-11 satellite photo + Spiegel Titelseite authority",
+        "palette": "Dominant 70%: near-black surveillance void | Secondary 25%: cold NRO grey metallic | Accent 5%: dark amber MLI thermal blanket glow",
+        "lens": "400mm telephoto — extreme compression, shallow DOF, subject isolated from background",
+        "anti_refs": "NOT like Star Wars hero shots | NOT like Armageddon asteroid drama | NOT like NASA artist rendering | IS like: declassified KH-11 reconnaissance photo | IS like: Sicario border crossing wide shot | IS like: leaked Lockheed Skunk Works documentation",
+        "negative_space": "The void around the object is not empty — it is the weight of secrecy. Darkness that feels classified, redacted.",
+    },
+    "B": {
+        "name": "Cosmic sublime",
+        "description": "Deep space, galaxies, cosmological scale, nebulae, universal vastness",
+        "aesthetic": "Denis Villeneuve wide compositions + Terrence Malick slow reverence + frame from Interstellar",
+        "palette": "Dominant 70%: deep indigo-black void | Secondary 25%: cold distant starlight white | Accent 5%: single warm nebula amber or pale blue hydrogen glow",
+        "lens": "24mm wide — vast, vertiginous scale, viewer feels small and exposed",
+        "anti_refs": "NOT like NASA colorized Hubble poster | NOT like screensaver galaxy | NOT like Discovery Channel CGI segment | IS like: Pale Blue Dot compositional weight | IS like: frame from Interstellar docking sequence | IS like: Cassini probe archival photograph",
+        "negative_space": "The void is the protagonist. The silence of vacuum has physical weight. The blackness between stars is not absence — it is presence.",
+    },
+    "C": {
+        "name": "Documentary leak",
+        "description": "Classified missions, accidents, cover-ups, whistleblower revelations, Spiegel-authority topics",
+        "aesthetic": "Film grain + analog artifact aesthetic + leaked Spiegel investigation photo + Challenger inquiry documentation",
+        "palette": "Dominant 70%: desaturated archival grey | Secondary 25%: high-contrast white (overexposed edge detail) | Accent 5%: single warning red or yellow indicator",
+        "lens": "85mm — documentary journalism distance, not intimate, not epic. The lens of a photojournalist who got too close.",
+        "anti_refs": "NOT clean digital broadcast render | NOT polished corporate space imagery | NOT Discovery Channel CGI | IS like: Spiegel Titelseite investigative cover | IS like: leaked NASA Challenger investigation photograph | IS like: Der Spiegel 1969 Apollo skepticism cover",
+        "negative_space": "The empty space feels redacted — as if information was deliberately removed from the frame.",
+    },
+    "D": {
+        "name": "Scientific horror",
+        "description": "Unknown phenomena, contamination, biological scale horror, things that shouldn't exist",
+        "aesthetic": "Clinical sterility gone wrong + Nature/Science journal cover + controlled environment at moment of failure",
+        "palette": "Dominant 70%: laboratory white or deep sterile black | Secondary 25%: cold blue-white clinical light | Accent 5%: single anomalous indicator (toxic green, UV violet, bio-orange)",
+        "lens": "Macro or 100mm micro — extreme proximity that reveals scale horror. Something too large rendered with microscope intimacy, or something microscopic at monstrous scale.",
+        "anti_refs": "NOT Hollywood alien horror | NOT fantasy creature | NOT B-movie aesthetics | IS like: Science journal cover photograph | IS like: CDC documentation image | IS like: Nature magazine deep-sea discovery photo",
+        "negative_space": "The empty space feels sterile, controlled, wrong. The cleanliness itself is threatening.",
+    },
+}
+
+
+# ── Stage 0: Thumbnail Function ───────────────────────────────────────────────
+
+def write_thumbnail_function(segments: list[dict], thumbnail_text: str) -> dict:
+    """
+    Шаг 0 — определяем бизнес-задачу превью ДО любого визуального брифа.
+    Hook type, click trigger, психологический триггер аудитории, жанровый код.
+    """
+    print("\n[0/3] Writing thumbnail function (Step 0)...", flush=True)
     script = " ".join(
         s.get("text", "") for s in segments if "[" not in s.get("text", "")
-    )[:4000]
+    )[:2000]
+
+    genre_list = "\n".join(
+        f"  {k}. {v['name']} — {v['description']}" for k, v in _GENRE_TEMPLATES.items()
+    )
 
     prompt = f"""\
-You are a YouTube thumbnail art director for a German space/cosmos documentary channel.
+You are a YouTube strategy director. Before ANY visual work, you define the BUSINESS FUNCTION of this thumbnail.
 
-TARGET AUDIENCE: Germans aged 60-70+. They watch ZDF Dokumentationen, read Spiegel and Stern.
-They are curious, intelligent — but they will NOT click on something they cannot READ instantly.
-They do NOT respond well to sci-fi movie poster aesthetics, neon colors, or chaotic designs.
-They respond to: CLEAR bold text, photorealistic imagery that matches the topic, authoritative mood.
+TARGET AUDIENCE: Germans aged 60-70+. ZDF documentary viewers. Intelligent, skeptical, not clickbait-prone.
+They click when a thumbnail poses a visual question they CANNOT leave unanswered.
 
-The user wants EXACTLY this text on the thumbnail — nothing more, nothing less: "{thumbnail_text}"
+THUMBNAIL TEXT: "{thumbnail_text}"
+VIDEO SCRIPT EXCERPT: {script}
 
-STRICT RULE: You may only use these exact words. You CANNOT add, invent, or paraphrase any other text.
+Answer these strategic questions:
 
-Your job:
-1. Analyze the script to understand the video topic and emotional hook
-2. Decide HOW to display this exact text for maximum CTR impact:
-   - Split into lines if it improves readability (e.g. "DIE SONNE IST WACH" → "DIE SONNE IST" + "WACH")
-   - OR keep as one dominant line (text_line1="" in that case, text_line2=full text)
-   - Main text must be MASSIVE — the kind a 65-year-old can read on a phone without glasses
-   - Decide text hierarchy, size ratio, and placement
-3. Choose a PHOTOREALISTIC main object that directly represents the video topic
-   - Use the EXACT real object — if it's Hubble, describe Hubble's actual shape precisely
-   - Describe its real visual appearance (shape, color, size, markings) so the image generator renders it accurately
-   - The image must tell the story BEFORE the viewer reads the text
-   - Add a DRAMATIC MOMENT: something is happening, being revealed, or confronted — not static
-4. Add INTRIGUE and BAIT — details that make the viewer lean in:
-   - A second element in the background that raises questions
-   - Dramatic lighting contrast (spotlight, rim light, glowing edge)
-   - A subtle visual "secret" or detail that rewards close inspection
-   - Clear sense of scale, danger, or revelation
-5. Colors: vivid, high contrast, dramatic — deep blues, glowing oranges, sharp whites
+1. HOOK TYPE — what psychological mechanism makes them click?
+   Choose one: revelation (hidden truth exposed) | threat (danger to something they care about) |
+   mystery (unexplained anomaly) | authority (official confirmation of something major) |
+   scale_shock (confronting incomprehensible size or number)
+
+2. CLICK TRIGGER — the precise visual contradiction or question in the frame:
+   E.g.: "A military satellite shown from an angle that shouldn't be possible" or
+   "A star that looks exactly like a face — but the scale text says 800 million km"
+
+3. AUDIENCE EMOTION at thumbnail glance — the specific feeling in 0.3 seconds:
+   NOT "curiosity" (too vague). E.g.: "the cold dread of realizing something was hidden from you"
+
+4. GENRE CATEGORY — which aesthetic matrix fits this topic:
+{genre_list}
 
 Return ONLY valid JSON:
 {{
-  "text_line1": "<first part of the user's text split across lines, OR empty string if single line. ONLY words from the original text — NO invented text>",
-  "text_line2": "<second part or full text if single line — ONLY words from the original text>",
-  "text_hierarchy": "<BOTH lines must be large. Max ratio 1.5x. E.g. 'line2 is 1.3x larger than line1 — both are big bold headlines'>",
-  "text_placement": "<upper-left | lower-left | upper-right — where text block sits>",
-  "main_object": "<ONE dominant object — use EXACT real name + precise visual description (shape, color, size, markings). E.g. NOT 'space telescope' but 'Hubble Space Telescope — silver cylindrical body, gold thermal blanket, two rectangular blue solar panels, large aperture end facing viewer'. Dramatic moment, not static>",
-  "emotional_tone": "<shock | revelation | urgency | awe | confrontation — strong and specific>",
-  "color_palette": "<vivid, high contrast, e.g. 'deep space black + dramatic orange glow + sharp white highlights'>",
-  "text_style": "<ultra-bold, clean white sans-serif — NO decorative fonts. Strong dark shadow or semi-transparent backing>",
-  "graphic_elements": "<Choose 1-2 from these YouTube-proven techniques (or none if not fitting): (A) PNG cutout — a person, astronaut, or key object with NO background, placed in foreground at large scale for depth; (B) Red/yellow circle with thick border highlighting a specific detail in the image; (C) Bold arrow (thick, white or red) pointing at something surprising or key; (D) Split composition — image divided into two contrasting halves; (E) Zoom inset — a circular magnified detail somewhere in the corner. Describe EXACTLY which technique and where>",
-  "atmosphere": "<1 sentence: mood — tense, revelatory, urgent — documentary authority with emotional punch>",
-  "why_people_click": "<specific psychological hook: what visual question does this thumbnail pose that DEMANDS an answer?>"
+  "hook_type": "<revelation | threat | mystery | authority | scale_shock>",
+  "click_trigger": "<the precise visual question or contradiction — one sentence>",
+  "audience_emotion": "<specific emotional state in 0.3 seconds — not generic>",
+  "genre_category": "<A | B | C | D>",
+  "genre_rationale": "<one sentence: why this genre code fits this specific topic>"
 }}
-
-SCRIPT:
-{script}
 """
-    result = _parse_json(_flash(prompt, max_tokens=700))
-    print(f"  Line1:    '{result.get('text_line1','')}'", flush=True)
-    print(f"  Line2:    '{result.get('text_line2','')}'", flush=True)
-    print(f"  Hierarch: {result.get('text_hierarchy','')}", flush=True)
-    print(f"  Object:   {result.get('main_object','')}", flush=True)
-    print(f"  Elements: {result.get('graphic_elements','')}", flush=True)
-    print(f"  Hook:     {result.get('why_people_click','')}", flush=True)
+    result = _parse_json(_flash(prompt, max_tokens=400))
+    cat = result.get("genre_category", "B")
+    if cat not in _GENRE_TEMPLATES:
+        cat = "B"
+        result["genre_category"] = cat
+    print(f"  Hook:     {result.get('hook_type','')} — {result.get('click_trigger','')[:60]}", flush=True)
+    print(f"  Emotion:  {result.get('audience_emotion','')[:80]}", flush=True)
+    print(f"  Genre:    {cat} ({_GENRE_TEMPLATES[cat]['name']})", flush=True)
     return result
 
 
-# ── Stage 2: Prompt Generation from TZ ───────────────────────────────────────
+# ── Prompt Rules ──────────────────────────────────────────────────────────────
 
-IMAGE_STYLE_SUFFIX = (
-    "photorealistic, ultra detailed, 8K, dramatic documentary lighting, "
-    "vivid natural colors, professional photography style, "
-    "NO sci-fi fantasy elements unless topic requires it, "
-    "16:9 aspect ratio"
-)
-
-def generate_prompts(
-    tz: dict,
-    round_num: int = 1,
-    prev_critiques: list[str] | None = None,
-) -> list[dict]:
-    """Flash генерирует N детальных промптов из ТЗ."""
-    print(f"\n[2/3] Generating {N_VARIANTS} prompts (round {round_num})...", flush=True)
-
-    critique_block = ""
-    if prev_critiques:
-        joined = "\n".join(f"- {c}" for c in prev_critiques)
-        critique_block = f"""\
-CRITICAL — previous attempts FAILED. Specific problems identified:
-{joined}
-
-Fix ALL of these. Make text even BIGGER and CLEANER. Image must be more photorealistic.
-Each prompt must be COMPLETELY DIFFERENT from previous attempts.
+_FORBIDDEN_REPLACEMENTS = """
+FORBIDDEN → CORRECT REPLACEMENT (apply automatically):
+- "photorealistic, ultra detailed, 8K" → "leaked NASA archival photo aesthetic"
+- "professional photography style" → specific cinematographer (Deakins / van Hoytema / Lubezki)
+- "dramatic documentary lighting" → direction + temperature ("harsh sun upper-left, 6500K, no fill")
+- "vivid natural colors" → palette with percentages (70/25/5)
+- "NO sci-fi fantasy elements" → positive anchor ("intelligence-thriller poster")
+- "text ~28% frame height" → "monumental billboard scale, Christopher Nolan title weight"
+- "dark semi-transparent bar behind text" → "left third: deep shadow gradient — darkness IS the text background"
+- "ominously drifting" → specific emotion ("the quiet dread of something indifferent")
+- "bold condensed white Impact font" → "letters lit by the same sun as the scene, rim light matching lighting direction"
+- "generic spacecraft" → exact name + year + mission
 """
 
-    round_escalation = ""
-    if round_num == 2:
-        round_escalation = "ESCALATE: Text even larger. Simpler composition. Maximum clarity and readability."
-    elif round_num == 3:
-        round_escalation = "FINAL PUSH: Strip everything non-essential. ONE massive image, ONE huge text. Zero ambiguity."
-    elif round_num == 4:
-        round_escalation = "FINAL ATTEMPT: Completely rethink. Bold, simple, unmistakably readable. Like a Spiegel magazine cover."
+_GENRE_MATRICES_DETAILED = {
+    "A": {
+        "name": "Intelligence Thriller",
+        "refs": "the border-crossing wide in 'Sicario' (2015), Deakins; the Dunkirk dogfight in 'Dunkirk' (2017), van Hoytema; the bin Laden compound in 'Zero Dark Thirty' (2012), Bigelow",
+        "palette": "deep blacks 70% / weathered gold 25% / cold steel or red annotation 5%",
+        "emotion": "paranoid awe, classified beauty, the weight of something you weren't meant to see",
+        "annotations": "OSINT-style red circles and arrows — Bellingcat forensic markup aesthetic",
+        "anti_refs": "NOT like Marvel poster / NOT like Tom Clancy cover / NOT like stock military photo",
+    },
+    "B": {
+        "name": "Cosmic Sublime",
+        "refs": "the cornfield drone shot in 'Interstellar' (2014), van Hoytema; the Las Vegas wasteland in 'Blade Runner 2049' (2017), Deakins; the shimmer wall approach in 'Annihilation' (2018)",
+        "palette": "indigo void 70% / cold distant starlight 25% / single warm nebula amber or pale cyan 5%",
+        "emotion": "melancholic awe, beautiful catastrophe, the vertigo of irrelevant scale",
+        "annotations": "none — purity of composition",
+        "anti_refs": "NOT like NASA colorized Hubble poster / NOT like screensaver galaxy / NOT like Discovery Channel CGI",
+    },
+    "C": {
+        "name": "Documentary Leak",
+        "refs": "the planetary surface walk in 'Solaris' (1972), Tarkovsky; the Challenger press conference in 'The Challenger Disaster' (2019); the OSINT source photos in Bellingcat MH17 investigation (2014)",
+        "palette": "desaturated archival grey 70% / high-contrast white overexposed edge 25% / single warning red or amber 5%",
+        "emotion": "the cold certainty that something was hidden from you, institutional betrayal",
+        "annotations": "OSINT-style red circles/arrows — forensic analyst markup over archival photo",
+        "anti_refs": "NOT clean digital broadcast render / NOT polished corporate space imagery / NOT Discovery CGI",
+    },
+    "D": {
+        "name": "Medical / Scientific Horror",
+        "refs": "the lab containment sequence in 'Contagion' (2011), Soderbergh; the alien-artifact examination in 'Arrival' (2016), Bradford Young; the electron microscopy sequences from 'The Hot Zone' (2019)",
+        "palette": "clinical sterile white 70% / cold blue-white lab light 25% / toxic green or bio-orange anomaly 5%",
+        "emotion": "the specific horror of something real that shouldn't exist, contamination dread",
+        "annotations": "measurement markers, scale bars, clinical annotation — NOT decorative",
+        "anti_refs": "NOT Hollywood alien horror / NOT fantasy creature / NOT B-movie aesthetics",
+    },
+}
 
-    line1 = tz.get("text_line1", "")
-    line2 = tz.get("text_line2", "")
-    # If TZ put everything in line1 with empty line2, swap — line2 is always the hero
-    if line2 == "" and line1 != "":
-        line2, line1 = line1, line2
+_TEXT_INTEGRATION_TEMPLATE = """\
+Content: "{text}"
+Position: {position}
+Scale: monumental billboard scale, Christopher Nolan title weight
+Lighting: rim light on {light_direction} edges matching scene sun direction,
+          shadow on opposite edges
+Atmospheric integration: subtle film grain on letter surfaces, letters cast micro-shadows onto scene geometry
+Stroke: refined 2-3px black outer stroke
+Shadow: offset 8-10px, blur 16-20px, 80% opacity
+NO background bar, NO panel, NO semi-transparent overlay
+Reference: {reference}"""
 
-    placement = tz.get("text_placement", "upper-left")
-    side = placement.split("-")[1] if "-" in placement else "left"
+_OSINT_ANNOTATIONS = """\
+Red circle: outline only, 2-3px stroke, #FF1A1A, slightly imperfect hand-drawn quality,
+            90% opacity, drawn tight around {target}, subtle red inner glow
+Red arrow: clean modern design, triangular arrowhead, matching #FF1A1A,
+           diagonal from text block toward subject, layered OVER photo (NOT painted into scene)
+Aesthetic: Bellingcat-style forensic markup, intelligence analyst annotation"""
 
-    # Text suffix injected programmatically into every prompt — never lost
-    if line1:
-        text_suffix = (
-            f'Text overlay at {placement}: "{line1}" in bold condensed white (~15% frame height), '
-            f'then below it "{line2}" in ultra-bold condensed white (~28% frame height). '
-            f'Both flush to {side} edge. Impact-style font, heavy black drop shadow, '
-            f'dark semi-transparent bar behind text. No other text or logos.'
-        )
-    else:
-        text_suffix = (
-            f'Text overlay at {placement}: "{line2}" — ultra-bold condensed white Impact-style font, '
-            f'letters ~30% frame height, heavy black drop shadow, '
-            f'dark semi-transparent bar behind text. No other text or logos.'
-        )
+# Pre-assigned unique accent colors per genre — one per variant (V1/V2/V3)
+_GENRE_ACCENTS = {
+    "A": [
+        "signal red #CC0000 — annotation marker on classified document",
+        "weathered gold #C8A44D — MLI thermal blanket glow",
+        "cold steel #4A5568 — satellite body metallic sheen",
+    ],
+    "B": [
+        "pale cyan #87CEEB — cold distant starlight edge",
+        "warm amber #FF8C00 — single warm nebula glow",
+        "UV violet #8B00FF — hydrogen emission line glow",
+    ],
+    "C": [
+        "danger red #CC0000 — OSINT annotation marker",
+        "rust amber #D4730A — degraded chemical warning indicator",
+        "scorched orange #CC6600 — oxidation hazard marker",
+    ],
+    "D": [
+        "toxic green #00FF41 — contamination alert indicator",
+        "bio-orange #FF6600 — biological hazard glow",
+        "UV violet #9400D3 — fluorescence anomaly signal",
+    ],
+}
 
-    object_name = tz.get("main_object", "").split("—")[0].strip()
-    object_detail = tz.get("main_object", "").split("—")[1].strip() if "—" in tz.get("main_object", "") else ""
+# MOMENT — forbidden process language, required instant language
+_MOMENT_FORBIDDEN = (
+    '"rolling in", "as if about to", "shimmers as it absorbs", "begins to", '
+    '"slowly", "gradually", "drifting", "ominously", "is being kicked up"'
+)
+_MOMENT_REQUIRED = (
+    '"The exact frame of...", "The instant...", "The moment...", '
+    '"Caught at the precise second...", "Frozen at..."'
+)
+
+_ATMOSPHERIC_TEXT_ZONE_RULE = """\
+ATMOSPHERIC PHENOMENA TEXT ZONE RULE:
+- Dust storms / fog / haze do NOT create dark shadows — they create uniform milky diffusion.
+- Text placed INSIDE atmospheric haze will be unreadable (same mid-tone as haze background).
+- For any planetary weather, atmospheric event, or haze scene:
+  The composition MUST include a dark foreground element (rock, ground, cliff base, rover body)
+  that serves as the text zone. If the current description lacks such an element, REDESIGN
+  the shot to add it — push camera lower, add a foreground rock face, include terrain.
+  Text zone = that dark foreground terrain. NOT the haze. NOT the sky. NOT the atmosphere.
+- "A hypothetical dark zone is impossible" is NOT acceptable — redesign the composition.
+- The darker the foreground element, the better the text zone."""
+
+_OBJECT_IDENTIFIER_RULE = """\
+OBJECT IDENTIFIER MUST BE AN EVENT OR MOMENT — NOT A PROCESS OR METHOD:
+  FORBIDDEN (process/method):
+    × "OSINT markup of storm"
+    × "forensic analysis of dust"
+    × "simulated electron microscopy"
+    × "OSINT analysis of Martian dust showing..."
+  CORRECT (event/moment with date/mission/outcome):
+    ✓ "Mars 2018 global dust storm — sky-darkening haze photographed from Opportunity before it went silent"
+    ✓ "Opportunity rover final transmission site, Perseverance Valley, June 2018"
+    ✓ "Perchlorate crystals in Phoenix lander soil sample — the measurement that changed the colonisation debate"
+    ✓ "Perseverance rover wheel tread coated in Jezero Crater regolith, Sol 400"
+Identifier must answer: WHAT specific thing, WHEN/WHERE, WHY historically significant."""
+
+
+# ── Stage 1: Full TZ (Brief) ──────────────────────────────────────────────────
+
+def write_tz(segments: list[dict], thumbnail_text: str, thumb_fn: dict) -> dict:
+    """
+    Анализирует сценарий и формирует полный бриф для 3 вариантов.
+    Level 3 variations: каждый вариант — РАЗНЫЙ ОБЪЕКТ под одну тему (не разные ракурсы).
+    """
+    print("\n[1/3] Analyzing script → writing full brief (Level 3 variations)...", flush=True)
+
+    script = " ".join(
+        s.get("text", "") for s in segments if "[" not in s.get("text", "")
+    )[:6000]
+
+    genre_key    = thumb_fn.get("genre_category", "B")
+    genre_matrix = _GENRE_MATRICES_DETAILED.get(genre_key, _GENRE_MATRICES_DETAILED["B"])
+    hook_type    = thumb_fn.get("hook_type", "revelation")
+    trigger      = thumb_fn.get("click_trigger", "")
 
     prompt = f"""\
-You are a prompt engineer creating YouTube thumbnails for a German space documentary channel.
+You are a senior YouTube creative director. Write a production brief for 3 thumbnail variants.
 
-Generate {N_VARIANTS} DIFFERENT visual concepts for this thumbnail.
-Each concept = unique angle, composition, or moment. VISUAL ONLY — no text instructions.
+IMAGE GENERATOR: Google Imagen 2 (via Google Flow).
+Strengths: photorealistic textures, scientific accuracy, atmospheric lighting, baked-in text.
 
-SUBJECT: {object_name}{f" — {object_detail[:150]}" if object_detail else ""}
-MOOD: {tz.get("atmosphere", "")}
-COLORS: {tz.get("color_palette", "")}
+━━━ INPUTS ━━━
 
-RULES:
-- Photorealistic, cinematic documentary style — NOT sci-fi fantasy
-- ONE dominant subject, dramatically lit
-- Strong sense of scale and drama — something is happening NOW
-- Dark background that makes the subject pop
+THUMBNAIL TEXT (exact, do not modify):
+"{thumbnail_text}"
 
-{critique_block}{round_escalation}
+HOOK: {hook_type} — {trigger}
+
+GENRE: {genre_key} — {genre_matrix['name']}
+  Film references: {genre_matrix['refs']}
+  Palette target: {genre_matrix['palette']}
+  Emotion target: {genre_matrix['emotion']}
+  Annotation style: {genre_matrix['annotations']}
+
+VIDEO SCRIPT:
+{script}
+
+━━━ YOUR JOB ━━━
+
+RULE: LEVEL 3 VARIATIONS — each of the 3 variants must feature a DIFFERENT VISUAL OBJECT
+that represents the same topic. NOT different camera angles of the same object.
+Example for "Martian dust is deadly":
+  V1 = perchlorate crystals under UV light (microscopic)
+  V2 = NASA rover wheel coated in red dust (medium shot)
+  V3 = Mars sunrise dust storm on the horizon (wide cinematic)
+
+Step 1 — Read script. Identify the topic and 3 DISTINCT visual subjects that all represent it.
+
+Step 2 — For each of the 3 objects, define:
+- Official scientific name (specific, not generic)
+- Object identifier (visual handle — MUST BE AN EVENT OR MOMENT, not a process or method)
+  {_OBJECT_IDENTIFIER_RULE}
+- 4-6 visual details (shape / color / texture / scale / distinctive feature / what makes it unmistakable)
+- MOMENT — ONE FROZEN INSTANT ONLY. NOT a process, NOT ongoing action.
+  FORBIDDEN words: "rolling in", "as if about to", "shimmers as it absorbs", "begins to", "slowly", "gradually", "drifting", "is being kicked up"
+  REQUIRED opening: "The exact frame of..." / "The instant..." / "The moment..." / "Caught at the precise second..."
+- Natural environment + what is ABSENT from frame (important negative space)
+- Cinematographer reference + SPECIFIC FILM (year) + SPECIFIC SCENE (e.g. "the planetary surface imagery from 'Solaris' (1972)" or "the border-crossing wide shot in 'Sicario' (2015), Deakins")
+- Lens: focal length + DOF
+- Lighting: direction + color temperature (e.g. "harsh sun upper-left, 6500K, no fill")
+- Dark zone for text:
+  {_ATMOSPHERIC_TEXT_ZONE_RULE}
+  For non-atmospheric scenes: where in the composition natural darkness exists.
+- Text position in that dark zone — verify that the OBJECT and its shadows do NOT dominate that same zone
+- OSINT annotation target: exactly what the red arrow/circle should mark
+- Variant genre key: can match global genre or differ if this object fits a different aesthetic
+- Emotion for THIS variant only (must differ from other variants)
+
+Step 3 — Split "{thumbnail_text}" into display lines:
+- Keep ALL words, no additions
+- 1 line if short, 2 lines if it improves visual balance
+- The FULL phrase must appear in EVERY variant (Level 3 rule)
 
 Return ONLY valid JSON:
 {{
-  "prompts": [
+  "topic_summary": "<one sentence: exact claim of this video>",
+  "text_line1": "<first display line OR empty string>",
+  "text_line2": "<second line OR full text if one line>",
+  "genre_key": "{genre_key}",
+  "variants": [
     {{
       "id": 1,
-      "concept": "<one line — unique angle>",
-      "prompt": "<60-80 words, visual description only, no text instructions>"
-    }}
-  ]
+      "variant_genre_key": "<A | B | C | D — can differ from global if object fits different aesthetic>",
+      "object_name": "<official scientific name — specific>",
+      "object_identifier": "<visual handle: how viewer identifies this — include mission/year/event if relevant>",
+      "object_details": "<4-6 visual details: shape, color, texture, scale, distinctive feature>",
+      "moment": "<FROZEN INSTANT ONLY — must open with: The exact frame of / The instant / Caught at the precise second>",
+      "environment": "<what surrounds the object + what is ABSENT>",
+      "cinematographer": "<specific film (year), scene — e.g. 'the border-crossing wide in Sicario (2015), Deakins'>",
+      "lens": "<focal length + DOF + perspective effect>",
+      "lighting": "<direction + color temp + shadow quality>",
+      "dark_zone": "<where natural darkness lives — confirm object does NOT dominate this zone>",
+      "text_position": "<bottom-left | top-left | bottom-right | top-right | bottom-center>",
+      "annotation_target": "<exactly what the red arrow/circle marks — be specific>",
+      "palette": {{
+        "dominant_70": "<color + description>",
+        "secondary_25": "<color + description>",
+        "accent_5": "<color + description — must differ from other variants>"
+      }},
+      "emotion": "<specific emotional state in 0.3 seconds — unique, NOT used in other variants>"
+    }},
+    {{"id": 2, "variant_genre_key": "...", "object_name": "...", "object_identifier": "...",
+      "object_details": "...", "moment": "...", "environment": "...",
+      "cinematographer": "...", "lens": "...", "lighting": "...", "dark_zone": "...",
+      "text_position": "...", "annotation_target": "...",
+      "palette": {{"dominant_70": "...", "secondary_25": "...", "accent_5": "..."}},
+      "emotion": "..."}},
+    {{"id": 3, "variant_genre_key": "...", "object_name": "...", "object_identifier": "...",
+      "object_details": "...", "moment": "...", "environment": "...",
+      "cinematographer": "...", "lens": "...", "lighting": "...", "dark_zone": "...",
+      "text_position": "...", "annotation_target": "...",
+      "palette": {{"dominant_70": "...", "secondary_25": "...", "accent_5": "..."}},
+      "emotion": "..."}}
+  ],
+  "emotional_task": "<overall: what viewer feels across all 3 variants>"
 }}
 """
-    data    = _parse_json(_flash(prompt, max_tokens=2000))
-    prompts = data.get("prompts", [])
-    # Inject text + style suffix into every prompt
-    for p in prompts:
-        p["prompt"] = f"{p['prompt'].rstrip('. ')}. {text_suffix} {IMAGE_STYLE_SUFFIX}"
-        print(f"  [{p['id']}] {p['concept']}", flush=True)
+    result = _parse_json(_flash(prompt, max_tokens=3000))
+
+    print(f"  Topic:  {result.get('topic_summary','')[:90]}", flush=True)
+    print(f"  Text:   '{result.get('text_line1','')}' / '{result.get('text_line2','')}'", flush=True)
+    for v in result.get("variants", []):
+        print(
+            f"  V{v.get('id')}: {v.get('object_name','')[:45]} | "
+            f"{v.get('text_position','')} | {v.get('emotion','')[:50]}",
+            flush=True,
+        )
+    return result
+
+
+# ── Stage 2: 3 Prompts for Google Imagen 2 ───────────────────────────────────
+
+def generate_prompts(
+    tz: dict,
+    thumb_fn: dict,
+    round_num: int = 1,
+    prev_critiques: list[str] | None = None,
+) -> list[dict]:
+    """
+    Генерирует N_VARIANTS промптов для Google Imagen 2 (Google Flow).
+    Использует Level 3 варианты из write_tz() — каждый вариант РАЗНЫЙ ОБЪЕКТ.
+    Применяет 11-блочную структуру + запрещённые замены + TEXT INTEGRATION template.
+    """
+    print(f"\n[2/3] Generating {N_VARIANTS} prompts for Google Imagen 2 (round {round_num})...", flush=True)
+
+    variants  = tz.get("variants", [])
+    line1     = tz.get("text_line1", "")
+    line2     = tz.get("text_line2", "")
+    if not line2 and line1:
+        line2, line1 = line1, ""
+
+    genre_key = tz.get("genre_key", thumb_fn.get("genre_category", "B"))
+    genre     = _GENRE_MATRICES_DETAILED.get(genre_key, _GENRE_MATRICES_DETAILED["B"])
+
+    # Fallback если write_tz() вернул старую структуру без variants
+    if not variants:
+        variants = [
+            {"id": 1, "object_name": tz.get("main_object", "subject"),
+             "object_details": tz.get("object_accuracy_notes", ""),
+             "moment": "", "environment": tz.get("background", ""),
+             "cinematographer": "Deakins", "lens": "85mm",
+             "lighting": tz.get("lighting", "dramatic"),
+             "dark_zone": "lower-left", "text_position": "bottom-left",
+             "annotation_target": "the main subject",
+             "palette": {}, "emotion": tz.get("mood", "")},
+        ] * N_VARIANTS
+        for i, v in enumerate(variants):
+            variants[i] = {**v, "id": i + 1}
+
+    critique_note = ""
+    if prev_critiques:
+        critique_note = (
+            "\n\nPREVIOUS ROUND PROBLEMS TO FIX:\n"
+            + "\n".join(f"- {c}" for c in prev_critiques)
+            + "\n"
+        )
+
+    # Pre-assign unique accent per variant to guarantee palette uniqueness
+    accents = _GENRE_ACCENTS.get(genre_key, _GENRE_ACCENTS["B"])
+
+    prompts = []
+    for i, v in enumerate(variants[:N_VARIANTS]):
+        vid           = v.get("id", i + 1)
+        text_pos      = v.get("text_position", "bottom-left")
+        # Per-variant genre (can differ from global if write_tz() set it)
+        v_genre_key   = v.get("variant_genre_key", genre_key)
+        if v_genre_key not in _GENRE_MATRICES_DETAILED:
+            v_genre_key = genre_key
+        v_genre       = _GENRE_MATRICES_DETAILED[v_genre_key]
+
+        # ── Palette — unique accent forced per variant ────────────────────────
+        palette = v.get("palette", {})
+        dom = palette.get("dominant_70") or (
+            v_genre["palette"].split("/")[0].strip() if "/" in v_genre["palette"]
+            else v_genre["palette"]
+        )
+        sec = palette.get("secondary_25") or (
+            v_genre["palette"].split("/")[1].strip()
+            if v_genre["palette"].count("/") >= 1 else "cold light"
+        )
+        # Force unique accent from pre-assigned list
+        acc = accents[i % len(accents)]
+        palette_str = f"Dominant 70%: {dom} | Secondary 25%: {sec} | Accent 5%: {acc}"
+
+        # ── Light direction for TEXT INTEGRATION ─────────────────────────────
+        lighting_raw = v.get("lighting", "")
+        light_dir    = "upper-left"
+        for token in lighting_raw.lower().split():
+            if token in ("upper-left", "upper-right", "left", "right",
+                         "top-left", "top-right", "back", "front", "lateral"):
+                light_dir = token
+                break
+
+        text_display = f'"{line1}" / "{line2}"' if line1 else f'"{line2}"'
+        text_ref     = v_genre["refs"].split(",")[0].strip()
+        text_integration_block = _TEXT_INTEGRATION_TEMPLATE.format(
+            text=text_display,
+            position=text_pos,
+            light_direction=light_dir,
+            reference=text_ref,
+        )
+
+        # ── OSINT (genre A / C) ───────────────────────────────────────────────
+        annotation_target = v.get("annotation_target", "the main subject")
+        if v_genre_key in ("A", "C"):
+            osint_line = (
+                f"Red circle (outline only, 2-3px, #FF1A1A, hand-drawn quality) "
+                f"tight around: {annotation_target}. "
+                f"Red arrow (triangular head, #FF1A1A) diagonal from text block to target. "
+                f"Both layered OVER photo — NOT painted into scene. "
+                f"Bellingcat forensic markup aesthetic."
+            )
+            check6 = (
+                f'OSINT: red circle + red arrow drawn OVER image, NOT painted in. '
+                f'Target: "{annotation_target}". Bellingcat style.'
+            )
+        else:
+            osint_line = f"No OSINT annotations for genre {v_genre_key}."
+            check6     = f"Genre {v_genre_key}: no OSINT annotations needed."
+
+        cine = v.get("cinematographer", "the border-crossing wide in Sicario (2015), Deakins")
+        obj_identifier = v.get("object_identifier", v.get("object_name", ""))
+
+        # ── Build Gemini prompt ───────────────────────────────────────────────
+        gen_prompt = f"""\
+You are writing ONE image generation prompt for **Google Imagen 2** (Google Flow).
+
+Google Imagen 2: photorealistic textures, scientific accuracy, atmospheric lighting, baked-in text.
+
+━━━ 8 ADDITIONAL RULES (apply all, no exceptions) ━━━
+
+RULE 1 — GENRE CODE mandatory in [GENRE CODE] block. Include film title, year, specific scene.
+RULE 2 — PALETTE unique to this variant. Pre-assigned accent: {acc}. Use ONLY this accent.
+RULE 3 — MOMENT = FROZEN INSTANT. Forbidden: {_MOMENT_FORBIDDEN}. Required: {_MOMENT_REQUIRED}
+RULE 4 — EMOTION unique: this is variant {vid} of {N_VARIANTS}. Its emotion must differ from others.
+RULE 5 — OUTPUT FORMAT: 11 marked blocks with [BLOCK_NAME] prefixes. NOT a flowing paragraph.
+RULE 6 — TEXT/OBJECT COMPETITION: text is at [{text_pos}]. Object and shadows must NOT dominate {text_pos}.
+RULE 7 — Film reference: include title, year, specific scene. NOT "van Hoytema style" but "the corridor chase in 'Tenet' (2020), van Hoytema".
+RULE 8 — Object identifier: use human-recognisable visual handle, not just scientific term.
+          "{v.get("object_name","")}" → visual handle: "{obj_identifier}"
+RULE 9 — ATMOSPHERIC TEXT ZONE:
+{_ATMOSPHERIC_TEXT_ZONE_RULE}
+RULE 10 — OBJECT IDENTIFIER FORMAT:
+{_OBJECT_IDENTIFIER_RULE}
+
+━━━ 11-BLOCK INPUT DATA ━━━
+
+[1] THUMBNAIL FUNCTION: {thumb_fn.get("hook_type","")} — {thumb_fn.get("click_trigger","")}
+[2] GENRE: {v_genre_key} — {v_genre["name"]}
+    Film refs: {v_genre["refs"]}
+[3] OBJECT: {v.get("object_name","")}
+    Visual handle: {obj_identifier}
+    Details: {v.get("object_details","")}
+[4] MOMENT (frozen instant): {v.get("moment","")}
+[5] LIGHTING: {lighting_raw}
+[6] LENS: {v.get("lens","")} | Cinematographer: {cine}
+[7] ENVIRONMENT: {v.get("environment","")}
+[8] TEXT ZONE: {v.get("dark_zone","")} | Position: {text_pos} | Object must NOT fill this zone
+[9] PALETTE: {palette_str}
+[10] TEXT:
+{text_integration_block}
+[11] EMOTION (unique): {v.get("emotion","")}
+     ANTI-REFS: {v_genre["anti_refs"]}
+     OSINT: {osint_line}
+
+━━━ FORBIDDEN → CORRECT REPLACEMENTS ━━━
+{_FORBIDDEN_REPLACEMENTS}
+
+━━━ 9 PRE-GENERATION CHECKS ━━━
+1. No forbidden phrase appears in output
+2. Text verbatim: {text_display} — zero changes
+3. Object = "{obj_identifier}" — real shape/details, no generic stand-in
+4. Palette 70/25/5, accent MUST be: {acc}
+5. Text integration: rim light on letter edges, NO bar/panel/overlay
+6. {check6}
+7. Film ref includes title + year + scene name
+8. If scene has atmospheric haze/storm: text zone is foreground terrain in shadow — NOT the haze itself
+9. Object identifier is an EVENT or MOMENT (date/mission/outcome), NOT a process or method
+{critique_note}
+━━━ OUTPUT: 11 MARKED BLOCKS ━━━
+
+Write the prompt as 11 lines, each starting with [BLOCK_NAME]:
+
+[GENRE CODE] <code> — <name> | Ref: <Film title (Year), specific scene>
+[OBJECT] <visual handle> | <scientific name> | <4-6 details: shape, color, texture, scale, distinctive mark>
+[MOMENT] <frozen instant — "The exact frame of..." / "The instant..." / "Caught at the precise second...">
+[LIGHTING] <direction> | <Kelvin temp> | <shadow quality> | <fill: none/soft/hard>
+[LENS] <focal length> | <aperture / DOF> | <perspective effect> | <Cinematographer, Film (Year), scene>
+[ENVIRONMENT] <what surrounds> | ABSENT: <what is NOT in frame>
+[TEXT ZONE] <position> | <why this zone is dark/clear> | <confirm: object does not fill this corner>
+[TEXT] {text_display} | monumental billboard scale, Christopher Nolan title weight | rim light {light_dir} edges | 2-3px black stroke | 8-10px shadow 80% opacity | film grain on letter surfaces | NO bar NO overlay
+[OSINT] {osint_line}
+[PALETTE] Dominant 70%: <X> | Secondary 25%: <Y> | Accent 5%: {acc}
+[EMOTION] <one precise sentence — unique emotional register for variant {vid}>
+
+Return ONLY valid JSON:
+{{"concept": "<one-line: object + frozen instant>", "prompt": "<11-block prompt>", "text_position": "{text_pos}"}}
+"""
+        try:
+            raw  = _flash(gen_prompt, max_tokens=1200)
+            data = _parse_json(raw)
+            concept      = data.get("concept", f"variant {vid}")
+            full_p       = data.get("prompt", "")
+            text_pos_out = data.get("text_position", text_pos)
+
+            prompts.append({
+                "id":      vid,
+                "concept": concept,
+                "prompt":  full_p,
+            })
+            print(f"  [{i+1}] {concept} | text: {text_pos_out}", flush=True)
+            # Print first block only
+            first_line = full_p.split("\n")[0][:100] if full_p else ""
+            print(f"       {first_line}...", flush=True)
+
+        except Exception as e:
+            print(f"  ⚠ Prompt error for v{vid}: {e}", flush=True)
+            fallback = (
+                f"[GENRE CODE] {v_genre_key} — {v_genre['name']}\n"
+                f"[OBJECT] {obj_identifier} | {v.get('object_name','')}\n"
+                f"[MOMENT] The exact frame of: {v.get('moment','')}\n"
+                f"[LIGHTING] {lighting_raw}\n"
+                f"[LENS] {v.get('lens','')}\n"
+                f"[ENVIRONMENT] {v.get('environment','')}\n"
+                f"[TEXT ZONE] {text_pos}\n"
+                f"[TEXT] {text_display} | monumental billboard scale | NO overlay\n"
+                f"[OSINT] {osint_line}\n"
+                f"[PALETTE] {palette_str}\n"
+                f"[EMOTION] {v.get('emotion','')}"
+            )
+            prompts.append({
+                "id":      vid,
+                "concept": v.get("object_name", f"variant {vid}"),
+                "prompt":  fallback,
+            })
+
     return prompts
+
+
+# ── Image provider config ─────────────────────────────────────────────────────
+
+def _get_image_provider() -> str:
+    """flow | pixel — из .env THUMBNAIL_IMAGE_PROVIDER, дефолт pixel."""
+    return os.environ.get("THUMBNAIL_IMAGE_PROVIDER", "pixel").lower().strip()
+
+
+def _get_flow_platform() -> dict | None:
+    try:
+        from utils import PLATFORMS
+        p = PLATFORMS["1"].copy()
+        p["key"] = "1"
+        return p
+    except Exception as e:
+        print(f"  [Flow] Cannot load platform config: {e}", flush=True)
+        return None
+
+
+# ── Stage 3a: Image Generation via Google Flow ────────────────────────────────
+
+def generate_images_flow(prompts: list[dict], out_dir: Path, round_num: int) -> list[dict]:
+    """Генерирует изображения через Google Flow (браузер + куки)."""
+    print(f"\n[3/3] Generating {len(prompts)} images via Google Flow (round {round_num})...", flush=True)
+    try:
+        from flow_agent import generate_flow_images
+    except ImportError as e:
+        print(f"  ⚠ flow_agent import error: {e} — falling back to PixelAgent", flush=True)
+        return generate_images_pixel(prompts, out_dir, round_num)
+
+    platform = _get_flow_platform()
+    if not platform:
+        print("  ⚠ Flow platform config unavailable — falling back to PixelAgent", flush=True)
+        return generate_images_pixel(prompts, out_dir, round_num)
+
+    results = generate_flow_images(platform, prompts, out_dir, round_num)
+    ok = sum(1 for r in results if r.get("path") and Path(r["path"]).exists())
+    print(f"  Flow done: {ok}/{len(prompts)}", flush=True)
+    return results
 
 
 # ── Stage 3: Parallel Image Generation ───────────────────────────────────────
@@ -331,83 +800,93 @@ async def _generate_all(prompts: list[dict], out_dir: Path, round_num: int) -> l
         return await asyncio.gather(*tasks)
 
 
-def generate_images(prompts: list[dict], out_dir: Path, round_num: int) -> list[dict]:
-    print(f"\n[3/3] Generating {len(prompts)} images in parallel...", flush=True)
+def generate_images_pixel(prompts: list[dict], out_dir: Path, round_num: int) -> list[dict]:
+    """Генерирует изображения через PixelAgent API (параллельно)."""
+    print(f"\n[3/3] Generating {len(prompts)} images via PixelAgent (round {round_num})...", flush=True)
     results = asyncio.run(_generate_all(prompts, out_dir, round_num))
     ok = sum(1 for r in results if r["path"])
     print(f"  Done: {ok}/{len(prompts)}", flush=True)
     return results
 
 
+def generate_images(prompts: list[dict], out_dir: Path, round_num: int) -> list[dict]:
+    """Роутер: Google Flow или PixelAgent — задаётся THUMBNAIL_IMAGE_PROVIDER в .env."""
+    provider = _get_image_provider()
+    if provider == "flow":
+        return generate_images_flow(prompts, out_dir, round_num)
+    return generate_images_pixel(prompts, out_dir, round_num)
+
+
 # ── Stage 4: Flash Evaluation ─────────────────────────────────────────────────
 
 def _build_eval_prompt(thumbnail_text: str, text_line1: str, text_line2: str, script_topic: str) -> str:
-    expected = f'"{text_line2}"' if not text_line1 else f'"{text_line1}" (small) + "{text_line2}" (large bold)'
+    expected = f'"{text_line2}"' if not text_line1 else f'"{text_line1}" (secondary) + "{text_line2}" (hero)'
     return f"""\
-You are a YouTube thumbnail analyst specializing in the German space/cosmos niche.
-The target audience is Germans aged 60-70+. They watch ZDF documentaries, read Stern/Spiegel.
-They will NOT click on thumbnails with tiny text or sci-fi movie poster aesthetics.
-They click when they can INSTANTLY READ the text and the image clearly shows what the video is about.
+You are a YouTube thumbnail critic for the German space/cosmos documentary niche.
+Target audience: Germans 60-70+. ZDF documentary viewers. Spiegel/Stern readers.
+They click when: (1) text is instantly readable, (2) image creates a specific emotional reaction.
+They scroll past: sci-fi fantasy visuals, cluttered compositions, generic stock-photo aesthetics.
+Gold standard for this audience: Spiegel magazine covers, Terra X documentary stills, BBC documentary frames.
 
-Evaluate this thumbnail across ALL dimensions — visual, textual, semantic, and SEO.
+Evaluate this thumbnail brutally across all dimensions.
 
-EXPECTED TEXT ON THIS THUMBNAIL: {expected}
-(Original user text: "{thumbnail_text}")
-
+EXPECTED TEXT: {expected}
+(Original: "{thumbnail_text}")
 VIDEO TOPIC: {script_topic}
 
-Score 1-10 on EACH criterion. Be BRUTAL — most thumbnails deserve 5-6.
+Score 1-10. Be BRUTAL — a 7 means "competent but forgettable". 8+ means "would genuinely stop the scroll".
 
 TEXT QUALITY:
-1. text_correctness: Is the exact text "{text_line1}" and "{text_line2}" actually visible and correctly spelled?
-   Score 1 if text is missing, distorted, misspelled, or merged into the background.
-2. text_readability: Can a 65-year-old read BOTH lines instantly on a phone screen (120px thumbnail)?
-   BOTH lines must be large and bold. If line1 is tiny/caption-sized = score 1-3. Both lines giant and clear = 8-10.
-3. text_font_style: Is the font ULTRA BOLD HEAVY CONDENSED, pure white, with strong dark shadow?
-   Thin fonts, decorative/distressed/digital/sci-fi fonts = 1-3. Clean heavy condensed white = 8-10.
-4. text_placement: Is text in a clean area with strong contrast backing?
-   Does the hierarchy look intentional? Is there a visible dark background/shadow behind the text?
+1. text_correctness: Is "{text_line1}" and "{text_line2}" visible, correctly spelled, no distortion?
+   Missing/garbled/merged into image = 1-2. Crisp and correct = 9-10.
+2. text_readability: Can a 65-year-old read both lines on a phone screen at 120px thumbnail size?
+   Hero text must be BILLBOARD-scale — monumental, not merely "large". Caption-size = 1-3. Monumental = 9-10.
+3. text_integration: Does the text LIVE IN the scene or sit ON TOP like a sticker?
+   Text architecturally integrated into a naturally dark zone of the frame = 9-10.
+   Text pasted over bright busy areas = 1-4. Floating text with obvious digital overlay bar = 3-5.
+4. text_font_style: Ultra-bold heavy condensed white — the weight of a cinema title card?
+   Thin/decorative/distressed/sci-fi/italic fonts = 1-3. Clean monumental heavy condensed = 8-10.
 
 VISUAL QUALITY:
-5. composition: Does ONE dominant photorealistic object fill 60-80% of the frame?
-   Clear visual hierarchy, unambiguous subject, NOT busy or cluttered.
-6. graphic_elements: Any graphic elements (arrows, glows, overlays)?
-   Clean and intentional = 7-10. Neon grids, dragon motifs, laser beams = 1-3 (looks cheap).
-   No graphic elements = 7 (neutral).
-7. visual_impact: Does this image make a 65+ German viewer curious/shocked/amazed?
-   Photorealistic and emotionally resonant = 8-10. Fantasy sci-fi = 3-5 for this audience.
-8. color_saturation: Vivid and high contrast? Natural vivid colors = 8-10. Dark neon chaos = 3-5.
+5. composition: ONE dominant photorealistic subject filling 60-80% of frame?
+   Clear visual hierarchy, unambiguous, not cluttered. Empty/generic = 3-5. Decisive = 8-10.
+6. cinematic_quality: Does this feel like a frame from a real documentary — tactile, photographic, NOT CGI-rendered?
+   GEO magazine / leaked NASA photo quality = 9-10. Concept art / CGI cleanliness = 2-4.
+7. visual_impact: What does the viewer FEEL in 0.3 seconds? (not what they see)
+   Specific emotional reaction (dread, awe, curiosity, shock) = 8-10. Generic "looks cool" = 4-6.
+8. color_palette: 3-4 colors max, high contrast, emotionally weighted?
+   Neon chaos / too many colors = 2-4. Deliberate cinematic palette = 8-10.
 
 SEMANTIC + SEO:
-9. topic_match: Does the image DIRECTLY REPRESENT the video topic ("{script_topic}")?
-   The image should tell the story without reading the text.
-10. niche_fit: Does this fit how top German cosmos channels (Terra X, Lesch & Co, ZDF) look?
-    Clean documentary authority style = 8-10. Generic sci-fi poster = 2-4.
-11. ctr_potential: Would a real German 65+ viewer scrolling YouTube click this?
-    Consider: is the text readable, is the image intriguing, does it promise a clear topic?
-12. overall: Strict. Only 8+ if this thumbnail is INSTANTLY READABLE and CLEARLY MATCHES the topic.
+9. topic_match: Does the image tell the story of "{script_topic}" WITHOUT the text?
+   Unmistakable match = 9-10. Vague/generic space imagery = 3-5.
+10. niche_fit: Terra X / ZDF / Spiegel authority aesthetic — not MrBeast, not sci-fi poster?
+    Clean documentary authority = 8-10. Generic YouTube clickbait = 2-4.
+11. ctr_potential: Would a real German 65+ viewer actually click this?
+    Honest assessment — consider text readability + emotional hook + topic clarity together.
+12. overall: Strict. 8+ ONLY if: text is monumental + scene is cinematic + topic is unmistakable.
 
 Return ONLY valid JSON:
 {{
   "scores": {{
     "text_correctness": <1-10>,
     "text_readability": <1-10>,
+    "text_integration": <1-10>,
     "text_font_style": <1-10>,
-    "text_placement": <1-10>,
     "composition": <1-10>,
-    "graphic_elements": <1-10>,
+    "cinematic_quality": <1-10>,
     "visual_impact": <1-10>,
-    "color_saturation": <1-10>,
+    "color_palette": <1-10>,
     "topic_match": <1-10>,
     "niche_fit": <1-10>,
     "ctr_potential": <1-10>,
     "overall": <1-10>
   }},
   "passed": <true if overall >= 8 else false>,
-  "text_issues": "<specific text problems: missing/misspelled/wrong font/bad placement, or null>",
-  "visual_issues": "<specific visual problems, or null>",
-  "seo_issues": "<why this won't rank/get clicked in the space niche, or null>",
-  "what_works": "<what is genuinely strong about this thumbnail>"
+  "text_issues": "<specific text problems or null>",
+  "visual_issues": "<specific visual problems or null>",
+  "seo_issues": "<why this won't get clicked, or null>",
+  "what_works": "<what is genuinely strong>"
 }}
 """
 
@@ -453,15 +932,15 @@ def evaluate_images(
             print(
                 f"    text: correct={scores.get('text_correctness','?')} "
                 f"read={scores.get('text_readability','?')} "
-                f"font={scores.get('text_font_style','?')} "
-                f"place={scores.get('text_placement','?')}",
+                f"integ={scores.get('text_integration','?')} "
+                f"font={scores.get('text_font_style','?')}",
                 flush=True,
             )
             print(
                 f"    visual: comp={scores.get('composition','?')} "
-                f"elements={scores.get('graphic_elements','?')} "
+                f"cinema={scores.get('cinematic_quality','?')} "
                 f"impact={scores.get('visual_impact','?')} "
-                f"sat={scores.get('color_saturation','?')}",
+                f"palette={scores.get('color_palette','?')}",
                 flush=True,
             )
             print(
@@ -787,11 +1266,18 @@ def _write_seo_report(
     lines.append("")
 
     lines.append("── CREATIVE BRIEF (TZ) ─────────────────────────────────")
-    lines.append(f"Main object:      {tz.get('main_object','')}")
-    lines.append(f"Color palette:    {tz.get('color_palette','')}")
-    lines.append(f"Graphic elements: {tz.get('graphic_elements','')}")
-    lines.append(f"Atmosphere:       {tz.get('atmosphere','')}")
-    lines.append(f"Why people click: {tz.get('why_people_click','')}")
+    lines.append(f"Topic:            {tz.get('topic_summary','')}")
+    lines.append(f"Genre:            {tz.get('genre_key','')} — {_GENRE_MATRICES_DETAILED.get(tz.get('genre_key','B'),{}).get('name','')}")
+    lines.append(f"Emotional task:   {tz.get('emotional_task','')}")
+    lines.append("")
+    for v in tz.get("variants", []):
+        palette = v.get("palette", {})
+        lines.append(f"  V{v.get('id')}: {v.get('object_name','')}")
+        lines.append(f"    Moment:    {v.get('moment','')}")
+        lines.append(f"    Lighting:  {v.get('lighting','')}")
+        lines.append(f"    Lens:      {v.get('lens','')} | {v.get('cinematographer','')}")
+        lines.append(f"    Palette:   70%: {palette.get('dominant_70','')} | 25%: {palette.get('secondary_25','')} | 5%: {palette.get('accent_5','')}")
+        lines.append(f"    Text pos:  {v.get('text_position','')} | Emotion: {v.get('emotion','')}")
     lines.append("")
 
     lines.append("── WINNER SCORES ────────────────────────────────────────")
@@ -799,15 +1285,15 @@ def _write_seo_report(
     lines.append("")
     lines.append("  TEXT")
     lines.append(f"    text_correctness:  {scores.get('text_correctness','?')}/10  — text visible & correctly spelled")
-    lines.append(f"    text_readability:  {scores.get('text_readability','?')}/10  — readable at 120px mobile size")
-    lines.append(f"    text_font_style:   {scores.get('text_font_style','?')}/10  — ultra bold condensed YouTube style")
-    lines.append(f"    text_placement:    {scores.get('text_placement','?')}/10  — balanced, dark area, clear hierarchy")
+    lines.append(f"    text_readability:  {scores.get('text_readability','?')}/10  — billboard-scale, readable at 120px")
+    lines.append(f"    text_integration:  {scores.get('text_integration','?')}/10  — lives in scene, not pasted on top")
+    lines.append(f"    text_font_style:   {scores.get('text_font_style','?')}/10  — ultra bold condensed, cinema title weight")
     lines.append("")
     lines.append("  VISUAL")
     lines.append(f"    composition:       {scores.get('composition','?')}/10  — dominant object, clear visual hierarchy")
-    lines.append(f"    graphic_elements:  {scores.get('graphic_elements','?')}/10  — arrows/stripes/glows look intentional")
-    lines.append(f"    visual_impact:     {scores.get('visual_impact','?')}/10  — stops the scroll")
-    lines.append(f"    color_saturation:  {scores.get('color_saturation','?')}/10  — vivid, high-contrast, deep blacks")
+    lines.append(f"    cinematic_quality: {scores.get('cinematic_quality','?')}/10  — tactile photo feel, not CGI")
+    lines.append(f"    visual_impact:     {scores.get('visual_impact','?')}/10  — emotional reaction in 0.3s")
+    lines.append(f"    color_palette:     {scores.get('color_palette','?')}/10  — deliberate 3-4 color cinematic palette")
     lines.append("")
     lines.append("  SEO / CTR")
     lines.append(f"    topic_match:       {scores.get('topic_match','?')}/10  — matches video content")
@@ -828,8 +1314,8 @@ def _write_seo_report(
             f"  {path:20s}  overall={r.get('overall','?')}  {status}"
         )
         lines.append(
-            f"    text: {s.get('text_correctness','?')}/{s.get('text_readability','?')}/{s.get('text_font_style','?')}/{s.get('text_placement','?')}  "
-            f"visual: {s.get('composition','?')}/{s.get('visual_impact','?')}/{s.get('color_saturation','?')}  "
+            f"    text: {s.get('text_correctness','?')}/{s.get('text_readability','?')}/{s.get('text_integration','?')}/{s.get('text_font_style','?')}  "
+            f"visual: {s.get('composition','?')}/{s.get('cinematic_quality','?')}/{s.get('visual_impact','?')}  "
             f"seo: {s.get('topic_match','?')}/{s.get('niche_fit','?')}/{s.get('ctr_potential','?')}"
         )
         probs = r.get("problems", [])
@@ -858,83 +1344,53 @@ def run_pipeline(channel_id: str, session: str, thumbnail_text: str, out_dir: Pa
     variants_dir = out_dir / "variants"
     variants_dir.mkdir(exist_ok=True)
 
+    # Stage 0 — Thumbnail function (hook type, click trigger, genre)
+    thumb_fn = write_thumbnail_function(segments, thumbnail_text)
+
     # Stage 1 — TZ (once, not per round)
-    tz = write_tz(segments, thumbnail_text)
-    script_topic = tz.get("atmosphere", thumbnail_text)
+    tz = write_tz(segments, thumbnail_text, thumb_fn)
+    script_topic = tz.get("emotional_task", thumbnail_text)
 
-    best_overall  = 0
-    best_image    = None
-    all_results   = []
-    all_critiques: list[str] = []
+    # Один раунд — генерируем N_VARIANTS, юзер сам выбирает лучшее
+    print(f"\n{'─'*55}", flush=True)
+    print(f"  Generating {N_VARIANTS} variants...", flush=True)
+    print(f"{'─'*55}", flush=True)
 
-    for round_num in range(1, MAX_ROUNDS + 1):
-        print(f"\n{'─'*55}", flush=True)
-        print(f"  ROUND {round_num}/{MAX_ROUNDS}", flush=True)
-        print(f"{'─'*55}", flush=True)
+    prompts = generate_prompts(tz, thumb_fn, round_num=1)
+    images  = generate_images(prompts, variants_dir, round_num=1)
 
-        # Stage 2 — промпты (с критикой из предыдущих раундов)
-        prompts = generate_prompts(
-            tz,
-            round_num=round_num,
-            prev_critiques=all_critiques if round_num > 1 else None,
-        )
-
-        # Stage 3 — генерация
-        images = generate_images(prompts, variants_dir, round_num)
-
-        # Stage 4 — оценка
-        evaluated = evaluate_images(images, round_num, thumbnail_text, tz, script_topic)
-        all_results.extend(evaluated)
-
-        # Лучший в этом раунде
-        round_best = max(evaluated, key=lambda x: x["overall"]) if evaluated else None
-        if round_best and round_best["overall"] > best_overall:
-            best_overall = round_best["overall"]
-            best_image   = round_best
-
-        # ── Edit Pass: пробуем отредактировать лучших кандидатов ─────────────────
-        edited = edit_pass(evaluated, tz, script_topic, round_num, variants_dir)
-        if edited:
-            print(f"  [Edit Pass] re-evaluating {len(edited)} edited image(s)...", flush=True)
-            edited_eval = evaluate_images(edited, round_num, thumbnail_text, tz, script_topic)
-            all_results.extend(edited_eval)
-            evaluated = evaluated + edited_eval
-            round_best_edit = max(edited_eval, key=lambda x: x["overall"]) if edited_eval else None
-            if round_best_edit and round_best_edit["overall"] > best_overall:
-                best_overall = round_best_edit["overall"]
-                best_image   = round_best_edit
-
-        passed = [r for r in evaluated if r["passed"]]
-        if passed:
-            winner = max(passed, key=lambda x: x["overall"])
-            print(f"\n✅ Round {round_num}: winner found! overall={winner['overall']}", flush=True)
-            best_image = winner
-            break
-        else:
-            print(
-                f"\n⚠ Round {round_num}: no pass "
-                f"(best={round_best['overall'] if round_best else 0}/{PASS_THRESHOLD})",
-                flush=True,
-            )
-            # Собираем критику для следующего раунда
-            new_critiques = _collect_critiques(evaluated)
-            all_critiques = new_critiques  # только из последнего раунда — свежие проблемы
-            if round_num < MAX_ROUNDS:
-                print(f"  Critiques for next round: {all_critiques}", flush=True)
-                print(f"  Refining prompts...", flush=True)
-
-    # Финальный winner
-    if not best_image or not best_image.get("path"):
+    valid = [r for r in images if r.get("path") and Path(r["path"]).exists()]
+    if not valid:
         raise RuntimeError("No thumbnail generated successfully")
 
-    final_path = out_dir / "thumbnail_final.png"
+    # Конвертируем все варианты в PNG (из JPEG) и кладём в variants/
     import shutil
+    from PIL import Image as _PILImage
+
+    for r in valid:
+        src = Path(r["path"])
+        if src.suffix.lower() in (".jpg", ".jpeg"):
+            png_path = src.with_suffix(".png")
+            try:
+                _PILImage.open(src).convert("RGB").save(png_path, format="PNG")
+                src.unlink()          # удаляем JPEG
+                r["path"] = png_path  # обновляем путь в результате
+                print(f"  PNG: {png_path.name}", flush=True)
+            except Exception as e:
+                print(f"  [!] Конвертация PNG: {e}", flush=True)
+
+    best_image = valid[0]
+    best_overall = 0
+    all_results = valid
+
+    # Первый вариант — дефолтный thumbnail_final.png
+    final_path = out_dir / "thumbnail_final.png"
     shutil.copy2(best_image["path"], final_path)
 
     print(f"\n{'='*55}", flush=True)
-    print(f"🏆 WINNER: overall={best_overall}/{PASS_THRESHOLD}", flush=True)
-    print(f"   {best_image.get('what_works','')}", flush=True)
-    print(f"   → {final_path}", flush=True)
+    print(f"  Done: {len(valid)}/{N_VARIANTS} images generated", flush=True)
+    print(f"  Variants: {variants_dir}", flush=True)
+    print(f"  Default:  {final_path}", flush=True)
 
     # JSON report
     report = {
@@ -967,9 +1423,10 @@ def run_pipeline(channel_id: str, session: str, thumbnail_text: str, out_dir: Pa
 
 def main():
     parser = argparse.ArgumentParser(description="YouTube Thumbnail Generator")
-    parser.add_argument("--channel", default="channel_001_cosmos_de")
-    parser.add_argument("--session", default=None)
-    parser.add_argument("--text",    required=True, help='Thumbnail text, e.g. "DIE SONNE IST WACH"')
+    parser.add_argument("--channel",   default="channel_001_cosmos_de")
+    parser.add_argument("--session",   default=None)
+    parser.add_argument("--text",      required=True, help='Thumbnail text')
+    parser.add_argument("--dry-run",   action="store_true", help="Only generate prompts, skip image generation")
     args = parser.parse_args()
 
     channel_id = args.channel
@@ -988,9 +1445,34 @@ def main():
     session_dir = get_session_dir(channel_id, session)
     out_dir     = session_dir / "thumbnail"
 
+    if args.dry_run:
+        # Только генерация промптов, без картинок
+        result_json = get_result_json(channel_id, session)
+        with open(result_json, encoding="utf-8") as f:
+            data = json.load(f)
+        segments = data if isinstance(data, list) else data.get("segments", [])
+        print(f"Loaded {len(segments)} segments", flush=True)
+        thumb_fn = write_thumbnail_function(segments, args.text)
+        tz       = write_tz(segments, args.text, thumb_fn)
+        prompts  = generate_prompts(tz, thumb_fn, round_num=1)
+        # Сохраняем промпты в файл
+        out_dir.mkdir(parents=True, exist_ok=True)
+        prompts_path = out_dir / "prompts.json"
+        prompts_path.write_text(
+            json.dumps(prompts, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"\n{'='*60}", flush=True)
+        print("  PROMPTS:", flush=True)
+        print(f"{'='*60}", flush=True)
+        for p in prompts:
+            print(f"\n--- Variant {p['id']}: {p['concept']}", flush=True)
+            print(p['prompt'], flush=True)
+        print(f"\n  Saved: {prompts_path}", flush=True)
+        return
+
     t0 = time.time()
     final = run_pipeline(channel_id, session, args.text, out_dir)
-    print(f"\n⏱ Total: {round(time.time()-t0, 1)}s", flush=True)
+    print(f"\n  Total: {round(time.time()-t0, 1)}s", flush=True)
     print(f"{'='*60}\n", flush=True)
 
 
