@@ -392,10 +392,41 @@ def select_and_link_clips(
         if int(seg_id) in mg_overrides:
             mg_src = Path(mg_overrides[int(seg_id)])
             if mg_src.exists():
-                try:
-                    dst.symlink_to(mg_src)
-                except OSError:
-                    shutil.copy2(mg_src, dst)
+                # .mov = прозорий оверлей (DateLabel/DateBookmark) → композитимо на кліп
+                if mg_src.suffix.lower() == ".mov":
+                    # Знаходимо оригінальний бібліотечний кліп для цього сегменту
+                    lib_src = None
+                    if clip_id is not None:
+                        _lib_candidate = lib_clips_dir / f"{clip_id}.mp4"
+                        if _lib_candidate.exists():
+                            lib_src = _lib_candidate
+                    if lib_src is None and _fallback_pool:
+                        lib_src = random.choice(_fallback_pool)
+                    if lib_src is not None:
+                        # Композитуємо: оверлей поверх бібліотечного кліпу
+                        _overlay_cmd = [
+                            "ffmpeg", "-y",
+                            "-i", str(lib_src),
+                            "-i", str(mg_src),
+                            "-filter_complex",
+                            "[1:v]setpts=PTS-STARTPTS[badge];"
+                            "[0:v][badge]overlay=0:0:eof_action=pass[vout]",
+                            "-map", "[vout]", "-map", "0:a",
+                            "-c:v", "h264_nvenc", "-preset", "p4", "-cq", "23",
+                            "-c:a", "copy",
+                            str(dst), "-hide_banner", "-loglevel", "error",
+                        ]
+                        subprocess.run(_overlay_cmd, check=True)
+                        log(f"  [{int(seg_id):03d}] overlay {mg_src.name} → {dst.name}")
+                    else:
+                        log(f"  [{int(seg_id):03d}] overlay: нет базового кліпу, пропускаю")
+                        continue
+                else:
+                    # Fullscreen MG — замінюємо кліп повністю
+                    try:
+                        dst.symlink_to(mg_src)
+                    except OSError:
+                        shutil.copy2(mg_src, dst)
                 mg_count += 1
                 matched  += 1
                 continue

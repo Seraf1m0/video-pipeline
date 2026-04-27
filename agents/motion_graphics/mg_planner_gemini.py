@@ -92,6 +92,10 @@ COMPOSITION_DEFAULT_PALETTE = {
     "LineChart":    "neon_green",
     "ChapterTitle": "purple",
     "DateStamp":    "cosmic_blue",
+    "HBarChart":    "neon_green",
+    "MultiRing":    "purple",
+    "DateLabel":    "gold",
+    "DateBookmark": "cosmic_blue",
     "Quote":        "hot_pink",
     "BigNumber":    "orange_fire",
     "Scorecard":    "cosmic_blue",
@@ -112,6 +116,10 @@ COMPOSITION_MAX_DURATION = {
     "LineChart":    14.0,
     "ChapterTitle":  8.0,
     "DateStamp":     8.0,
+    "HBarChart":    10.0,
+    "MultiRing":    12.0,
+    "DateLabel":     6.0,
+    "DateBookmark":  6.0,
     "Quote":        12.0,
     "BigNumber":     8.0,
     "Scorecard":    14.0,
@@ -134,6 +142,10 @@ COMPOSITION_MIN_DURATION = {
     "LineChart":   8.0,
     "ChapterTitle":5.0,
     "DateStamp":   5.0,
+    "HBarChart":   7.0,
+    "MultiRing":   8.0,
+    "DateLabel":   4.0,
+    "DateBookmark":4.0,
     "Quote":       6.0,
     "BigNumber":   5.0,
     "Scorecard":   8.0,
@@ -290,7 +302,45 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
       "duration_s": 7.0
     }
 
-12. Quote
+12. DateLabel
+    When to use: a small date badge overlay that flies in from the side — perfect for quickly
+      stamping a year or short date onto the screen without interrupting the visual flow.
+      Use when a date is relevant but doesn't need its own full-screen moment.
+      Transparent background — overlays on top of video. Short duration (4–6s).
+    Props:
+    {
+      "date": "short date string e.g. '1969' or '20 July 1969' (max 20 chars)",
+      "label": "optional short context label e.g. 'Moon Landing' (max 40 chars) or null",
+      "side": "left or right (which side the badge enters from)",
+      "duration_s": 5.0
+    }
+
+13. HBarChart
+    When to use: comparing 3-6 items by a numeric value — rankings, shares, comparisons by quantity.
+      Better than BarChart when labels are long or there are many items.
+    Props:
+    {
+      "title": "chart heading (max 40 chars)",
+      "bars": [
+        { "label": "item name (max 25 chars)", "value": 87, "unit": "optional unit or null", "color": "optional hex or null" }
+      ],  // 3-6 bars
+      "max_value": null,
+      "duration_s": 10.0
+    }
+
+15. MultiRing
+    When to use: showing composition/breakdown as concentric rings — 3-5 categories each as percentage.
+      Alternative to RadialChart when wanting a more layered, premium look.
+    Props:
+    {
+      "title": "optional heading (max 30 chars) or null",
+      "rings": [
+        { "label": "category (max 20 chars)", "value": 73, "suffix": "%", "color": "optional hex or null" }
+      ],  // 3-5 rings, values are percentages 0-100
+      "duration_s": 12.0
+    }
+
+16. Quote
     When to use: a powerful direct quote from a scientist, official, or document.
     Props:
     {
@@ -300,7 +350,7 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
       "duration_s": 8.0
     }
 
-13. BigNumber
+17. BigNumber
     When to use: ONE extraordinary stat with a unit — similar to Highlight but more structured.
       Use BigNumber when there is a meaningful unit (km/s, years, tonnes) and extra context.
       Avoid duplicating Highlight in the same video — pick one.
@@ -313,7 +363,7 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
       "duration_s": 7.0
     }
 
-14. Scorecard
+18. Scorecard
     When to use: 2-4 related metrics shown as a dashboard/scoreboard — multiple numbers for one topic.
       Better than DataCard when values have different units. Avoid if DataCard already covers it.
     Props:
@@ -325,7 +375,8 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
       "duration_s": 10.0
     }
 
-16. Terminal
+19. Terminal
+
     When to use: technical/scientific data presented as a computer terminal readout.
       Great for showing raw numbers, coordinates, mission logs, or decoded signals.
     Props:
@@ -338,7 +389,7 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
       "duration_s": 10.0
     }
 
-18. ProCon
+20. ProCon
     When to use: explicit two-sided analysis — advantages vs disadvantages, for vs against.
     Props:
     {
@@ -348,7 +399,7 @@ AVAILABLE COMPOSITIONS + PROPS SCHEMAS:
       "duration_s": 10.0
     }
 
-19. Ranking
+21. Ranking
     When to use: ordered list — top N by size, importance, distance, mass, etc.
     Props:
     {
@@ -401,6 +452,10 @@ A shorter, punchier phrase is always better than an overflowing one.
   DateStamp   date           → 20 chars max  (e.g. "July 20, 1969", "1969")
   DateStamp   event          → 60 chars max
   DateStamp   sub            → 80 chars max
+  DateLabel    date          → 20 chars max  (e.g. "1969", "20 July 1969")
+  DateLabel    label         → 40 chars max
+  DateBookmark date          → 20 chars max
+  DateBookmark label         → 40 chars max
   Quote       text           → 150 chars max (shorter = bigger = more impact)
   Quote       author         → 40 chars max
   Quote       source         → 40 chars max
@@ -606,6 +661,10 @@ _LIMITS: dict[str, dict[str, int]] = {
     "LineChart":    {"title": 40, "unit": 8},
     "ChapterTitle": {"chapter": 30, "title": 50, "sub": 70},
     "DateStamp":    {"date": 20, "event": 60, "sub": 80},
+    "HBarChart":    {"title": 40},
+    "MultiRing":    {"title": 30},
+    "DateLabel":    {"date": 20, "label": 40},
+    "DateBookmark": {"date": 20, "label": 40},
     "Quote":        {"text": 150, "author": 40, "source": 40},
     "BigNumber":    {"value": 12, "unit": 10, "description": 50, "context": 80},
     "Scorecard":    {"title": 40},

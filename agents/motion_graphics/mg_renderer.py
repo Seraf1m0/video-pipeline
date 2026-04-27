@@ -40,7 +40,18 @@ CHANNEL_MAP = {
 REMOTION_DIR = ROOT / "remotion"
 SFX_DIR      = REMOTION_DIR / "public" / "sfx"
 
-VALID_COMPOSITIONS = {"SolarParadox", "DataCard", "Statement", "Timeline", "Comparison", "Highlight", "List", "BarChart", "RadialChart", "LineChart"}
+VALID_COMPOSITIONS = {
+    "SolarParadox", "DataCard", "Statement", "Timeline", "Comparison",
+    "Highlight", "List", "BarChart", "RadialChart", "LineChart",
+    "ChapterTitle", "DateStamp", "Quote", "BigNumber", "Scorecard",
+    "Terminal", "ProCon", "Ranking",
+    "HBarChart", "MultiRing",
+    # transparent overlay compositions — render to .mov with alpha
+    "DateLabel", "DateBookmark",
+}
+
+# Compositions that render with transparent bg → ProRes 4444 .mov → ffmpeg alpha overlay
+OVERLAY_COMPOSITIONS = {"DateLabel", "DateBookmark"}
 
 # Пул библиотечных вушей
 WHOOSH_IN_POOL  = ["whoosh_in_1.wav", "whoosh_in_2.wav", "whoosh_in_3.wav"]
@@ -70,7 +81,10 @@ def render_zone(zone: dict, out_dir: Path) -> Path | None:
     if "duration_s" not in props:
         props = {**props, "duration_s": zone.get("duration", 8.0)}
 
-    out_path   = out_dir / f"zone_{zone_id:02d}.mp4"
+    # Overlay compositions → .mov with ProRes 4444 alpha; others → .mp4
+    is_overlay = composition in OVERLAY_COMPOSITIONS
+    ext        = ".mov" if is_overlay else ".mp4"
+    out_path   = out_dir / f"zone_{zone_id:02d}{ext}"
     if out_path.exists():
         # Проверяем что длительность совпадает с требуемой (±0.5s)
         expected_dur = float(props.get("duration_s", zone.get("duration", 0)))
@@ -110,6 +124,9 @@ def render_zone(zone: dict, out_dir: Path) -> Path | None:
         "--props", str(props_file),
         "--log", "error",
     ]
+    if is_overlay:
+        # ProRes 4444 preserves alpha channel (transparent bg)
+        cmd += ["--codec", "prores"]
 
     print(f"  [zone {zone_id}] Rendering {composition} ({props.get('duration_s', '?')}s)...")
     result = subprocess.run(
@@ -149,7 +166,12 @@ def inject_zone(
     slide_dur: float    = 0.50,
     tmp_dir: Path | None = None,
 ) -> Path:
-    if composition in PANEL_COMPOSITIONS:
+    if composition in OVERLAY_COMPOSITIONS:
+        return _inject_overlay(
+            source_video, anim_mp4, out_path,
+            insert_at, anim_duration,
+        )
+    elif composition in PANEL_COMPOSITIONS:
         return _inject_panel(
             source_video, anim_mp4, out_path,
             insert_at, anim_duration,
@@ -161,6 +183,43 @@ def inject_zone(
             insert_at, anim_duration,
             anim_sfx_vol,
         )
+
+
+def _inject_overlay(
+    source_video: Path,
+    anim_mov: Path,       # ProRes 4444 .mov з alpha
+    out_path: Path,
+    insert_at: float,
+    anim_duration: float,
+) -> Path:
+    """
+    Overlay-режим: прозора анімація (.mov RGBA) накладається поверх відео
+    через ffmpeg alpha overlay — відео та аудіо не перериваються.
+    Аналог apply_cta.py для CTA-плашок.
+    """
+    ins = insert_at
+    end = ins + anim_duration
+
+    filter_complex = (
+        f"[1:v]setpts=PTS-STARTPTS[badge];"
+        f"[0:v][badge]overlay=0:0:eof_action=pass:"
+        f"enable='between(t,{ins:.3f},{end:.3f})'[vout]"
+    )
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(source_video),
+        "-i", str(anim_mov),
+        "-filter_complex", filter_complex,
+        "-map", "[vout]",
+        "-map", "0:a",
+        "-c:v", "h264_nvenc", "-preset", "p4", "-cq", "23",
+        "-c:a", "copy",
+        str(out_path), "-hide_banner", "-loglevel", "error",
+    ]
+    print(f"  [inject/overlay] {anim_mov.name} @ {ins:.1f}s–{end:.1f}s -> {out_path.name}")
+    subprocess.run(cmd, check=True)
+    return out_path
 
 
 def _inject_panel(

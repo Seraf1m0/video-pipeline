@@ -18,6 +18,10 @@ import { Scorecard, ScorecardProps }           from "./compositions/Scorecard";
 import { Terminal, TerminalProps }             from "./compositions/Terminal";
 import { ProCon, ProConProps }                 from "./compositions/ProCon";
 import { Ranking, RankingProps }               from "./compositions/Ranking";
+import { DateLabel, DateLabelProps }           from "./compositions/DateLabel";
+import { DateBookmark, DateBookmarkProps }     from "./compositions/DateBookmark";
+import { HBarChart, HBarChartProps }           from "./compositions/HBarChart";
+import { MultiRing, MultiRingProps }           from "./compositions/MultiRing";
 
 const FPS = 25;
 
@@ -476,6 +480,98 @@ export const RemotionRoot: React.FC = () => {
         } satisfies RankingProps}
         calculateMetadata={({ props }) => ({
           durationInFrames: Math.round((props.duration_s ?? 12) * FPS),
+        })}
+      />
+      {/*
+        DateLabel — small transparent overlay badge with date, flies in from side
+        Props: { date, label?, accent_color?, duration_s? = 6, side? = "left" }
+        Transparent bg — meant to overlay on video clips.
+      */}
+      <Composition
+        id="HBarChart"
+        component={HBarChart}
+        durationInFrames={250}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          title: "Mission Comparison",
+          bars: [
+            { label: "Apollo 11",    value: 87,  color: "#FFD700", unit: "pts" },
+            { label: "Voyager 1",    value: 72,  color: "#00C8FF", unit: "pts" },
+            { label: "Mars Rover",   value: 65,  color: "#FF6B35", unit: "pts" },
+            { label: "Hubble",       value: 91,  color: "#A855F7", unit: "pts" },
+          ],
+          accent_color: "#00C8FF",
+          duration_s: 10,
+        } satisfies HBarChartProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 10) * FPS),
+        })}
+      />
+
+      <Composition
+        id="MultiRing"
+        component={MultiRing}
+        durationInFrames={300}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          title: "Composition",
+          rings: [
+            { label: "Hydrogen",  value: 73, suffix: "%", color: "#00C8FF" },
+            { label: "Helium",    value: 25, suffix: "%", color: "#A855F7" },
+            { label: "Oxygen",    value: 1,  suffix: "%", color: "#FF6B35" },
+            { label: "Carbon",    value: 0.5,suffix: "%", color: "#4DFFB4" },
+          ],
+          accent_color: "#A855F7",
+          duration_s: 12,
+        } satisfies MultiRingProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 12) * FPS),
+        })}
+      />
+
+      <Composition
+        id="DateLabel"
+        component={DateLabel}
+        durationInFrames={150}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          date: "July 20, 1969",
+          label: "Moon Landing",
+          accent_color: "#FFD700",
+          duration_s: 6,
+          side: "left",
+        } satisfies DateLabelProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 6) * FPS),
+        })}
+      />
+      {/*
+        DateBookmark — small transparent bookmark-shaped overlay, flies from bottom-left
+        Props: { date, label?, accent_color?, duration_s? = 6 }
+        Transparent bg — overlays on video clips.
+      */}
+      <Composition
+        id="DateBookmark"
+        component={DateBookmark}
+        durationInFrames={150}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          date: "October 2025",
+          label: "Live Event",
+          color_start: "#00C8FF",
+          color_end:   "#A855F7",
+          duration_s: 6,
+        } satisfies DateBookmarkProps}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: Math.round((props.duration_s ?? 6) * FPS),
         })}
       />
     </>
