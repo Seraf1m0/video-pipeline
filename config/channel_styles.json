@@ -79,7 +79,7 @@
     "subtitle_max_words": 3,
     "subtitle_size_offset": 24,
     "color_grade": "cool_cinematic",
-    "subtitle_anim": "word_highlight",
+    "subtitle_anim": "slam",
     "lufs_target": -16.0,
     "cta_mov": "D:/Video-pipeline-temp/test_cta_es.mov",
     "cta_min_gap_s": 90,

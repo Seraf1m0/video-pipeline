@@ -339,6 +339,14 @@ _SCALE_POP_STEPS = [
 ]
 _SCALE_POP_FADE_IN = 0.08   # alpha растёт 0→1 поверх первых двух шагов
 
+# Slam: 3 жёстких шага × 0.05s = 0.15s — 200%→100%, резкий удар
+_SLAM_STEPS = [
+    (0.05, 2.00),
+    (0.05, 1.35),
+    (0.05, 1.00),
+]
+_SLAM_FADE_IN = 0.05  # alpha 0→1 за первый шаг
+
 
 def generate_drawtext_filter(
     result_json_path: "Path | str",
@@ -467,6 +475,49 @@ def generate_drawtext_filter(
                 f":fontcolor=white:alpha='{alpha_fin}'"
                 f"{shad}:x=(w-text_w)/2:y=h-90"
                 f":enable='{en_fin}'"
+            )
+
+        elif animation == "slam":
+            # 3 жёстких шага ease-out 200%→100% за 0.15s
+            cursor = ts
+            for step_dur, scale in _SLAM_STEPS:
+                t0 = cursor
+                t1 = round(cursor + step_dur, 4)
+                fs = max(1, int(font_size * scale))
+                alpha = f"min(1\\,(t-{ts:.4f})/{_SLAM_FADE_IN:.4f})"
+                en    = f"gte(t\\,{t0:.4f})*lt(t\\,{t1:.4f})"
+                parts.append(
+                    f"drawtext=fontfile='{fp}':text='{txt}':fontsize={fs}"
+                    f":fontcolor=white:alpha='{alpha}'"
+                    f"{shad}:x=(w-text_w)/2:y=h-90"
+                    f":enable='{en}'"
+                )
+                cursor = t1
+            # удерживающий шаг + fade-out
+            alpha_fin = f"if(gt(t\\,{te - fo:.4f})\\,({te:.4f}-t)/{fo:.4f}\\,1)"
+            en_fin    = f"gte(t\\,{cursor:.4f})*lte(t\\,{te:.4f})"
+            parts.append(
+                f"drawtext=fontfile='{fp}':text='{txt}':fontsize={font_size}"
+                f":fontcolor=white:alpha='{alpha_fin}'"
+                f"{shad}:x=(w-text_w)/2:y=h-90"
+                f":enable='{en_fin}'"
+            )
+
+        elif animation == "drop":  # слова падают сверху — инверсия rise
+            fi = fade_in
+            # Y стартует выше позиции (rise_px выше), опускается на место
+            y_expr     = f"h-42-{rise_px}*(1-min(1\\,(t-{ts:.3f})/{fi:.3f}))"
+            alpha_expr = (
+                f"if(lt(t-{ts:.3f}\\,{fi:.3f})"
+                f"\\,(t-{ts:.3f})/{fi:.3f}"
+                f"\\,if(gt(t\\,{te:.3f}-{fo:.3f})"
+                f"\\,({te:.3f}-t)/{fo:.3f}\\,1))"
+            )
+            parts.append(
+                f"drawtext=fontfile='{fp}':text='{txt}':fontsize={font_size}"
+                f":fontcolor=white:borderw=3:bordercolor=black@0.5"
+                f":x=(w-text_w)/2:y={y_expr}:alpha={alpha_expr}"
+                f":enable='between(t\\,{ts:.3f}\\,{te:.3f})'"
             )
 
         else:  # "rise" — DE стиль
