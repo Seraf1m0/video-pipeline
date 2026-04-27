@@ -141,8 +141,9 @@ async def _build_async(
     if resume and out_path.exists():
         try:
             d = np.load(str(out_path), allow_pickle=True)
-            done_ids = d["clip_ids"].tolist()
-            done_vecs = [d["embeddings"][i] for i in range(len(done_ids))]
+            done_ids  = d["clip_ids"].tolist()
+            embs_mat  = d["embeddings"]          # загружаем матрицу один раз
+            done_vecs = list(embs_mat)            # быстро: list of row views, без повторной декомпрессии
             print(f"[Embed] Resume: уже готово {len(done_ids)} клипов", flush=True)
         except Exception:
             done_ids, done_vecs = [], []
