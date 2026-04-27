@@ -9,7 +9,7 @@ paths.py — централизованное управление путями 
   data/channels/{subdir}/{session}/output/
 
 Поддиректории каналов (subdir):
-  cosmos_de / cosmos_fr / religion_es / cosmos_us
+  cosmos_de / cosmos_fr / religion_es / cosmos_us / cosmos_es
 
 Библиотеки:
   D:/Video-pipeline-library/library_cosmos   — cosmos-ниша (DE, FR, US)
@@ -37,6 +37,7 @@ NICHE_MAP = {
     "channel_002_cosmos_fr":   "cosmos",
     "channel_003_religion_es": "religion",
     "channel_004_cosmos_us":   "cosmos",
+    "channel_005_cosmos_es":   "cosmos",
 }
 
 # ── Привязка каналов к языкам (используется для имён файлов) ──────────────────
@@ -46,6 +47,7 @@ LANG_MAP = {
     "channel_002_cosmos_fr":   "fr",
     "channel_003_religion_es": "es",
     "channel_004_cosmos_us":   "us",
+    "channel_005_cosmos_es":   "es",
 }
 
 # ── Привязка каналов к папкам на диске ────────────────────────────────────────
@@ -55,6 +57,7 @@ SUBDIR_MAP = {
     "channel_002_cosmos_fr":   "cosmos_fr",
     "channel_003_religion_es": "religion_es",
     "channel_004_cosmos_us":   "cosmos_us",
+    "channel_005_cosmos_es":   "cosmos_es",
 }
 
 

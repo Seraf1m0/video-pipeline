@@ -1,0 +1,30 @@
+{
+  "id": "channel_005_cosmos_es",
+  "name": "Cosmos ES",
+  "data_subdir": "channels/es",
+  "emoji": "🌌",
+  "language": "es",
+  "niche": "cosmos",
+  "tg_channel": "",
+  "transcriber": {
+    "language": "es",
+    "task": "transcribe"
+  },
+  "prompt_generator": {
+    "language": "en",
+    "source_language": "es",
+    "system_context": "Scientific space documentary in Spanish",
+    "photo_master": "photo_master_prompt.txt",
+    "video_master": "master_video_grok.txt"
+  },
+  "assembler": {
+    "subtitle_language": "es",
+    "music_dir": "",
+    "intro_enabled": true
+  },
+  "validator": {
+    "niche": "cosmos",
+    "stock_query_language": "es"
+  },
+  "library": "D:/Video-pipeline-library/library_cosmos"
+}
