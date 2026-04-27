@@ -4,13 +4,11 @@ import {
   staticFile, useCurrentFrame, useVideoConfig,
   Easing, Sequence,
 } from "remotion";
-import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
 import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
 import { loadFont as loadBebasNeue } from "@remotion/google-fonts/BebasNeue";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
-const { fontFamily: SYNE    } = loadSyne();
 const { fontFamily: MONTSERRAT } = loadMontserrat();
 const { fontFamily: BEBAS   } = loadBebasNeue();
 
@@ -212,10 +210,10 @@ export const BigNumber: React.FC<BigNumberProps> = ({
           }}>
             {/* Unit label above */}
             <div style={{
-              fontFamily: SYNE,
-              fontSize: 13,
+              fontFamily: MONTSERRAT,
+              fontSize: 17,
               fontWeight: "800",
-              letterSpacing: "0.4em",
+              letterSpacing: "0.30em",
               textTransform: "uppercase",
               color: accent_color,
               marginBottom: 8,
@@ -258,22 +256,22 @@ export const BigNumber: React.FC<BigNumberProps> = ({
             transform: `translateX(${combinedRightX}px)`,
           }}>
             <div style={{
-              fontFamily: SYNE,
-              fontSize: 28,
+              fontFamily: MONTSERRAT,
+              fontSize: 36,
               fontWeight: "800",
               color: "#FFFFFF",
               letterSpacing: "-0.01em",
-              lineHeight: 1.25,
+              lineHeight: 1.3,
             }}>
               {description}
             </div>
             {context && (
               <div style={{
                 fontFamily: MONTSERRAT,
-                fontSize: 16,
+                fontSize: 21,
                 fontWeight: "600",
-                color: "#FFFFFF88",
-                lineHeight: 1.5,
+                color: "#FFFFFFCC",
+                lineHeight: 1.55,
                 letterSpacing: "0.01em",
               }}>
                 {context}

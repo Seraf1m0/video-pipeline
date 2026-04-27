@@ -4,14 +4,14 @@ import {
   staticFile, useCurrentFrame, useVideoConfig,
   Easing, Sequence,
 } from "remotion";
-import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
+import { loadFont as loadSyne       } from "@remotion/google-fonts/Syne";
 import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
-import { loadFont as loadSpaceMono } from "@remotion/google-fonts/SpaceMono";
+import { loadFont as loadSpaceMono  } from "@remotion/google-fonts/SpaceMono";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE      } = loadSyne();
-const { fontFamily: MONTSERRAT   } = loadMontserrat();
+const { fontFamily: MONTSERRAT } = loadMontserrat();
 const { fontFamily: SPACEMONO } = loadSpaceMono();
 
 export interface DateStampProps {
@@ -33,23 +33,23 @@ const Bg: React.FC<{ frame: number; color: string; total: number }> = ({ frame, 
     extrapolateLeft: "clamp", extrapolateRight: "clamp",
   });
   const op = inOp * outOp;
-  const s1 = 1 + Math.sin(frame * 0.020) * 0.07;
-  const nx  = noise2D("dsbx", frame * 0.0015, 0) * 5;
-  const ny  = noise2D("dsby", 0, frame * 0.0015) * 4;
+  const s1 = 1 + Math.sin(frame * 0.018) * 0.06;
+  const nx  = noise2D("dsbx", frame * 0.0014, 0) * 5;
+  const ny  = noise2D("dsby", 0, frame * 0.0014) * 4;
 
   return (
     <AbsoluteFill>
       <div style={{
         position: "absolute",
-        left: `${50 + nx}%`, top: `${50 + ny}%`,
+        left: `${42 + nx}%`, top: `${50 + ny}%`,
         transform: `translate(-50%,-50%) scale(${s1})`,
-        width: 1000, height: 700, borderRadius: "50%",
+        width: 900, height: 600, borderRadius: "50%",
         background: `radial-gradient(ellipse, ${color} 0%, transparent 65%)`,
-        filter: "blur(130px)", opacity: op * 0.10,
+        filter: "blur(150px)", opacity: op * 0.09,
       }} />
       <div style={{
         position: "absolute", inset: 0,
-        background: "radial-gradient(ellipse 90% 85% at 50% 50%, transparent 20%, #000000DD 100%)",
+        background: "radial-gradient(ellipse 90% 85% at 50% 50%, transparent 20%, #000000E5 100%)",
       }} />
     </AbsoluteFill>
   );
@@ -61,7 +61,7 @@ const Grid: React.FC<{ frame: number; color: string; total: number }> = ({ frame
   const outOp = interpolate(frame, [total - EXIT_DUR, total - EXIT_DUR + 16], [1, 0], {
     extrapolateLeft: "clamp", extrapolateRight: "clamp",
   });
-  const op = inOp * outOp * 0.06;
+  const op = inOp * outOp * 0.04;
   return (
     <AbsoluteFill style={{ opacity: op }}>
       {Array.from({ length: 9 }, (_, i) => (
@@ -73,7 +73,7 @@ const Grid: React.FC<{ frame: number; color: string; total: number }> = ({ frame
       {Array.from({ length: 6 }, (_, i) => (
         <div key={`h${i}`} style={{
           position: "absolute", top: `${(i / 5) * 100}%`, left: 0, right: 0, height: 1,
-          background: "linear-gradient(to right, transparent, #FFFFFF10, transparent)",
+          background: "linear-gradient(to right, transparent, #FFFFFF08, transparent)",
         }} />
       ))}
     </AbsoluteFill>
@@ -138,34 +138,39 @@ export const DateStamp: React.FC<DateStampProps> = ({
     extrapolateLeft: "clamp", extrapolateRight: "clamp",
   });
 
-  // Adaptive date font size
-  const dateFontSize = date.length > 16 ? 90 : date.length > 10 ? 120 : date.length > 6 ? 160 : 200;
+  // Date font size
+  const dateFontSize = date.length > 16 ? 72 : date.length > 10 ? 96 : date.length > 6 ? 130 : 160;
 
-  // Badge: slides from top
-  const badgeSpr = spring({ frame: frame - 4, fps, config: { damping: 20, stiffness: 260 } });
-  const badgeY   = interpolate(badgeSpr, [0, 1], [-120, 0]);
-  const badgeOp  = interpolate(frame, [4, 18], [0, 1], { extrapolateRight: "clamp" })
-                 * interpolate(frame, [exitStart + 4, exitStart + 22], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-
-  // Divider line
-  const lineW = interpolate(frame, [18, 40], [0, 100], {
-    extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.exp),
-  });
-  const lineOp = interpolate(frame, [exitStart, exitStart + 16], [1, 0], {
-    extrapolateLeft: "clamp", extrapolateRight: "clamp",
+  // ── Badge: flies in from RIGHT ──
+  const badgeSpr = spring({ frame: frame - 6, fps, config: { damping: 18, stiffness: 200 } });
+  const badgeX   = interpolate(badgeSpr, [0, 1], [1400, 0]);
+  const badgeOp  = interpolate(frame, [6, 22], [0, 1], { extrapolateRight: "clamp" })
+                 * interpolate(frame, [exitStart + 4, exitStart + 22], [1, 0], {
+                     extrapolateLeft: "clamp", extrapolateRight: "clamp",
+                   });
+  // Exit: flies back to right
+  const badgeExitX = interpolate(frame, [exitStart + 4, exitStart + 24], [0, 1400], {
+    extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.in(Easing.cubic),
   });
 
-  // Event text
-  const eventSpr = spring({ frame: frame - 24, fps, config: { damping: 26, stiffness: 240 } });
-  const eventY   = interpolate(eventSpr, [0, 1], [30, 0]);
-  const eventOp  = interpolate(frame, [24, 38], [0, 1], { extrapolateRight: "clamp" })
-                 * interpolate(frame, [exitStart + 4, exitStart + 22], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // ── Event label: fades in from below after badge settles ──
+  const eventSpr = spring({ frame: frame - 28, fps, config: { damping: 26, stiffness: 220 } });
+  const eventY   = interpolate(eventSpr, [0, 1], [20, 0]);
+  const eventOp  = interpolate(frame, [28, 42], [0, 1], { extrapolateRight: "clamp" })
+                 * interpolate(frame, [exitStart + 2, exitStart + 18], [1, 0], {
+                     extrapolateLeft: "clamp", extrapolateRight: "clamp",
+                   });
 
-  // Sub text
-  const subSpr = spring({ frame: frame - 34, fps, config: { damping: 26, stiffness: 220 } });
-  const subY   = interpolate(subSpr, [0, 1], [20, 0]);
-  const subOp  = interpolate(frame, [34, 48], [0, 1], { extrapolateRight: "clamp" })
-               * interpolate(frame, [exitStart + 4, exitStart + 22], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // ── Sub: fades in last ──
+  const subSpr = spring({ frame: frame - 40, fps, config: { damping: 28, stiffness: 220 } });
+  const subY   = interpolate(subSpr, [0, 1], [14, 0]);
+  const subOp  = interpolate(frame, [40, 54], [0, 1], { extrapolateRight: "clamp" })
+               * interpolate(frame, [exitStart + 2, exitStart + 16], [1, 0], {
+                   extrapolateLeft: "clamp", extrapolateRight: "clamp",
+                 });
+
+  // Accent strip pulse
+  const stripGlow = 0.5 + Math.sin(frame * 0.06) * 0.3;
 
   return (
     <AbsoluteFill style={{ background: bg_color, overflow: "hidden" }}>
@@ -177,90 +182,142 @@ export const DateStamp: React.FC<DateStampProps> = ({
 
         {/* SFX */}
         <Sequence from={0} durationInFrames={20}>
-          <Audio src={staticFile("sfx/rise.wav")} volume={0.18} />
+          <Audio src={staticFile("sfx/rise.wav")} volume={0.14} />
         </Sequence>
-        <Sequence from={4} durationInFrames={28}>
-          <Audio src={staticFile("sfx/impact.wav")} volume={0.24} />
+        <Sequence from={6} durationInFrames={28}>
+          <Audio src={staticFile("sfx/impact.wav")} volume={0.22} />
         </Sequence>
-        <Sequence from={24} durationInFrames={20}>
-          <Audio src={staticFile("sfx/ping.wav")} volume={0.12} />
+        <Sequence from={28} durationInFrames={18}>
+          <Audio src={staticFile("sfx/ping.wav")} volume={0.10} />
         </Sequence>
         <Sequence from={exitStart + 6} durationInFrames={28}>
-          <Audio src={staticFile("sfx/whoosh_out_3.wav")} volume={0.20} />
+          <Audio src={staticFile("sfx/whoosh_out_3.wav")} volume={0.18} />
         </Sequence>
 
+        {/* Centered layout */}
         <AbsoluteFill style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: "60px 120px",
-          gap: 32,
+          padding: "80px 140px",
+          gap: 28,
         }}>
-          {/* Date badge */}
+
+          {/* ── BEAUTIFUL BADGE ── */}
           <div style={{
             opacity: badgeOp,
-            transform: `translateY(${badgeY}px)`,
-            border: `1px solid ${accent_color}`,
-            boxShadow: `0 0 30px ${accent_color}44, inset 0 0 20px ${accent_color}11`,
-            borderRadius: 8,
-            padding: "16px 48px",
+            transform: `translateX(${badgeX + badgeExitX}px)`,
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            alignItems: "stretch",
+            borderRadius: 16,
+            overflow: "hidden",
+            border: `1px solid ${accent_color}55`,
+            boxShadow: `0 0 60px ${accent_color}22, 0 0 120px ${accent_color}0A, inset 0 1px 0 ${accent_color}33`,
+            background: "rgba(255,255,255,0.04)",
+            backdropFilter: "blur(12px)",
           }}>
+            {/* Left accent strip */}
             <div style={{
-              fontFamily: SPACEMONO,
-              fontSize: dateFontSize,
-              fontWeight: "700",
-              color: accent_color,
-              textShadow: `0 0 40px ${accent_color}88`,
-              letterSpacing: "0.04em",
-              lineHeight: 1,
+              width: 8,
+              background: accent_color,
+              flexShrink: 0,
+              boxShadow: `0 0 ${24 * stripGlow}px ${accent_color}CC`,
+            }} />
+
+            {/* Badge content */}
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              padding: "28px 52px 28px 40px",
+              gap: 4,
             }}>
-              {date}
+              {/* Label row */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 6,
+              }}>
+                {/* Dot */}
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: accent_color,
+                  boxShadow: `0 0 10px ${accent_color}`,
+                  flexShrink: 0,
+                }} />
+                <div style={{
+                  fontFamily: SYNE,
+                  fontSize: 14,
+                  fontWeight: "800",
+                  letterSpacing: "0.35em",
+                  textTransform: "uppercase",
+                  color: `${accent_color}CC`,
+                }}>
+                  {event}
+                </div>
+              </div>
+
+              {/* Date — big */}
+              <div style={{
+                fontFamily: SPACEMONO,
+                fontSize: dateFontSize,
+                fontWeight: "700",
+                color: "#FFFFFF",
+                letterSpacing: "0.03em",
+                lineHeight: 1.0,
+                textShadow: `0 0 50px ${accent_color}55`,
+              }}>
+                {date}
+              </div>
+
+              {/* Sub */}
+              {sub && (
+                <div style={{
+                  fontFamily: MONTSERRAT,
+                  fontSize: 18,
+                  fontWeight: "600",
+                  color: "#FFFFFFAA",
+                  letterSpacing: "0.04em",
+                  marginTop: 8,
+                  lineHeight: 1.4,
+                }}>
+                  {sub}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Thin divider line */}
-          <div style={{
-            width: `${lineW}%`,
-            height: 1,
-            background: `linear-gradient(to right, transparent, ${accent_color}66, transparent)`,
-            opacity: lineOp,
-          }} />
-
-          {/* Event */}
+          {/* Decorative bottom line */}
           <div style={{
             opacity: eventOp,
             transform: `translateY(${eventY}px)`,
-            fontFamily: SYNE,
-            fontSize: 32,
-            fontWeight: "800",
-            color: "#FFFFFF",
-            letterSpacing: "0.1em",
-            textAlign: "center",
-            lineHeight: 1.2,
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
           }}>
-            {event}
-          </div>
-
-          {/* Sub */}
-          {sub && (
             <div style={{
-              opacity: subOp,
-              transform: `translateY(${subY}px)`,
+              width: 48, height: 1,
+              background: `${accent_color}66`,
+            }} />
+            <div style={{
               fontFamily: MONTSERRAT,
               fontSize: 16,
               fontWeight: "600",
-              color: "#FFFFFF77",
-              letterSpacing: "0.02em",
-              textAlign: "center",
-              lineHeight: 1.5,
+              letterSpacing: "0.20em",
+              textTransform: "uppercase",
+              color: "#FFFFFF55",
             }}>
-              {sub}
+              {sub ? sub : event}
             </div>
-          )}
+            <div style={{
+              width: 48, height: 1,
+              background: `${accent_color}66`,
+            }} />
+          </div>
+
         </AbsoluteFill>
       </div>
     </AbsoluteFill>

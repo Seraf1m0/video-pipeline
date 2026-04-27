@@ -180,7 +180,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
   // Font size based on line count and max line length
   const maxLineLen = Math.max(...lines.map(l => l.length + 4)); // +4 for prompt
-  const fontSize   = maxLineLen > 60 ? 18 : maxLineLen > 45 ? 20 : maxLineLen > 30 ? 22 : 24;
+  const fontSize   = maxLineLen > 60 ? 20 : maxLineLen > 45 ? 22 : maxLineLen > 30 ? 24 : 27;
 
   return (
     <AbsoluteFill style={{ background: bg_color, overflow: "hidden" }}>

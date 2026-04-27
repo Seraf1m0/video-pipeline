@@ -6,13 +6,11 @@ import {
 } from "remotion";
 import { loadFont as loadSyne    } from "@remotion/google-fonts/Syne";
 import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
-import { loadFont as loadBebasNeue } from "@remotion/google-fonts/BebasNeue";
 import { noise2D } from "@remotion/noise";
 import { seededRand } from "../utils/seeded";
 
 const { fontFamily: SYNE    } = loadSyne();
 const { fontFamily: MONTSERRAT } = loadMontserrat();
-const { fontFamily: BEBAS   } = loadBebasNeue();
 
 export interface ScorecardMetric {
   label: string;
@@ -165,24 +163,25 @@ const MetricCard: React.FC<{
     }}>
       {/* Label */}
       <div style={{
-        fontFamily: SYNE,
-        fontSize: 13,
-        fontWeight: "800",
-        letterSpacing: "0.18em",
+        fontFamily: MONTSERRAT,
+        fontSize: 22,
+        fontWeight: "700",
+        letterSpacing: "0.12em",
         textTransform: "uppercase",
-        color: "#FFFFFF66",
+        color: "#FFFFFF",
       }}>
         {metric.label}
       </div>
 
       {/* Value */}
       <div style={{
-        fontFamily: BEBAS,
-        fontSize: 110,
-        letterSpacing: "0.02em",
+        fontFamily: MONTSERRAT,
+        fontSize: 120,
+        fontWeight: "900",
+        letterSpacing: "-0.02em",
         color: color,
         lineHeight: 1.0,
-        textShadow: `0 0 50px ${color}77`,
+        textShadow: `0 0 60px ${color}77`,
         paddingTop: 4,
       }}>
         {metric.value}
@@ -191,11 +190,11 @@ const MetricCard: React.FC<{
       {/* Unit */}
       {metric.unit && (
         <div style={{
-          fontFamily: SYNE,
-          fontSize: 15,
+          fontFamily: MONTSERRAT,
+          fontSize: 24,
           fontWeight: "700",
-          color: `${color}99`,
-          letterSpacing: "0.10em",
+          color: color,
+          letterSpacing: "0.08em",
           textTransform: "uppercase",
         }}>
           {metric.unit}
@@ -279,12 +278,12 @@ export const Scorecard: React.FC<ScorecardProps> = ({
           <div style={{
             opacity: titleOp,
             transform: `translateY(${titleY}px)`,
-            fontFamily: SYNE,
-            fontSize: 13,
+            fontFamily: MONTSERRAT,
+            fontSize: 20,
             fontWeight: "800",
-            letterSpacing: "0.40em",
+            letterSpacing: "0.28em",
             textTransform: "uppercase",
-            color: "#FFFFFF55",
+            color: "#FFFFFF",
           }}>
             {title}
           </div>

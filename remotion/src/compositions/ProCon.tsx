@@ -259,7 +259,7 @@ export const ProCon: React.FC<ProConProps> = ({
     ...pros.map(p => p.length),
     ...cons.map(c => c.length),
   );
-  const fontSize = maxLen > 60 ? 16 : maxLen > 40 ? 18 : maxLen > 25 ? 20 : 22;
+  const fontSize = maxLen > 60 ? 19 : maxLen > 40 ? 21 : maxLen > 25 ? 23 : 25;
 
   // Title
   const { fps: _fps } = useVideoConfig();
@@ -309,11 +309,11 @@ export const ProCon: React.FC<ProConProps> = ({
               opacity: titleOp,
               transform: `translateY(${titleY}px)`,
               fontFamily: SYNE,
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: "800",
-              letterSpacing: "0.40em",
+              letterSpacing: "0.32em",
               textTransform: "uppercase",
-              color: "#FFFFFF55",
+              color: "#FFFFFF",
               textAlign: "center",
             }}>
               {title}

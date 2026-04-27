@@ -256,9 +256,9 @@ export const Ranking: React.FC<RankingProps> = ({
 
   // Font size based on item count and max label length
   const maxLabelLen = Math.max(...items.map(i => i.label.length));
-  const fontSize    = items.length > 7 ? (maxLabelLen > 30 ? 18 : 20) :
-                      items.length > 5 ? (maxLabelLen > 30 ? 20 : 24) :
-                                          (maxLabelLen > 30 ? 22 : 26);
+  const fontSize    = items.length > 7 ? (maxLabelLen > 30 ? 20 : 22) :
+                      items.length > 5 ? (maxLabelLen > 30 ? 22 : 26) :
+                                          (maxLabelLen > 30 ? 25 : 29);
 
   return (
     <AbsoluteFill style={{ background: bg_color, overflow: "hidden" }}>
@@ -299,11 +299,11 @@ export const Ranking: React.FC<RankingProps> = ({
           }}>
             <div style={{
               fontFamily: SYNE,
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: "800",
-              letterSpacing: "0.40em",
+              letterSpacing: "0.32em",
               textTransform: "uppercase",
-              color: "#FFFFFF55",
+              color: "#FFFFFF",
             }}>
               {title}
             </div>
