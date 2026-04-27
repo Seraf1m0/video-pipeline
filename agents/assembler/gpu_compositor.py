@@ -31,7 +31,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 # ─── Разрешение ───────────────────────────────────────────────────────────────
 W, H       = 1920, 1080
@@ -228,9 +228,12 @@ ANIM_FADE_SCALE = "fade_scale"    # fade + scale 0.85 → 1.0 → 0.85
 ANIM_SLIDE_UP   = "slide_up"      # выезд снизу + fade
 ANIM_POP        = "pop"           # быстрый bounce scale + fade
 ANIM_WORD_HL    = "word_highlight" # karaoke: текущее слово жёлтое, второе — белое dim
+ANIM_SLAM       = "slam"          # жёсткий удар 200%→100% за 3 кадра, затем hold + fade
+ANIM_DROP       = "drop"          # слово падает сверху (инверсия slide_up)
 
-_SLIDE_PX    = 22    # пикселей смещения для slide_up
+_SLIDE_PX    = 22    # пикселей смещения для slide_up / drop
 _POP_FRAMES  = 4     # кадров для bounce при pop
+_SLAM_FRAMES = 8     # кадров для схлопывания 200%→100% при slam (0.32s @ 25fps)
 _COLOR_BRIGHT = (255, 220, 50,  255)  # жёлтый — активное слово
 _COLOR_DIM    = (180, 180, 180, 255)  # серый — неактивное слово
 _COLOR_WHITE  = (255, 255, 255, 255)  # белый — обычный текст
@@ -240,11 +243,16 @@ def _render_sub_rgba(text: str, font: ImageFont.FreeTypeFont,
                      max_width: int = W - 160,
                      color: tuple = _COLOR_WHITE,
                      outline: int = 3,
+                     shadow_opacity: float = 0.0,
+                     shadow_dx: int = 4,
+                     shadow_dy: int = 5,
+                     shadow_blur: int = 8,
                      fixed_h: int | None = None,
                      fixed_by: int | None = None) -> np.ndarray:
     """
     Рендерит строку субтитра в RGBA numpy [H, W, 4] uint8.
-    outline=0 → без обводки (для karaoke word_hl).
+    outline=0    → без обводки.
+    shadow_opacity > 0 → мягкая тень через GaussianBlur (отдельный слой под текстом).
 
     fixed_h  : если задан — высота canvas фиксирована (одинакова для всех слов группы).
     fixed_by : если задан — позиция рисования по Y фиксирована (одинаковый baseline).
@@ -256,21 +264,40 @@ def _render_sub_rgba(text: str, font: ImageFont.FreeTypeFont,
 
     full_text = text
     bb = draw.textbbox((0, 0), full_text, font=font)
-    tw = min(bb[2] - bb[0] + pad * 2 + 6, W)
+
+    # Расширяем canvas под тень: нужно место для offset + blur
+    shad_pad_x = (abs(shadow_dx) + shadow_blur + 2) if shadow_opacity > 0 else 0
+    shad_pad_y = (abs(shadow_dy) + shadow_blur + 2) if shadow_opacity > 0 else 0
+
+    tw = min(bb[2] - bb[0] + pad * 2 + 6 + shad_pad_x * 2, W)
 
     if fixed_h is not None:
-        # Режим karaoke: canvas одинаковой высоты, by фиксирован → единый baseline
         th = fixed_h
         by = fixed_by if fixed_by is not None else (pad + 3)
     else:
-        th = bb[3] - bb[1] + pad * 2 + 6
-        # Выравниваем по нижнему краю текста (bb[3]) а не по верху canvas
-        by = th - bb[3] - pad - 3
+        th = bb[3] - bb[1] + pad * 2 + 6 + shad_pad_y * 2
+        by = th - bb[3] - pad - 3 - shad_pad_y
 
-    img  = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
+    bx = pad + 3 + shad_pad_x
+
+    # ── Тень (отдельный слой → GaussianBlur → под текст) ────────────────────
+    # Трюк: рисуем текст 2× перед blur — компенсируем потерю alpha от размытия
+    img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
+    if shadow_opacity > 0:
+        shad_layer = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
+        shad_draw  = ImageDraw.Draw(shad_layer)
+        shad_alpha = int(255 * shadow_opacity)
+        sx, sy = bx + shadow_dx, by + shadow_dy
+        # Рисуем дважды — blur иначе "съедает" alpha до ~30% от исходного
+        shad_draw.text((sx, sy), full_text, font=font,
+                       fill=(0, 0, 0, shad_alpha), align="center")
+        shad_draw.text((sx, sy), full_text, font=font,
+                       fill=(0, 0, 0, shad_alpha), align="center")
+        shad_layer = shad_layer.filter(ImageFilter.GaussianBlur(radius=shadow_blur))
+        img = Image.alpha_composite(img, shad_layer)
+
+    # ── Обводка ───────────────────────────────────────────────────────────────
     draw = ImageDraw.Draw(img)
-
-    bx = pad + 3
     if outline > 0:
         for dx in range(-outline, outline + 1, max(1, outline)):
             for dy in range(-outline, outline + 1, max(1, outline)):
@@ -278,6 +305,8 @@ def _render_sub_rgba(text: str, font: ImageFont.FreeTypeFont,
                     continue
                 draw.text((bx + dx, by + dy), full_text, font=font,
                           fill=(0, 0, 0, 220), align="center")
+
+    # ── Текст ─────────────────────────────────────────────────────────────────
     draw.text((bx, by), full_text, font=font, fill=color, align="center")
 
     return np.array(img, dtype=np.uint8)
@@ -300,7 +329,12 @@ def prerender_subtitles(events: list[dict],
                         fade_ms: int = 100,
                         font_path: str | None = None,
                         subtitle_style: str = "default",
-                        subtitle_anim: str = ANIM_SLIDE_UP) -> list[dict]:
+                        subtitle_anim: str = ANIM_SLIDE_UP,
+                        outline: int = 3,
+                        shadow_opacity: float = 0.0,
+                        shadow_dx: int = 4,
+                        shadow_dy: int = 5,
+                        shadow_blur: int = 8) -> list[dict]:
     """
     CPU: растеризует все субтитры параллельно → GPU: загружает в VRAM (batch, non-blocking).
 
@@ -390,7 +424,12 @@ def prerender_subtitles(events: list[dict],
             })
 
         _color = _COLOR_BRIGHT if subtitle_anim == ANIM_WORD_HL else _COLOR_WHITE
-        arr = _render_sub_rgba(ev["text"], font, color=_color)
+        arr = _render_sub_rgba(ev["text"], font, color=_color,
+                               outline=outline,
+                               shadow_opacity=shadow_opacity,
+                               shadow_dx=shadow_dx,
+                               shadow_dy=shadow_dy,
+                               shadow_blur=shadow_blur)
         th, tw = arr.shape[:2]
         x  = (W - tw) // 2
         _pos_y = ev.get("pos_y")
@@ -617,6 +656,29 @@ def composite_subtitles(frame: torch.Tensor,
             dx = (ev["tw"] - sw) // 2
             dy = (ev["th"] - sh) // 2
             frame = _composite_one(frame, scaled, x_base + dx, y_base + dy, alpha_pop)
+
+        elif anim == ANIM_SLAM:
+            # Ease-out cubic: 200%→100% за _SLAM_FRAMES кадров, затем hold + fade-out
+            # Кривая: scale = 1 + (1-p)^3  — быстрый старт, плавное торможение
+            # Alpha: быстрый fade-in за первые 3 кадра
+            if t < _SLAM_FRAMES:
+                p     = t / _SLAM_FRAMES
+                scale = 1.0 + (1.0 - p) ** 3   # ease-out cubic: 2.0 → 1.0
+            else:
+                scale = 1.0
+            alpha_slam = min(fade, min(1.0, t / 3))  # fade-in за 3 кадра
+            scaled = _scale_tensor(tensor, scale)
+            sh, sw = scaled.shape[:2]
+            dx = (ev["tw"] - sw) // 2
+            dy = (ev["th"] - sh) // 2
+            frame = _composite_one(frame, scaled, x_base + dx, y_base + dy, alpha_slam)
+
+        elif anim == ANIM_DROP:
+            # Падает сверху с ease-out: быстро стартует, плавно тормозит на месте
+            # ease-out quad: offset = _SLIDE_PX * (1 - fade)^2
+            drop_t = (1.0 - fade) ** 2
+            y_off  = int(_SLIDE_PX * drop_t)
+            frame  = _composite_one(frame, tensor, x_base, y_base - y_off, fade)
 
     return frame
 
@@ -1158,6 +1220,11 @@ def run(
     font_path:        str | None     = None,
     subtitle_style:   str            = "default",
     subtitle_anim:    str            = ANIM_SLIDE_UP,
+    subtitle_outline: int            = 3,
+    shadow_opacity:   float          = 0.0,
+    shadow_dx:        int            = 4,
+    shadow_dy:        int            = 5,
+    shadow_blur:      int            = 8,
     timeline:         Path | None    = None,  # single-pass режим
     cta_path:         Path | None    = None,  # CTA .mov (RGBA)
     cta_timestamps:   list[float] | None = None,  # абс. тайминги от начала видео
@@ -1196,7 +1263,12 @@ def run(
         sub_events = prerender_subtitles(raw_events, font_size, fps, fade_ms,
                                          font_path=font_path,
                                          subtitle_style=subtitle_style,
-                                         subtitle_anim=subtitle_anim)
+                                         subtitle_anim=subtitle_anim,
+                                         outline=subtitle_outline,
+                                         shadow_opacity=shadow_opacity,
+                                         shadow_dx=shadow_dx,
+                                         shadow_dy=shadow_dy,
+                                         shadow_blur=shadow_blur)
         print(f"[GPU] Subtitle pre-render: {time.time()-t0:.1f}s "
               f"({len(sub_events)} строк)")
 
@@ -1320,7 +1392,7 @@ def run(
                 if len(raw) < FRAME_BYTES:
                     read_q.put(None)
                     break
-                read_q.put((raw, None, 1.0))
+                read_q.put((raw, None, 1.0, "dissolve"))
 
     reader_thread = threading.Thread(target=_reader, daemon=True)
     reader_thread.start()
